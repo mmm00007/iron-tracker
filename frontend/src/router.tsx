@@ -1,13 +1,11 @@
-import { createRootRoute, createRoute, createRouter, redirect } from '@tanstack/react-router';
+import { createRootRoute, createRoute, createRouter, Outlet, redirect } from '@tanstack/react-router';
 import { AppLayout } from '@/components/layout/AppLayout';
-
-// Placeholder page components — will be replaced by feature implementations
-const LogPage = () => (
-  <div style={{ padding: '16px' }}>
-    <h2>Exercise Log</h2>
-    <p>Select an exercise to log your sets.</p>
-  </div>
-);
+import { AuthGuard } from '@/pages/auth/AuthGuard';
+import { LoginPage } from '@/pages/auth/LoginPage';
+import { SignUpPage } from '@/pages/auth/SignUpPage';
+import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
+import { ProfilePage } from '@/pages/profile/ProfilePage';
+import { ExerciseListPage } from '@/pages/log/ExerciseListPage';
 
 const HistoryPage = () => (
   <div style={{ padding: '16px' }}>
@@ -23,13 +21,6 @@ const StatsPage = () => (
   </div>
 );
 
-const ProfilePage = () => (
-  <div style={{ padding: '16px' }}>
-    <h2>Profile</h2>
-    <p>Account settings and preferences.</p>
-  </div>
-);
-
 const SetLoggerPage = () => (
   <div style={{ padding: '16px' }}>
     <h2>Log Sets</h2>
@@ -37,62 +28,118 @@ const SetLoggerPage = () => (
   </div>
 );
 
-// Root route with layout
+// Root route — renders either auth layout or app layout via child routes
 const rootRoute = createRootRoute({
+  component: Outlet,
+});
+
+// Auth layout route — renders auth pages without AppLayout nav
+const authLayoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: 'auth-layout',
+  component: Outlet,
+});
+
+// App layout route — renders the main app shell with bottom nav
+const appLayoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: 'app-layout',
   component: AppLayout,
 });
 
 // Index route — redirect to /log
 const indexRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appLayoutRoute,
   path: '/',
   beforeLoad: () => {
     throw redirect({ to: '/log' });
   },
 });
 
+// --- Auth routes ---
+
+export const loginRoute = createRoute({
+  getParentRoute: () => authLayoutRoute,
+  path: '/login',
+  component: LoginPage,
+});
+
+export const signUpRoute = createRoute({
+  getParentRoute: () => authLayoutRoute,
+  path: '/signup',
+  component: SignUpPage,
+});
+
+export const forgotPasswordRoute = createRoute({
+  getParentRoute: () => authLayoutRoute,
+  path: '/forgot-password',
+  component: ForgotPasswordPage,
+});
+
+// --- Protected app routes ---
+
+// Wrapper component that applies AuthGuard around the Outlet
+function ProtectedOutlet() {
+  return (
+    <AuthGuard>
+      <Outlet />
+    </AuthGuard>
+  );
+}
+
+const protectedLayoutRoute = createRoute({
+  getParentRoute: () => appLayoutRoute,
+  id: 'protected',
+  component: ProtectedOutlet,
+});
+
 // /log — exercise list
 export const logRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => protectedLayoutRoute,
   path: '/log',
-  component: LogPage,
+  component: ExerciseListPage,
 });
 
 // /log/:exerciseId — set logger
 export const setLoggerRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => protectedLayoutRoute,
   path: '/log/$exerciseId',
   component: SetLoggerPage,
 });
 
 // /history — session timeline
 export const historyRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => protectedLayoutRoute,
   path: '/history',
   component: HistoryPage,
 });
 
 // /stats — stats dashboard
 export const statsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => protectedLayoutRoute,
   path: '/stats',
   component: StatsPage,
 });
 
 // /profile — user profile
 export const profileRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => protectedLayoutRoute,
   path: '/profile',
   component: ProfilePage,
 });
 
 const routeTree = rootRoute.addChildren([
-  indexRoute,
-  logRoute,
-  setLoggerRoute,
-  historyRoute,
-  statsRoute,
-  profileRoute,
+  authLayoutRoute.addChildren([loginRoute, signUpRoute, forgotPasswordRoute]),
+  appLayoutRoute.addChildren([
+    indexRoute,
+    protectedLayoutRoute.addChildren([
+      logRoute,
+      setLoggerRoute,
+      historyRoute,
+      statsRoute,
+      profileRoute,
+    ]),
+  ]),
 ]);
 
 export const router = createRouter({ routeTree });

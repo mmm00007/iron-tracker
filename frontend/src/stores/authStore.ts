@@ -6,46 +6,21 @@ interface AuthState {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signInWithOAuth: (provider: 'google' | 'github') => Promise<void>;
-  signOut: () => Promise<void>;
+  error: string | null;
   initialize: () => Promise<() => void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  clearError: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   session: null,
   loading: true,
-
-  signIn: async (email: string, password: string) => {
-    set({ loading: true });
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      set({ loading: false });
-      throw error;
-    }
-    set({ user: data.user, session: data.session, loading: false });
-  },
-
-  signInWithOAuth: async (provider: 'google' | 'github') => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: window.location.origin,
-      },
-    });
-    if (error) throw error;
-  },
-
-  signOut: async () => {
-    set({ loading: true });
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      set({ loading: false });
-      throw error;
-    }
-    set({ user: null, session: null, loading: false });
-  },
+  error: null,
 
   initialize: async () => {
     // Get initial session
@@ -72,4 +47,61 @@ export const useAuthStore = create<AuthState>((set) => ({
     // Return cleanup function
     return () => subscription.unsubscribe();
   },
+
+  signInWithEmail: async (email: string, password: string) => {
+    set({ loading: true, error: null });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      set({ loading: false, error: error.message });
+      throw error;
+    }
+    set({ user: data.user, session: data.session, loading: false, error: null });
+  },
+
+  signUpWithEmail: async (email: string, password: string) => {
+    set({ loading: true, error: null });
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      set({ loading: false, error: error.message });
+      throw error;
+    }
+    set({ user: data.user, session: data.session, loading: false, error: null });
+  },
+
+  signInWithGoogle: async () => {
+    set({ error: null });
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+    if (error) {
+      set({ error: error.message });
+      throw error;
+    }
+  },
+
+  signOut: async () => {
+    set({ loading: true, error: null });
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      set({ loading: false, error: error.message });
+      throw error;
+    }
+    set({ user: null, session: null, loading: false, error: null });
+  },
+
+  resetPassword: async (email: string) => {
+    set({ error: null });
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) {
+      set({ error: error.message });
+      throw error;
+    }
+  },
+
+  clearError: () => set({ error: null }),
 }));
