@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.models.schemas import HealthResponse
 from app.routers import ai, analytics
+from app.sentry import init_sentry
 
 
 @asynccontextmanager
@@ -30,6 +31,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
+    init_sentry()
     settings = get_settings()
 
     app = FastAPI(

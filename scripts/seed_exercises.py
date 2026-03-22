@@ -71,8 +71,8 @@ MECHANIC_MAP = {
 # Muscle name to wger muscle group ID mapping
 MUSCLE_NAME_TO_ID = {
     'abdominals': 10,
-    'abductors': 8,
-    'adductors': 9,
+    'abductors': 8,      # hip abductors → glutes (functional group)
+    'adductors': 16,     # dedicated adductors entry
     'biceps': 1,
     'calves': 7,
     'chest': 4,
@@ -81,18 +81,19 @@ MUSCLE_NAME_TO_ID = {
     'hamstrings': 11,
     'lats': 12,
     'lower back': 13,
-    'middle back': 12,
+    'middle back': 12,   # rhomboids/mid-traps → lats (simplification)
     'neck': 14,
-    'quadriceps': 10,
+    'quadriceps': 15,    # FIXED: was 10 (abs), now correctly 15
     'shoulders': 2,
     'traps': 9,
-    'triceps': 5,
+    'triceps': 3,        # FIXED: was 5 (forearms), now dedicated ID 3
 }
 
 # Muscle group definitions for seed
 MUSCLE_GROUPS = [
     (1,  'biceps',      'biceps brachii',        True,  'muscle-1'),
     (2,  'shoulders',   'deltoideus',             True,  'muscle-2'),
+    (3,  'triceps',     'triceps brachii',        False, 'muscle-3'),
     (4,  'chest',       'pectoralis major',       True,  'muscle-4'),
     (5,  'forearms',    'flexores antebrachii',   True,  'muscle-5'),
     (7,  'calves',      'gastrocnemius',          False, 'muscle-7'),
@@ -104,6 +105,7 @@ MUSCLE_GROUPS = [
     (13, 'lower back',  'erector spinae',         False, 'muscle-13'),
     (14, 'neck',        'sternocleidomastoid',    True,  'muscle-14'),
     (15, 'quadriceps',  'quadriceps femoris',     True,  'muscle-15'),
+    (16, 'adductors',   'adductor magnus',        True,  'muscle-16'),
 ]
 
 

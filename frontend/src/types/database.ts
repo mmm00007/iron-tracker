@@ -62,7 +62,7 @@ export interface WorkoutSet {
   reps: number;
   rpe: number | null;
   rir: number | null;
-  set_type: 'warmup' | 'working' | 'dropset' | 'amrap' | 'failure';
+  set_type: 'warmup' | 'working' | 'backoff' | 'dropset' | 'amrap' | 'failure';
   tempo: string | null;
   notes: string | null;
   estimated_1rm: number | null;

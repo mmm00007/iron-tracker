@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { WorkoutSet } from '@/types/database';
 
-type SetType = 'warmup' | 'working' | 'dropset' | 'amrap' | 'failure';
+type SetType = 'warmup' | 'working' | 'backoff' | 'dropset' | 'amrap' | 'failure';
 
 interface WorkoutState {
   // Rest timer

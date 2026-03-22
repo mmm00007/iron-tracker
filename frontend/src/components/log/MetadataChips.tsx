@@ -8,11 +8,12 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Typography from '@mui/material/Typography';
 import { useWorkoutStore } from '@/stores/workoutStore';
 
-type SetType = 'warmup' | 'working' | 'dropset' | 'amrap' | 'failure';
+type SetType = 'warmup' | 'working' | 'backoff' | 'dropset' | 'amrap' | 'failure';
 
 const SET_TYPE_OPTIONS: Array<{ value: SetType; label: string }> = [
   { value: 'working', label: 'Working' },
   { value: 'warmup', label: 'Warm-up' },
+  { value: 'backoff', label: 'Back-off' },
   { value: 'dropset', label: 'Drop Set' },
   { value: 'amrap', label: 'AMRAP' },
   { value: 'failure', label: 'Failure' },

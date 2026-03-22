@@ -3,20 +3,23 @@ import type { WorkoutSet } from '@/types/database';
 // ─── 1RM formulas ──────────────────────────────────────────────────────────────
 
 /**
- * Compute estimated 1RM.
- * Uses Epley formula for reps ≤ 12, Brzycki for reps > 12.
+ * Compute estimated 1RM using Epley formula.
+ *
+ * Epley is used for all rep ranges because:
+ * - It's the most validated formula (Epley 1985, Mayhew et al. 1995)
+ * - Brzycki diverges at high reps (approaches infinity at 37 reps)
+ * - Both formulas are unreliable above ~12 reps regardless
+ *
+ * Note: 1RM estimates are most accurate for barbell compound lifts.
+ * They are less reliable for machines, isolation, and bodyweight exercises.
+ *
  * Returns 0 for invalid inputs.
  */
 export function computeE1RM(weight: number, reps: number): number {
   if (weight <= 0 || reps <= 0) return 0;
   if (reps === 1) return weight;
-  if (reps <= 12) {
-    // Epley: weight × (1 + reps/30)
-    return weight * (1 + reps / 30);
-  }
-  // Brzycki: weight × 36 / (37 − reps)  — capped at reps < 37
-  if (reps >= 37) return weight;
-  return weight * (36 / (37 - reps));
+  // Epley: weight × (1 + reps/30)
+  return weight * (1 + reps / 30);
 }
 
 // ─── ISO week helpers ──────────────────────────────────────────────────────────

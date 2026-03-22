@@ -1,6 +1,10 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { initSentry } from '@/lib/sentry';
 import { App } from '@/App';
+
+// Initialize Sentry before rendering (must be first)
+initSentry();
 
 const rootElement = document.getElementById('root');
 

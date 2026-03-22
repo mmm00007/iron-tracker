@@ -164,7 +164,7 @@ CREATE TABLE IF NOT EXISTS sets (
   rpe           numeric     CHECK (rpe >= 1 AND rpe <= 10),
   rir           integer     CHECK (rir >= 0 AND rir <= 10),
   set_type      text        NOT NULL DEFAULT 'working'
-                            CHECK (set_type IN ('warmup', 'working', 'dropset', 'amrap', 'failure')),
+                            CHECK (set_type IN ('warmup', 'working', 'backoff', 'dropset', 'amrap', 'failure')),
   tempo         text,
   notes         text,
   estimated_1rm numeric,

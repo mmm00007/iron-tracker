@@ -180,15 +180,17 @@ export function checkDeloadNeeded(
     };
   }
 
-  // triggerCount === 1
+  // triggerCount === 1 — not enough evidence to recommend a deload.
+  // A single trigger (e.g. one volume spike from adding a new exercise) has too
+  // many false positives. Require 2+ triggers for actionable recommendation.
   return {
-    shouldDeload: true,
+    shouldDeload: false,
     severity: 'mild',
-    reasoning: reasoningText,
+    reasoning: `Minor fatigue signal detected: ${reasons[0]}. Monitoring — no deload needed yet.`,
     suggestion: {
-      volumeReduction: 0.3,
+      volumeReduction: 0,
       intensityReduction: 0,
-      durationWeeks: 1,
+      durationWeeks: 0,
     },
   };
 }

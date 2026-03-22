@@ -81,6 +81,26 @@ Muscles: muscle_groups table + exercise_muscles junction table (normalized, not 
 - SQL: Snake_case, explicit RLS on every table, indexes on all RLS columns
 - Components: One component per file, colocated tests (`Component.test.tsx`)
 
+## Domain Expert Agent
+
+A fitness domain expert agent validates all exercise science decisions. Located at `.claude/agents/fitness-domain-expert.md`. Use it before implementing or changing:
+- Exercise taxonomy, muscle mappings, or seed data
+- 1RM formulas or progressive overload logic
+- Deload triggers and prescriptions
+- Volume/recovery recommendations
+- Rest timer defaults or session grouping rules
+- Any training algorithm or heuristic
+
+The domain expert does NOT write code — it evaluates whether the fitness logic is evidence-based and appropriate for the target user (intermediate-to-advanced lifters).
+
+## Error Tracking (Sentry)
+
+Both frontend and backend integrate Sentry for error tracking and performance monitoring.
+- Frontend: `@sentry/react` with browser tracing + session replay
+- Backend: `sentry-sdk[fastapi,asyncpg]` with endpoint tracing
+- DSN is configured via `VITE_SENTRY_DSN` (frontend) and `SENTRY_DSN` (backend)
+- Optional — app works without Sentry DSN configured
+
 ## Deployment
 
 Frontend and backend deploy independently. Supabase migrations run via CLI.

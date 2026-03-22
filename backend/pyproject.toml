@@ -17,6 +17,7 @@ dependencies = [
     "python-jose[cryptography]",
     "python-multipart",
     "anthropic",
+    "sentry-sdk[fastapi,asyncpg]",
 ]
 
 [project.optional-dependencies]
