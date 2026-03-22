@@ -12,6 +12,7 @@ import { HistoryPage } from '@/pages/history/HistoryPage';
 import { SessionDetailPage } from '@/pages/history/SessionDetailPage';
 import { StatsPage } from '@/pages/stats/StatsPage';
 import { ExerciseStatsPage } from '@/pages/stats/ExerciseStatsPage';
+import { MachineIdentifyPage } from '@/pages/log/MachineIdentifyPage';
 
 // Root route — renders either auth layout or app layout via child routes
 const rootRoute = createRootRoute({
@@ -92,6 +93,13 @@ export const setLoggerRoute = createRoute({
   component: SetLoggerPage,
 });
 
+// /log/identify — AI machine photo identification
+export const machineIdentifyRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/log/identify',
+  component: MachineIdentifyPage,
+});
+
 // /log/:exerciseId/variants — variant manager
 export const variantManagerRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
@@ -140,6 +148,7 @@ const routeTree = rootRoute.addChildren([
     indexRoute,
     protectedLayoutRoute.addChildren([
       logRoute,
+      machineIdentifyRoute,
       setLoggerRoute,
       variantManagerRoute,
       historyRoute,

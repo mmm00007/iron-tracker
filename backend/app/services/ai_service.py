@@ -1,17 +1,55 @@
 import base64
+import json
+import logging
 
 import anthropic
 
-from app.models.schemas import MachineIdentificationResponse
+from app.models.schemas import MachineIdentificationResponse, TargetMuscles
 
-SYSTEM_PROMPT = """You are an expert gym equipment identifier. When given an image of gym equipment or a exercise machine, analyze it and respond with a JSON object containing:
-- exercise_name: The primary exercise this machine is used for (e.g., "Leg Press", "Lat Pulldown")
-- equipment_type: The category of equipment (e.g., "Cable Machine", "Free Weight", "Smith Machine", "Plate-Loaded", "Selectorized")
-- manufacturer: The brand/manufacturer if visible, otherwise null
-- muscles: A list of primary and secondary muscle groups targeted (e.g., ["quadriceps", "glutes", "hamstrings"])
-- form_tips: A list of 2-4 key form tips for safe and effective use
+logger = logging.getLogger(__name__)
 
-Respond ONLY with valid JSON, no additional text."""
+SYSTEM_PROMPT = """You are an expert gym equipment identifier with deep knowledge of exercise science and biomechanics.
+
+When given an image, analyze it and respond ONLY with a valid JSON object — no markdown fences, no extra text.
+
+If the image contains gym equipment or an exercise machine, return:
+{
+  "exercise_names": ["Primary Exercise", "Secondary Exercise"],
+  "equipment_type": "machine_selectorized",
+  "manufacturer": "Life Fitness",
+  "target_muscles": {
+    "primary": ["quadriceps", "glutes"],
+    "secondary": ["hamstrings", "calves"]
+  },
+  "form_tips": [
+    "Adjust seat so knees align with pivot point",
+    "Keep feet flat on the platform, shoulder-width apart",
+    "Lower weight under control, avoid locking knees at the top",
+    "Exhale during the push phase, inhale on the way down"
+  ],
+  "confidence": "high"
+}
+
+Rules:
+- exercise_names: list all exercises the machine supports (1-4 entries)
+- equipment_type: one of machine_selectorized | machine_plate | cable | barbell | dumbbell | bodyweight | smith_machine | other
+- manufacturer: brand visible on the equipment, or null if not identifiable
+- target_muscles: use common anatomical names (e.g., quadriceps, pectoralis major, latissimus dorsi)
+- form_tips: 3-4 concise, actionable safety and effectiveness tips
+- confidence: "high" if clearly identifiable, "medium" if partially visible or ambiguous, "low" if a best guess
+
+If the image does NOT contain gym equipment (e.g., it shows a person, food, landscape, etc.), return:
+{
+  "exercise_names": [],
+  "equipment_type": "other",
+  "manufacturer": null,
+  "target_muscles": {"primary": [], "secondary": []},
+  "form_tips": [],
+  "confidence": "low",
+  "error": "No gym equipment detected in this image."
+}
+
+Respond ONLY with valid JSON."""
 
 
 class AIService:
@@ -27,7 +65,8 @@ class AIService:
         image_data = base64.standard_b64encode(image_bytes).decode("utf-8")
 
         # Map content_type to Anthropic's accepted media types
-        media_type_map = {
+        # Valid values: image/jpeg | image/png | image/gif | image/webp
+        media_type_map: dict[str, str] = {
             "image/jpeg": "image/jpeg",
             "image/jpg": "image/jpeg",
             "image/png": "image/png",
@@ -36,40 +75,71 @@ class AIService:
         }
         media_type = media_type_map.get(content_type.lower(), "image/jpeg")
 
-        message = self.client.messages.create(
-            model="claude-sonnet-4-5",
-            max_tokens=1024,
-            system=SYSTEM_PROMPT,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": media_type,
-                                "data": image_data,
+        try:
+            message = self.client.messages.create(
+                model="claude-sonnet-4-5-20250514",
+                max_tokens=1024,
+                system=SYSTEM_PROMPT,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": media_type,
+                                    "data": image_data,
+                                },
                             },
-                        },
-                        {
-                            "type": "text",
-                            "text": "Please identify this gym equipment and provide the details.",
-                        },
-                    ],
-                }
-            ],
-        )
-
-        import json
+                            {
+                                "type": "text",
+                                "text": "Identify this gym equipment and return the JSON response.",
+                            },
+                        ],
+                    }
+                ],
+            )
+        except anthropic.APIError as exc:
+            logger.error("Anthropic API error during machine identification: %s", exc)
+            raise
 
         response_text = message.content[0].text
-        data = json.loads(response_text)
+        # Strip markdown fences in case the model wraps its output
+        stripped = response_text.strip()
+        if stripped.startswith("```"):
+            lines = stripped.splitlines()
+            stripped = "\n".join(lines[1:-1]) if len(lines) > 2 else stripped
+
+        try:
+            data = json.loads(stripped)
+        except json.JSONDecodeError as exc:
+            logger.error("Failed to parse AI response as JSON: %s\nResponse: %s", exc, response_text)
+            # Return a graceful fallback
+            return MachineIdentificationResponse(
+                exercise_names=[],
+                equipment_type="other",
+                manufacturer=None,
+                target_muscles=TargetMuscles(primary=[], secondary=[]),
+                form_tips=[],
+                confidence="low",
+            )
+
+        raw_muscles = data.get("target_muscles", {})
+        if isinstance(raw_muscles, dict):
+            target_muscles = TargetMuscles(
+                primary=raw_muscles.get("primary", []),
+                secondary=raw_muscles.get("secondary", []),
+            )
+        else:
+            # Gracefully handle legacy flat list format
+            target_muscles = TargetMuscles(primary=list(raw_muscles), secondary=[])
 
         return MachineIdentificationResponse(
-            exercise_name=data.get("exercise_name", "Unknown"),
-            equipment_type=data.get("equipment_type", "Unknown"),
+            exercise_names=data.get("exercise_names", []),
+            equipment_type=data.get("equipment_type", "other"),
             manufacturer=data.get("manufacturer"),
-            muscles=data.get("muscles", []),
+            target_muscles=target_muscles,
             form_tips=data.get("form_tips", []),
+            confidence=data.get("confidence", "low"),
         )

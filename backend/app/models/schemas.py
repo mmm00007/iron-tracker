@@ -1,14 +1,22 @@
 from pydantic import BaseModel, ConfigDict
 
 
+class TargetMuscles(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    primary: list[str]
+    secondary: list[str]
+
+
 class MachineIdentificationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    exercise_name: str
+    exercise_names: list[str]
     equipment_type: str
     manufacturer: str | None
-    muscles: list[str]
+    target_muscles: TargetMuscles
     form_tips: list[str]
+    confidence: str
 
 
 class WeeklySummary(BaseModel):

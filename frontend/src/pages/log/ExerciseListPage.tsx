@@ -234,6 +234,7 @@ export function ExerciseListPage() {
           <IconButton
             aria-label="Identify machine with camera"
             size="medium"
+            onClick={() => void navigate({ to: '/log/identify' })}
             sx={{
               color: 'text.secondary',
               '&:hover': { color: 'primary.main' },
