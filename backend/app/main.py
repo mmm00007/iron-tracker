@@ -12,18 +12,21 @@ from app.routers import ai, analytics
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Initialize and teardown application resources."""
+    import asyncpg
+
     settings = get_settings()
 
-    # Initialize Supabase client
-    from supabase import Client, create_client
-
-    supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY)
-    app.state.supabase = supabase
+    # Initialize asyncpg connection pool (direct Postgres, service role)
+    app.state.db_pool = await asyncpg.create_pool(
+        dsn=settings.SUPABASE_DB_URL,
+        min_size=2,
+        max_size=10,
+    )
 
     yield
 
-    # Cleanup (if needed)
-    app.state.supabase = None
+    # Cleanup
+    await app.state.db_pool.close()
 
 
 def create_app() -> FastAPI:

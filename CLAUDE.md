@@ -18,7 +18,7 @@ docs/              → Design docs (PRD, Design Doc, UI/UX Spec, Implementation 
 | Layer | Tech |
 |-------|------|
 | Frontend | React 18, Vite, TypeScript, MUI v6 (MD3 theme), TanStack Router + Query, Zustand, Recharts, Nivo |
-| Backend | Python 3.12, FastAPI, Pydantic v2, httpx, pytest |
+| Backend | Python 3.12, FastAPI, Pydantic v2, asyncpg, httpx, pytest |
 | Database | Supabase PostgreSQL 15 + Auth + RLS |
 | AI | Claude Sonnet via FastAPI proxy (machine photo ID, coaching) |
 | Testing | Vitest + React Testing Library (frontend), pytest (backend), Playwright (E2E) |
@@ -48,19 +48,31 @@ cd backend && ruff format .             # Format
 ## Key Design Decisions
 
 - **Machine as first-class entity**: Exercise → Equipment Variant → Set hierarchy
+- **Gym entity**: Gyms → Gym Machines → User Variants (one-tap clone from curated catalog)
 - **Set-centric, not session-centric**: Sets are the atomic unit; sessions are derived (90min inactivity gap)
 - **Offline-first**: TanStack Query persists to IndexedDB; optimistic updates everywhere
 - **Direct CRUD (80%)**: Frontend talks to Supabase directly via RLS — no backend for basic ops
 - **AI-proxied (15%)**: Machine photo ID and coaching go through FastAPI to keep API keys server-side
+- **Backend DB**: asyncpg (direct Postgres) for backend operations — NOT supabase-py. Service role, no PostgREST.
 - **Dark mode default**: Gym environments are dim; seed color #2E75B6
 - **1-tap repeat sets**: Pre-fill from last set, single tap to confirm
+- **Seed data**: 800+ exercises from yuhonas/free-exercise-db (Unlicense) + wger muscle enrichment (CC-BY-SA)
+- **Muscle heatmap**: wger SVG body outlines as React components, paths colored by training volume
+
+## Data Model
+
+Core hierarchy: Exercise → Equipment Variant → Set
+Gym hierarchy: Gym → Gym Machine → cloned to Equipment Variant (via gym_machine_id FK)
+Muscles: muscle_groups table + exercise_muscles junction table (normalized, not text arrays)
 
 ## Data Patterns
 
 - Frontend → Supabase JS Client → PostgreSQL (RLS) for CRUD
+- Backend → asyncpg → PostgreSQL (service role) for analytics, AI context, admin ops
 - Frontend → FastAPI → Claude API for AI features
-- Cron → FastAPI → Supabase RPC for analytics rollup
+- Cron → FastAPI → asyncpg for analytics rollup
 - All user data isolated via RLS (`auth.uid() = user_id`)
+- Gym/machine catalog is public read, admin-only write
 
 ## Code Style
 

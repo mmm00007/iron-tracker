@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     SUPABASE_URL: str
-    SUPABASE_SERVICE_KEY: str
+    SUPABASE_DB_URL: str
     SUPABASE_JWT_SECRET: str
     ANTHROPIC_API_KEY: str
     ALLOWED_ORIGINS: list[str] = ["http://localhost:5173"]
