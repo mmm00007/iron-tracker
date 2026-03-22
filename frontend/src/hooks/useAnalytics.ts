@@ -1,0 +1,374 @@
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import type { WorkoutSet, PersonalRecord, Exercise, MuscleGroup } from '@/types/database';
+import {
+  weeklySnapshot,
+  trainingFrequency,
+  volumeByMuscle,
+  topExercises,
+  e1rmTrend,
+  weeklyVolume,
+  exercisePRs,
+} from '@/utils/analytics';
+
+type Period = 'week' | 'month' | '3months' | 'all';
+
+// ─── Helper: fetch all user sets (optionally filtered by date) ─────────────────
+
+async function fetchUserSets(since?: Date): Promise<WorkoutSet[]> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  let query = supabase
+    .from('sets')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('logged_at', { ascending: false });
+
+  if (since) {
+    query = query.gte('logged_at', since.toISOString());
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as WorkoutSet[];
+}
+
+function periodCutoff(period: Period): Date | undefined {
+  const now = new Date();
+  switch (period) {
+    case 'week': {
+      const d = new Date(now);
+      d.setDate(d.getDate() - 7);
+      return d;
+    }
+    case 'month': {
+      const d = new Date(now);
+      d.setMonth(d.getMonth() - 1);
+      return d;
+    }
+    case '3months': {
+      const d = new Date(now);
+      d.setMonth(d.getMonth() - 3);
+      return d;
+    }
+    case 'all':
+      return undefined;
+  }
+}
+
+// ─── Weekly Snapshot ──────────────────────────────────────────────────────────
+
+/**
+ * This week vs last week comparison.
+ * Fetches last 14 days of sets, computes snapshot.
+ */
+export function useWeeklySnapshot() {
+  return useQuery({
+    queryKey: ['analytics', 'weeklySnapshot'],
+    queryFn: async () => {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 14);
+      const sets = await fetchUserSets(cutoff);
+      return weeklySnapshot(sets);
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ─── Recent PRs ───────────────────────────────────────────────────────────────
+
+export interface RecentPR {
+  id: string;
+  exerciseId: string;
+  exerciseName: string;
+  recordType: PersonalRecord['record_type'];
+  repCount: number | null;
+  value: number;
+  achievedAt: string;
+}
+
+/**
+ * Last 5 personal records with exercise names.
+ */
+export function useRecentPRs() {
+  return useQuery<RecentPR[]>({
+    queryKey: ['analytics', 'recentPRs'],
+    queryFn: async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data: prs, error } = await supabase
+        .from('personal_records')
+        .select('*, exercises(name)')
+        .eq('user_id', user.id)
+        .order('achieved_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      if (!prs) return [];
+
+      return prs.map((pr) => ({
+        id: pr.id,
+        exerciseId: pr.exercise_id,
+        exerciseName: (pr.exercises as { name: string } | null)?.name ?? 'Unknown',
+        recordType: pr.record_type,
+        repCount: pr.rep_count,
+        value: pr.value,
+        achievedAt: pr.achieved_at,
+      }));
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ─── Training Frequency ───────────────────────────────────────────────────────
+
+/**
+ * Per-day training activity for the last 12 weeks (for calendar heatmap).
+ */
+export function useTrainingFrequency() {
+  return useQuery({
+    queryKey: ['analytics', 'trainingFrequency'],
+    queryFn: async () => {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 84); // 12 weeks
+      const sets = await fetchUserSets(cutoff);
+      return trainingFrequency(sets, 12);
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ─── Muscle Distribution ──────────────────────────────────────────────────────
+
+export interface MuscleDistributionEntry {
+  muscleGroupId: number;
+  muscleName: string;
+  volume: number;
+  percentage: number;
+}
+
+/**
+ * Volume per muscle group for the selected period.
+ */
+export function useMuscleDistribution(period: Period) {
+  return useQuery<MuscleDistributionEntry[]>({
+    queryKey: ['analytics', 'muscleDistribution', period],
+    queryFn: async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const since = periodCutoff(period);
+      const sets = await fetchUserSets(since);
+      if (sets.length === 0) return [];
+
+      // Fetch exercise-muscle mappings
+      const exerciseIds = [...new Set(sets.map((s) => s.exercise_id))];
+      const { data: muscles, error: muscleError } = await supabase
+        .from('exercise_muscles')
+        .select('exercise_id, muscle_group_id')
+        .in('exercise_id', exerciseIds);
+
+      if (muscleError) throw muscleError;
+
+      // Fetch muscle group names
+      const { data: muscleGroups, error: mgError } = await supabase
+        .from('muscle_groups')
+        .select('id, name');
+
+      if (mgError) throw mgError;
+
+      const muscleGroupMap = new Map<number, string>(
+        (muscleGroups ?? []).map((mg: MuscleGroup) => [mg.id, mg.name]),
+      );
+
+      // Build exercise → muscles map
+      const exerciseMuscles = new Map<string, number[]>();
+      for (const row of muscles ?? []) {
+        const existing = exerciseMuscles.get(row.exercise_id) ?? [];
+        existing.push(row.muscle_group_id);
+        exerciseMuscles.set(row.exercise_id, existing);
+      }
+
+      const volByMuscle = volumeByMuscle(sets, exerciseMuscles);
+      const totalVol = Array.from(volByMuscle.values()).reduce((sum, v) => sum + v, 0);
+
+      if (totalVol === 0) return [];
+
+      return Array.from(volByMuscle.entries())
+        .map(([muscleGroupId, volume]) => ({
+          muscleGroupId,
+          muscleName: muscleGroupMap.get(muscleGroupId) ?? `Muscle ${muscleGroupId}`,
+          volume,
+          percentage: Math.round((volume / totalVol) * 100),
+        }))
+        .sort((a, b) => b.volume - a.volume);
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ─── Top Exercises ────────────────────────────────────────────────────────────
+
+export interface TopExerciseWithName {
+  exerciseId: string;
+  exerciseName: string;
+  totalVolume: number;
+  setCount: number;
+  trend: 'up' | 'down' | 'flat';
+}
+
+/**
+ * Top exercises by total volume (all time), enriched with exercise names.
+ */
+export function useTopExercises(limit = 5) {
+  return useQuery<TopExerciseWithName[]>({
+    queryKey: ['analytics', 'topExercises', limit],
+    queryFn: async () => {
+      const sets = await fetchUserSets();
+      if (sets.length === 0) return [];
+
+      const top = topExercises(sets, limit);
+      const exerciseIds = top.map((t) => t.exerciseId);
+
+      const { data: exercises, error } = await supabase
+        .from('exercises')
+        .select('id, name')
+        .in('id', exerciseIds);
+
+      if (error) throw error;
+
+      const nameMap = new Map<string, string>(
+        (exercises ?? []).map((e: Pick<Exercise, 'id' | 'name'>) => [e.id, e.name]),
+      );
+
+      return top.map((t) => ({
+        exerciseId: t.exerciseId,
+        exerciseName: nameMap.get(t.exerciseId) ?? 'Unknown',
+        totalVolume: t.totalVolume,
+        setCount: t.setCount,
+        trend: t.trend,
+      }));
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ─── Exercise: 1RM Trend ──────────────────────────────────────────────────────
+
+/**
+ * Estimated 1RM trend for a specific exercise (+ optional variant).
+ */
+export function useE1RMTrend(exerciseId: string, variantId?: string | null) {
+  return useQuery({
+    queryKey: ['analytics', 'e1rmTrend', exerciseId, variantId ?? 'all'],
+    queryFn: async () => {
+      const sets = await fetchUserSets();
+      return e1rmTrend(sets, exerciseId, variantId);
+    },
+    enabled: !!exerciseId,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ─── Exercise: Volume Trend ───────────────────────────────────────────────────
+
+/**
+ * Weekly volume trend for a specific exercise.
+ */
+export function useExerciseVolumeTrend(exerciseId: string) {
+  return useQuery({
+    queryKey: ['analytics', 'exerciseVolumeTrend', exerciseId],
+    queryFn: async () => {
+      const sets = await fetchUserSets();
+      const filtered = sets.filter((s) => s.exercise_id === exerciseId);
+      return weeklyVolume(filtered);
+    },
+    enabled: !!exerciseId,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ─── Exercise: PR Table ───────────────────────────────────────────────────────
+
+/**
+ * PR records across rep ranges for a specific exercise.
+ */
+export function useExercisePRs(exerciseId: string) {
+  return useQuery({
+    queryKey: ['analytics', 'exercisePRs', exerciseId],
+    queryFn: async () => {
+      const sets = await fetchUserSets();
+      return exercisePRs(sets, exerciseId);
+    },
+    enabled: !!exerciseId,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ─── Exercise: History ────────────────────────────────────────────────────────
+
+export interface ExerciseHistorySet extends WorkoutSet {
+  variantName: string | null;
+}
+
+/**
+ * All sets for a specific exercise, newest first. Supports optional variant filter.
+ * Data returned as pages of 50.
+ */
+export function useExerciseHistory(exerciseId: string, variantId?: string | null) {
+  return useQuery<ExerciseHistorySet[]>({
+    queryKey: ['analytics', 'exerciseHistory', exerciseId, variantId ?? 'all'],
+    queryFn: async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      let query = supabase
+        .from('sets')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('exercise_id', exerciseId)
+        .order('logged_at', { ascending: false })
+        .limit(200);
+
+      if (variantId !== undefined && variantId !== null) {
+        query = query.eq('variant_id', variantId);
+      }
+
+      const { data: sets, error } = await query;
+      if (error) throw error;
+      if (!sets || sets.length === 0) return [];
+
+      // Fetch variant names
+      const variantIds = [...new Set(sets.map((s) => s.variant_id).filter(Boolean))];
+      let variantNameMap = new Map<string, string>();
+
+      if (variantIds.length > 0) {
+        const { data: variants } = await supabase
+          .from('equipment_variants')
+          .select('id, name')
+          .in('id', variantIds);
+
+        if (variants) {
+          variantNameMap = new Map(variants.map((v) => [v.id, v.name]));
+        }
+      }
+
+      return (sets as WorkoutSet[]).map((s) => ({
+        ...s,
+        variantName: s.variant_id ? (variantNameMap.get(s.variant_id) ?? null) : null,
+      }));
+    },
+    enabled: !!exerciseId,
+    staleTime: 2 * 60 * 1000,
+  });
+}

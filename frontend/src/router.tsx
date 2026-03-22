@@ -8,20 +8,10 @@ import { ProfilePage } from '@/pages/profile/ProfilePage';
 import { ExerciseListPage } from '@/pages/log/ExerciseListPage';
 import { SetLoggerPage } from '@/pages/log/SetLoggerPage';
 import { VariantManagerPageRoute } from '@/pages/log/VariantManagerPage';
-
-const HistoryPage = () => (
-  <div style={{ padding: '16px' }}>
-    <h2>Session History</h2>
-    <p>Your past workout sessions will appear here.</p>
-  </div>
-);
-
-const StatsPage = () => (
-  <div style={{ padding: '16px' }}>
-    <h2>Stats Dashboard</h2>
-    <p>Progress charts and analytics will appear here.</p>
-  </div>
-);
+import { HistoryPage } from '@/pages/history/HistoryPage';
+import { SessionDetailPage } from '@/pages/history/SessionDetailPage';
+import { StatsPage } from '@/pages/stats/StatsPage';
+import { ExerciseStatsPage } from '@/pages/stats/ExerciseStatsPage';
 
 // Root route — renders either auth layout or app layout via child routes
 const rootRoute = createRootRoute({
@@ -116,11 +106,25 @@ export const historyRoute = createRoute({
   component: HistoryPage,
 });
 
+// /history/:sessionId — session detail
+export const sessionDetailRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/history/$sessionId',
+  component: SessionDetailPage,
+});
+
 // /stats — stats dashboard
 export const statsRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
   path: '/stats',
   component: StatsPage,
+});
+
+// /stats/:exerciseId — exercise detail charts
+export const exerciseStatsRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/stats/$exerciseId',
+  component: ExerciseStatsPage,
 });
 
 // /profile — user profile
@@ -139,7 +143,9 @@ const routeTree = rootRoute.addChildren([
       setLoggerRoute,
       variantManagerRoute,
       historyRoute,
+      sessionDetailRoute,
       statsRoute,
+      exerciseStatsRoute,
       profileRoute,
     ]),
   ]),
