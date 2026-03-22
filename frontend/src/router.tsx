@@ -6,6 +6,8 @@ import { SignUpPage } from '@/pages/auth/SignUpPage';
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
 import { ProfilePage } from '@/pages/profile/ProfilePage';
 import { ExerciseListPage } from '@/pages/log/ExerciseListPage';
+import { SetLoggerPage } from '@/pages/log/SetLoggerPage';
+import { VariantManagerPageRoute } from '@/pages/log/VariantManagerPage';
 
 const HistoryPage = () => (
   <div style={{ padding: '16px' }}>
@@ -18,13 +20,6 @@ const StatsPage = () => (
   <div style={{ padding: '16px' }}>
     <h2>Stats Dashboard</h2>
     <p>Progress charts and analytics will appear here.</p>
-  </div>
-);
-
-const SetLoggerPage = () => (
-  <div style={{ padding: '16px' }}>
-    <h2>Log Sets</h2>
-    <p>Log your sets for this exercise.</p>
   </div>
 );
 
@@ -107,6 +102,13 @@ export const setLoggerRoute = createRoute({
   component: SetLoggerPage,
 });
 
+// /log/:exerciseId/variants — variant manager
+export const variantManagerRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/log/$exerciseId/variants',
+  component: VariantManagerPageRoute,
+});
+
 // /history — session timeline
 export const historyRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
@@ -135,6 +137,7 @@ const routeTree = rootRoute.addChildren([
     protectedLayoutRoute.addChildren([
       logRoute,
       setLoggerRoute,
+      variantManagerRoute,
       historyRoute,
       statsRoute,
       profileRoute,
