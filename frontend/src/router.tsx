@@ -13,6 +13,7 @@ import { SessionDetailPage } from '@/pages/history/SessionDetailPage';
 import { StatsPage } from '@/pages/stats/StatsPage';
 import { ExerciseStatsPage } from '@/pages/stats/ExerciseStatsPage';
 import { MachineIdentifyPage } from '@/pages/log/MachineIdentifyPage';
+import { OnboardingPage } from '@/pages/onboarding/OnboardingPage';
 
 // Root route — renders either auth layout or app layout via child routes
 const rootRoute = createRootRoute({
@@ -60,6 +61,13 @@ export const forgotPasswordRoute = createRoute({
   getParentRoute: () => authLayoutRoute,
   path: '/forgot-password',
   component: ForgotPasswordPage,
+});
+
+// /onboarding — full-screen onboarding flow (no app shell/nav)
+export const onboardingRoute = createRoute({
+  getParentRoute: () => authLayoutRoute,
+  path: '/onboarding',
+  component: OnboardingPage,
 });
 
 // --- Protected app routes ---
@@ -143,7 +151,7 @@ export const profileRoute = createRoute({
 });
 
 const routeTree = rootRoute.addChildren([
-  authLayoutRoute.addChildren([loginRoute, signUpRoute, forgotPasswordRoute]),
+  authLayoutRoute.addChildren([loginRoute, signUpRoute, forgotPasswordRoute, onboardingRoute]),
   appLayoutRoute.addChildren([
     indexRoute,
     protectedLayoutRoute.addChildren([

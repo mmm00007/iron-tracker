@@ -13,3 +13,12 @@ createRoot(rootElement).render(
     <App />
   </StrictMode>,
 );
+
+// Register service worker for offline-first caching of the app shell
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      console.warn('[iron-tracker] Service worker registration failed:', err);
+    });
+  });
+}

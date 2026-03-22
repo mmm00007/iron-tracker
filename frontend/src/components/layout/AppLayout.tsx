@@ -4,6 +4,8 @@ import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import HistoryIcon from '@mui/icons-material/History';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import { OfflineIndicator } from '@/components/common/OfflineIndicator';
+import { GlobalRestTimer } from '@/components/common/GlobalRestTimer';
 
 const NAV_TABS = [
   { label: 'Log', value: '/log', icon: <FitnessCenterIcon /> },
@@ -38,6 +40,12 @@ export function AppLayout() {
         position: 'relative',
       }}
     >
+      {/* Offline indicator — rendered above the app bar */}
+      <OfflineIndicator />
+
+      {/* Global rest timer — persists across all screens */}
+      <GlobalRestTimer />
+
       {/* App bar */}
       <Box
         component="header"

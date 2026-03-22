@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { WorkoutSet } from '@/types/database';
+import { useOfflineStore } from '@/stores/offlineStore';
 
 type NewSet = Omit<WorkoutSet, 'id' | 'synced_at' | 'estimated_1rm' | 'tempo' | 'rir'>;
 
@@ -82,11 +83,17 @@ export function useLastSet(exerciseId: string, variantId: string | null) {
 
 /**
  * Log a new set with optimistic update.
+ * Runs offline-first: the optimistic update is shown immediately and the Supabase
+ * insert is retried automatically once the device comes back online.
  */
 export function useLogSet() {
   const queryClient = useQueryClient();
+  const { incrementPending, decrementPending, setLastSync } = useOfflineStore.getState();
 
   return useMutation({
+    // Queue the mutation while offline; retry up to 3× with exponential backoff
+    networkMode: 'offlineFirst',
+
     mutationFn: async (newSet: NewSet) => {
       const { data, error } = await supabase.from('sets').insert(newSet).select().single();
       if (error) throw error;
@@ -110,6 +117,7 @@ export function useLogSet() {
       };
 
       queryClient.setQueryData<WorkoutSet[]>(key, (old) => [optimisticSet, ...(old ?? [])]);
+      incrementPending();
 
       return { previousSets };
     },
@@ -118,6 +126,12 @@ export function useLogSet() {
       if (context?.previousSets !== undefined) {
         queryClient.setQueryData(todaySetsKey(newSet.exercise_id), context.previousSets);
       }
+      decrementPending();
+    },
+
+    onSuccess: () => {
+      decrementPending();
+      setLastSync(new Date());
     },
 
     onSettled: (_data, _err, newSet) => {
