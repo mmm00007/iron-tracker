@@ -41,3 +41,6 @@ supabase/.temp/
 
 # PWA
 dev-dist/
+
+# Deployment handoff (contains secrets)
+docs/deployment/handoff.json
