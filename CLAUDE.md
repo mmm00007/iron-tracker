@@ -54,6 +54,19 @@ cd backend && uv run ruff format .      # Format
 
 > **Python environment**: Managed by [uv](https://docs.astral.sh/uv/). The venv lives at `backend/.venv`. Always use `uv run` or `uv sync` — never `pip install` directly.
 
+### Code Search (ast-grep)
+
+Use `ast-grep` for structural code searches — it matches AST patterns, not text, so it has far fewer false positives than grep.
+
+```bash
+ast-grep -p '$_ as any' -l ts frontend/src/           # Find all `as any` assertions
+ast-grep -p 'supabase.from($TABLE)' -l ts frontend/    # Audit Supabase table usage
+ast-grep -p 'console.log($$$)' -l ts frontend/src/     # Find debug logs
+ast-grep -p 'await $_.mutateAsync($$$)' -l ts frontend/ # Find all mutation calls
+```
+
+Prefer `ast-grep` over grep for pattern-based code searches. Use grep for simple keyword lookups.
+
 ## Key Design Decisions
 
 - **Machine as first-class entity**: Exercise → Equipment Variant → Set hierarchy

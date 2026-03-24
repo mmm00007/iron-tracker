@@ -74,6 +74,30 @@ You identify and mitigate security risks across the full stack. You audit code, 
 - Render/Netlify environment variable access
 - Sentry data retention and access policies
 
+## Tools
+
+Use `ast-grep` (available as `ast-grep` in the shell) for structural code searches when auditing. It matches AST patterns, not text — eliminates false positives from comments and strings.
+
+```bash
+# Find all dangerouslySetInnerHTML usage
+ast-grep -p 'dangerouslySetInnerHTML={$_}' -l tsx frontend/src/
+
+# Find all eval() calls
+ast-grep -p 'eval($$$)' -l ts frontend/src/
+
+# Find string interpolation in SQL (injection risk)
+ast-grep -p 'f"$$$SELECT$$$"' -l py backend/
+
+# Find all fetch() calls (check if they bypass proxy)
+ast-grep -p 'fetch($URL)' -l ts frontend/src/
+
+# Find hardcoded secrets/keys
+ast-grep -p '"sk_$$$"' -l ts frontend/src/
+ast-grep -p '"Bearer $$$"' -l ts frontend/src/
+```
+
+Prefer `ast-grep` over `grep` when searching for security-relevant code patterns. Use `grep` for simple keyword searches.
+
 ## How to Audit
 
 1. **Map the attack surface** — identify all entry points and data flows

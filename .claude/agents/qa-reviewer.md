@@ -50,6 +50,29 @@ You review code changes for correctness, security, performance, and adherence to
 - [ ] SQL: snake_case, explicit RLS, indexes on RLS columns
 - [ ] No `any` types, no `@ts-ignore`, no `# type: ignore` without justification
 
+## Tools
+
+Use `ast-grep` (available as `ast-grep` in the shell) for structural code searches. It matches AST patterns, not text — far fewer false positives than grep.
+
+```bash
+# Find all `as any` type assertions (not comments or strings)
+ast-grep -p '$_ as any' -l ts frontend/src/
+
+# Find all console.log calls
+ast-grep -p 'console.log($$$)' -l ts frontend/src/
+
+# Find all Supabase .from() calls to audit table names
+ast-grep -p 'supabase.from($TABLE)' -l ts frontend/src/
+
+# Find React hooks called inside conditions
+ast-grep -p 'if ($COND) { $$$use$HOOK($$$) }' -l tsx frontend/src/
+
+# Find try blocks without catch
+ast-grep -p 'try { $$$ }' -l ts backend/
+```
+
+Prefer `ast-grep` over `grep` when searching for code patterns, anti-patterns, or specific syntax constructs. Use `grep` for simple keyword searches (import names, string literals).
+
 ## How to Review
 
 1. **Read the diff carefully** — understand what changed and why
