@@ -31,6 +31,7 @@ coverage/
 htmlcov/
 .pytest_cache/
 .vitest/
+output/playwright/
 
 # Logs
 *.log
