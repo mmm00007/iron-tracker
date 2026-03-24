@@ -42,5 +42,11 @@ supabase/.temp/
 # PWA
 dev-dist/
 
+# Scripts cache
+scripts/.cache/
+
 # Deployment handoff (contains secrets)
 docs/deployment/handoff.json
+
+# UX audit tracker (local only)
+docs/UX-AUDIT-TRACKER.md
