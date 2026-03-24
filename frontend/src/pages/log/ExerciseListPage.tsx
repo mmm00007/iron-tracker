@@ -165,6 +165,7 @@ function NoSearchResults({ query, onCreateCustom }: { query: string; onCreateCus
 }
 
 export function ExerciseListPage() {
+  const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState('');
   const debouncedSearch = useDebounce(searchInput, 200);
   const isSearching = debouncedSearch.trim().length > 0;

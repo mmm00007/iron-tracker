@@ -99,7 +99,7 @@ function StepperBtn({ label, onClick, secondary = false }: StepperBtnProps) {
 
 export function SetLoggerPage() {
   const navigate = useNavigate();
-  const { exerciseId } = useParams({ from: '/log/$exerciseId' });
+  const { exerciseId } = useParams({ strict: false });
 
   const {
     currentWeight,
