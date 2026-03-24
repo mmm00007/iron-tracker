@@ -33,7 +33,9 @@ async def analyze_training(
               AND s.logged_at::date <= $3::date
             ORDER BY s.logged_at
             """,
-            user_id, scope_start, scope_end,
+            user_id,
+            scope_start,
+            scope_end,
         )
 
     if not rows:
@@ -63,7 +65,9 @@ async def analyze_training(
         f"Exercise breakdown:\n"
     )
     for name, data in sorted(exercises.items(), key=lambda x: -x[1]["volume"]):
-        context += f"- {name} ({data['category']}): {data['sets']} sets, {data['volume']:.0f} volume\n"
+        context += (
+            f"- {name} ({data['category']}): {data['sets']} sets, {data['volume']:.0f} volume\n"
+        )
 
     # Call Claude
     client = anthropic.AsyncAnthropic(api_key=api_key)
@@ -103,13 +107,20 @@ async def analyze_training(
     # Validate insights — drop any that don't have the required fields
     validated_insights = []
     for raw_insight in result.get("insights", []):
-        if isinstance(raw_insight, dict) and "metric" in raw_insight and "finding" in raw_insight and "recommendation" in raw_insight:
-            validated_insights.append({
-                "metric": str(raw_insight["metric"]),
-                "finding": str(raw_insight["finding"]),
-                "delta": str(raw_insight["delta"]) if raw_insight.get("delta") else None,
-                "recommendation": str(raw_insight["recommendation"]),
-            })
+        if (
+            isinstance(raw_insight, dict)
+            and "metric" in raw_insight
+            and "finding" in raw_insight
+            and "recommendation" in raw_insight
+        ):
+            validated_insights.append(
+                {
+                    "metric": str(raw_insight["metric"]),
+                    "finding": str(raw_insight["finding"]),
+                    "delta": str(raw_insight["delta"]) if raw_insight.get("delta") else None,
+                    "recommendation": str(raw_insight["recommendation"]),
+                }
+            )
     result["insights"] = validated_insights
 
     report_id = str(uuid.uuid4())
@@ -121,8 +132,14 @@ async def analyze_training(
             INSERT INTO analysis_reports (id, user_id, scope_type, scope_start, scope_end, goals, summary, insights)
             VALUES ($1, $2, $3, $4::date, $5::date, $6, $7, $8::jsonb)
             """,
-            report_id, user_id, scope_type, scope_start, scope_end,
-            goals, result.get("summary", ""), json.dumps(result.get("insights", [])),
+            report_id,
+            user_id,
+            scope_type,
+            scope_start,
+            scope_end,
+            goals,
+            result.get("summary", ""),
+            json.dumps(result.get("insights", [])),
         )
 
     return {

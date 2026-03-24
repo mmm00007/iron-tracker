@@ -1,8 +1,8 @@
 """Sentry initialization for the FastAPI backend."""
 
 import sentry_sdk
-from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.asyncpg import AsyncPGIntegration
+from sentry_sdk.integrations.fastapi import FastApiIntegration
 
 from app.config import get_settings
 

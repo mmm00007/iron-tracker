@@ -4,5 +4,11 @@ target-version = "py311"
 [lint]
 select = ["E", "F", "I", "N", "W", "UP"]
 
+[lint.per-file-ignores]
+# AI prompt strings and SQL queries contain long lines by design
+"app/services/ai_service.py" = ["E501"]
+"app/services/analysis_service.py" = ["E501"]
+"app/services/weekly_summary_service.py" = ["E501", "F841"]
+
 [format]
 quote-style = "double"

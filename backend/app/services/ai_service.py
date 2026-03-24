@@ -114,7 +114,9 @@ class AIService:
         try:
             data = json.loads(stripped)
         except json.JSONDecodeError as exc:
-            logger.error("Failed to parse AI response as JSON: %s\nResponse: %s", exc, response_text)
+            logger.error(
+                "Failed to parse AI response as JSON: %s\nResponse: %s", exc, response_text
+            )
             # Return a graceful fallback
             return MachineIdentificationResponse(
                 exercise_names=[],

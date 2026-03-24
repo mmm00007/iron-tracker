@@ -138,7 +138,9 @@ async def identify_machine(
     if len(image_bytes) > _MAX_IMAGE_BYTES:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Image too large. Maximum allowed size is {_MAX_IMAGE_BYTES // (1024 * 1024)} MB.",
+            detail=(
+                f"Image too large. Maximum allowed size is {_MAX_IMAGE_BYTES // (1024 * 1024)} MB."
+            ),
         )
 
     # --- Cache lookup ---

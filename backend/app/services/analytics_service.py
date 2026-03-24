@@ -28,9 +28,9 @@ async def compute_weekly_summary(
     # Determine week boundaries (ISO week: Monday 00:00 UTC)
     today = date.today()
     days_since_monday = today.weekday()  # 0 = Monday
-    this_week_start = datetime(
-        today.year, today.month, today.day, tzinfo=UTC
-    ) - timedelta(days=days_since_monday)
+    this_week_start = datetime(today.year, today.month, today.day, tzinfo=UTC) - timedelta(
+        days=days_since_monday
+    )
     last_week_start = this_week_start - timedelta(weeks=1)
 
     async with db_pool.acquire() as conn:

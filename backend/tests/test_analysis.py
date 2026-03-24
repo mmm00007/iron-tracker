@@ -1,4 +1,3 @@
-import json
 from datetime import date
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -10,7 +9,6 @@ from app.config import Settings, get_settings
 from app.main import app
 from app.routers.ai import _rate_limit_store
 from tests.conftest import FAKE_USER_ID
-
 
 # ── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -40,6 +38,7 @@ def analysis_client() -> TestClient:
     set during lifespan. We patch app.state.db_pool directly after the
     client is created to avoid needing a real database connection.
     """
+
     async def override_user() -> str:
         return FAKE_USER_ID
 

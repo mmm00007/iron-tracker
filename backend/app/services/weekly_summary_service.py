@@ -52,7 +52,8 @@ async def _generate_user_summary(
             WHERE s.user_id = $1 AND s.logged_at >= $2
             ORDER BY s.logged_at
             """,
-            user_id, since,
+            user_id,
+            since,
         )
 
         if not rows:
@@ -102,10 +103,14 @@ async def _generate_user_summary(
             datetime.utcnow().strftime("%Y-%m-%d"),
             ["weekly_summary"],
             summary_text,
-            json.dumps([{
-                "metric": "Weekly Overview",
-                "finding": summary_text,
-                "delta": None,
-                "recommendation": f"You trained {training_days} days. {'Great consistency!' if training_days >= 4 else 'Try to add another training day next week.'}",
-            }]),
+            json.dumps(
+                [
+                    {
+                        "metric": "Weekly Overview",
+                        "finding": summary_text,
+                        "delta": None,
+                        "recommendation": f"You trained {training_days} days. {'Great consistency!' if training_days >= 4 else 'Try to add another training day next week.'}",
+                    }
+                ]
+            ),
         )

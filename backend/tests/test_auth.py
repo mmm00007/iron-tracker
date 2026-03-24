@@ -40,11 +40,13 @@ class _FakeCredentials:
 async def test_valid_jwt_returns_user_id() -> None:
     """A properly signed JWT with 'sub' should return the user_id."""
     user_id = "user-abc-123"
-    token = _encode_jwt({
-        "sub": user_id,
-        "aud": "authenticated",
-        "exp": datetime.now(UTC) + timedelta(hours=1),
-    })
+    token = _encode_jwt(
+        {
+            "sub": user_id,
+            "aud": "authenticated",
+            "exp": datetime.now(UTC) + timedelta(hours=1),
+        }
+    )
 
     result = await get_current_user(
         credentials=_FakeCredentials(token),
@@ -55,11 +57,13 @@ async def test_valid_jwt_returns_user_id() -> None:
 
 async def test_expired_jwt_raises_401() -> None:
     """An expired JWT should raise HTTPException with status 401."""
-    token = _encode_jwt({
-        "sub": "user-abc-123",
-        "aud": "authenticated",
-        "exp": datetime.now(UTC) - timedelta(hours=1),
-    })
+    token = _encode_jwt(
+        {
+            "sub": "user-abc-123",
+            "aud": "authenticated",
+            "exp": datetime.now(UTC) - timedelta(hours=1),
+        }
+    )
 
     with pytest.raises(HTTPException) as exc_info:
         await get_current_user(
@@ -71,10 +75,12 @@ async def test_expired_jwt_raises_401() -> None:
 
 async def test_missing_sub_raises_401() -> None:
     """A JWT without a 'sub' claim should raise HTTPException 401."""
-    token = _encode_jwt({
-        "aud": "authenticated",
-        "exp": datetime.now(UTC) + timedelta(hours=1),
-    })
+    token = _encode_jwt(
+        {
+            "aud": "authenticated",
+            "exp": datetime.now(UTC) + timedelta(hours=1),
+        }
+    )
 
     with pytest.raises(HTTPException) as exc_info:
         await get_current_user(

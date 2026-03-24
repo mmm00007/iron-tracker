@@ -1,5 +1,5 @@
-from datetime import UTC, date, datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import date
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -8,7 +8,6 @@ from app.auth import get_current_user
 from app.main import app
 from app.services.analytics_service import _epley, compute_weekly_summary
 from tests.conftest import FAKE_USER_ID
-
 
 # ── Fixtures ─────────────────────────────────────────────────────────────────
 
