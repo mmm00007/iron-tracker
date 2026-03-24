@@ -98,7 +98,7 @@ export function useUpdateVariant() {
   return useMutation({
     mutationFn: async ({
       id,
-      exerciseId,
+      exerciseId: _exerciseId,
       updates,
     }: {
       id: string;

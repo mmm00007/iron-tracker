@@ -5,6 +5,7 @@ import Tooltip from '@mui/material/Tooltip';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useProgression } from '@/hooks/useProgression';
+import { useProfile } from '@/hooks/useProfile';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -36,6 +37,8 @@ export interface ProgressionBadgeProps {
  */
 export function ProgressionBadge({ exerciseId, variantId, onApply }: ProgressionBadgeProps) {
   const { suggestion, isLoading, isError } = useProgression(exerciseId, variantId);
+  const profileQuery = useProfile();
+  const weightUnit = profileQuery.data?.preferred_weight_unit ?? 'kg';
   const [tooltipOpen, setTooltipOpen] = useState(false);
 
   if (isLoading) {
@@ -50,7 +53,7 @@ export function ProgressionBadge({ exerciseId, variantId, onApply }: Progression
     return null;
   }
 
-  const label = `Try ${suggestion.suggestedWeight} kg next`;
+  const label = `Try ${suggestion.suggestedWeight} ${weightUnit} next`;
   const confidenceOpacity =
     suggestion.confidence === 'high'
       ? 0.75

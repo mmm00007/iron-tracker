@@ -22,29 +22,6 @@ import { ExerciseListItem } from '@/components/exercises/ExerciseListItem';
 import { ExerciseSearch } from '@/components/exercises/ExerciseSearch';
 import { MuscleGroupSection } from '@/components/exercises/MuscleGroupSection';
 
-function highlightText(text: string, query: string) {
-  if (!query.trim()) return text;
-  const index = text.toLowerCase().indexOf(query.toLowerCase());
-  if (index === -1) return text;
-  return (
-    <>
-      {text.slice(0, index)}
-      <Box
-        component="mark"
-        sx={{
-          backgroundColor: 'rgba(168, 199, 250, 0.25)',
-          color: '#fff',
-          borderRadius: '2px',
-          px: 0.25,
-        }}
-      >
-        {text.slice(index, index + query.length)}
-      </Box>
-      {text.slice(index + query.length)}
-    </>
-  );
-}
-
 function LoadingSkeleton() {
   return (
     <Box sx={{ px: 2, pb: 2 }}>

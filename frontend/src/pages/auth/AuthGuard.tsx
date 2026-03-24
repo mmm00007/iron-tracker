@@ -25,6 +25,8 @@ export function AuthGuard({ children }: AuthGuardProps) {
       if (sessionExpired) {
         setShowExpiredToast(true);
         const timer = setTimeout(() => {
+          // Clear the flag so it doesn't re-trigger after the next login
+          useAuthStore.setState({ sessionExpired: false });
           void navigate({ to: '/login' });
         }, 2000);
         return () => clearTimeout(timer);

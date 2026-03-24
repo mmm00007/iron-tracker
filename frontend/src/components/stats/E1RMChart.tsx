@@ -110,7 +110,7 @@ export function E1RMChart({ data, isLoading, isError, variantNames }: E1RMChartP
   const multiVariant = variantIds.length > 1;
 
   // Build chart data: one entry per date, with a field per variant
-  const dateMap = new Map<string, Record<string, number>>();
+  const dateMap = new Map<string, Record<string, number | string>>();
   for (const point of data) {
     const key = point.variantId ?? 'none';
     if (!dateMap.has(point.date)) {
@@ -119,7 +119,7 @@ export function E1RMChart({ data, isLoading, isError, variantNames }: E1RMChartP
     dateMap.get(point.date)![key] = point.e1rm;
   }
   const chartData = Array.from(dateMap.values()).sort((a, b) =>
-    (a.date as string).localeCompare(b.date as string),
+    String(a.date).localeCompare(String(b.date)),
   );
 
   const getVariantName = (id: string | null): string => {

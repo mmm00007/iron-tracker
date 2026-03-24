@@ -107,7 +107,7 @@ function StepperBtn({ label, onClick, secondary = false, disabled = false }: Ste
 // ─── Set Logger Page ────────────────────────────────────────────────────────────
 
 export function SetLoggerPage() {
-  const { exerciseId } = useParams({ strict: false });
+  const { exerciseId } = useParams({ strict: false }) as { exerciseId: string };
 
   const {
     currentWeight,
@@ -219,6 +219,9 @@ export function SetLoggerPage() {
   // ── Log set handler ───────────────────────────────────────────────────────
 
   const handleLogSet = async () => {
+    // Close any existing "Set logged" snackbar to prevent undo targeting the wrong set
+    setSnackbarOpen(false);
+
     const {
       data: { user },
     } = await supabase.auth.getUser();

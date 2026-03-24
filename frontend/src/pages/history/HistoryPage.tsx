@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -73,24 +73,33 @@ function EmptyState() {
 export function HistoryPage() {
   const [page, setPage] = useState(0);
   const [allSessions, setAllSessions] = useState<SessionGroup[]>([]);
+  const loadedPages = useRef(new Set<number>());
+  const [hasMore, setHasMore] = useState(true);
 
   const sessionsQuery = useSessions(page);
-  const pageSessions = sessionsQuery.data ?? [];
 
-  // Accumulate sessions across pages
+  // Accumulate sessions across pages — each page is appended only once
   useEffect(() => {
-    if (sessionsQuery.isSuccess && pageSessions.length > 0) {
-      if (page === 0) {
-        setAllSessions(pageSessions);
-      } else {
-        setAllSessions((prev) => [...prev, ...pageSessions]);
-      }
+    if (!sessionsQuery.isSuccess || !sessionsQuery.data) return;
+    const sessions = sessionsQuery.data;
+
+    if (sessions.length === 0) {
+      setHasMore(false);
+      return;
     }
-  }, [sessionsQuery.isSuccess, page, pageSessions]);
+
+    if (loadedPages.current.has(page)) return;
+    loadedPages.current.add(page);
+
+    if (page === 0) {
+      setAllSessions(sessions);
+    } else {
+      setAllSessions((prev) => [...prev, ...sessions]);
+    }
+  }, [sessionsQuery.isSuccess, sessionsQuery.data, page]);
 
   const isInitialLoading = sessionsQuery.isLoading && page === 0;
   const isEmpty = !isInitialLoading && allSessions.length === 0;
-  const hasMore = pageSessions.length > 0;
   const isLoadingMore = sessionsQuery.isLoading && page > 0;
 
   return (

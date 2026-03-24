@@ -206,6 +206,6 @@ export function VariantManagerPage({ exerciseId, exerciseName }: VariantManagerP
 
 // Route-aware wrapper that reads exerciseId from URL params
 export function VariantManagerPageRoute() {
-  const { exerciseId } = useParams({ strict: false });
+  const { exerciseId } = useParams({ strict: false }) as { exerciseId: string };
   return <VariantManagerPage exerciseId={exerciseId} />;
 }

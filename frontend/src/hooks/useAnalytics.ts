@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import type { WorkoutSet, PersonalRecord, Exercise, MuscleGroup } from '@/types/database';
+import type { WorkoutSet, PersonalRecord, Exercise } from '@/types/database';
 import {
   weeklySnapshot,
   trainingFrequency,
@@ -201,7 +201,7 @@ export function useMuscleDistribution(period: Period) {
       if (mgError) throw mgError;
 
       const muscleGroupMap = new Map<number, string>(
-        (muscleGroups ?? []).map((mg: MuscleGroup) => [mg.id, mg.name]),
+        (muscleGroups ?? []).map((mg) => [mg.id, mg.name]),
       );
 
       // Build exercise → muscles map

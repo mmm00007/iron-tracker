@@ -30,7 +30,7 @@ import { useExercises } from '@/hooks/useExercises';
 import { formatRelativeDate, formatWeightReps } from '@/utils/formatters';
 
 export function ExerciseStatsPage() {
-  const { exerciseId } = useParams({ strict: false });
+  const { exerciseId } = useParams({ strict: false }) as { exerciseId: string };
   const navigate = useNavigate();
   const [tab, setTab] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);

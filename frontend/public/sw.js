@@ -36,6 +36,24 @@ self.addEventListener('fetch', (event) => {
   // Only handle GET requests — POST/PUT/DELETE go straight to the network
   if (request.method !== 'GET') return;
 
+  // SPA navigation — always serve the cached app shell (index.html).
+  // Client-side routes like /log/uuid don't exist on the server; the SPA
+  // router handles them once index.html loads.
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match('/index.html').then((r) => r || caches.match('/'))),
+    );
+    return;
+  }
+
   // Network-first for Supabase API and any /api/ calls
   // Falls back to cache if the network request fails (e.g., offline)
   if (

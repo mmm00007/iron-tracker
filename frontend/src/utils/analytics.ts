@@ -209,8 +209,8 @@ export function topExercises(sets: WorkoutSet[], limit = 5): TopExerciseEntry[] 
   return Array.from(map.entries())
     .map(([exerciseId, data]) => {
       const weeks = Array.from(data.byWeek.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-      const recentVol = weeks.length > 0 ? (weeks[weeks.length - 1][1] ?? 0) : 0;
-      const prevVol = weeks.length > 1 ? (weeks[weeks.length - 2][1] ?? 0) : 0;
+      const recentVol = weeks.length > 0 ? (weeks[weeks.length - 1]?.[1] ?? 0) : 0;
+      const prevVol = weeks.length > 1 ? (weeks[weeks.length - 2]?.[1] ?? 0) : 0;
       const trend: 'up' | 'down' | 'flat' =
         recentVol > prevVol * 1.05 ? 'up' : recentVol < prevVol * 0.95 ? 'down' : 'flat';
 

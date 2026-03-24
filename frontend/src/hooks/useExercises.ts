@@ -124,6 +124,7 @@ export function useRecentExercises() {
           const exercise = exerciseMap.get(id);
           if (!exercise) return null;
           const lastSet = lastSetByExercise[id];
+          if (!lastSet) return null;
           return {
             ...exercise,
             lastWeight: lastSet.weight,

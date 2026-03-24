@@ -6,6 +6,7 @@ import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
+import Snackbar from '@mui/material/Snackbar';
 import Stack from '@mui/material/Stack';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
@@ -435,7 +436,7 @@ export function MachineIdentifyPage() {
       return;
     }
     const exercises = queryClient.getQueryData<Exercise[]>(['exercises']) ?? [];
-    const firstName = data.exercise_names[0].toLowerCase();
+    const firstName = data.exercise_names[0]?.toLowerCase() ?? '';
     const match = exercises.find((ex) => ex.name.toLowerCase() === firstName);
     setMatchedExerciseId(match?.id ?? '');
   }, [data, queryClient]);
@@ -530,12 +531,20 @@ export function MachineIdentifyPage() {
       )}
 
       {/* Variant creation bottom sheet pre-filled with AI results */}
-      {exerciseId && (
+      {exerciseId ? (
         <VariantBottomSheet
           open={sheetOpen}
           onClose={() => setSheetOpen(false)}
           exerciseId={exerciseId}
           variant={prefillVariant}
+        />
+      ) : sheetOpen && (
+        <Snackbar
+          open
+          autoHideDuration={4000}
+          onClose={() => setSheetOpen(false)}
+          message="Could not match exercise — try a different photo"
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         />
       )}
     </Box>

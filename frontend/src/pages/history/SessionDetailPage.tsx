@@ -139,7 +139,7 @@ function noop() {}
 
 export function SessionDetailPage() {
   const navigate = useNavigate();
-  const { sessionId } = useParams({ strict: false });
+  const { sessionId } = useParams({ strict: false }) as { sessionId: string };
 
   // sessionId is the startedAt timestamp (URL-encoded)
   const startedAt = decodeURIComponent(sessionId);

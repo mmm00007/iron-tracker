@@ -3,7 +3,7 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import type { MuscleDistributionEntry } from '@/hooks/useAnalytics';
 
 // Chart colors for dark theme
@@ -27,7 +27,7 @@ interface CustomTooltipProps {
 
 function CustomTooltip({ active, payload }: CustomTooltipProps) {
   if (!active || !payload || payload.length === 0) return null;
-  const entry = payload[0];
+  const entry = payload[0]!;
   return (
     <Box
       sx={{
