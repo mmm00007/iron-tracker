@@ -1,4 +1,4 @@
-import { createRootRoute, createRoute, createRouter, Outlet, redirect, useNavigate } from '@tanstack/react-router';
+import { createRootRoute, createRoute, createRouter, Outlet, useNavigate } from '@tanstack/react-router';
 import { Box, Button, Typography } from '@mui/material';
 import * as Sentry from '@sentry/react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -16,6 +16,10 @@ import { StatsPage } from '@/pages/stats/StatsPage';
 import { ExerciseStatsPage } from '@/pages/stats/ExerciseStatsPage';
 import { MachineIdentifyPage } from '@/pages/log/MachineIdentifyPage';
 import { OnboardingPage } from '@/pages/onboarding/OnboardingPage';
+import { HomePage } from '@/pages/home/HomePage';
+import { PlansPage } from '@/pages/plans/PlansPage';
+import { AnalysisPage } from '@/pages/analysis/AnalysisPage';
+import { PRBoardPage } from '@/pages/stats/PRBoardPage';
 
 function PageErrorFallback() {
   const navigate = useNavigate();
@@ -54,8 +58,8 @@ function NotFoundPage() {
       }}
     >
       <Typography variant="h5">Page not found</Typography>
-      <Button variant="contained" onClick={() => navigate({ to: '/log' })}>
-        Go to Log
+      <Button variant="contained" onClick={() => navigate({ to: '/' })}>
+        Go Home
       </Button>
     </Box>
   );
@@ -81,13 +85,15 @@ const appLayoutRoute = createRoute({
   component: AppLayout,
 });
 
-// Index route — redirect to /log
-const indexRoute = createRoute({
-  getParentRoute: () => appLayoutRoute,
+// Home route — dashboard landing page
+const homeRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
   path: '/',
-  beforeLoad: () => {
-    throw redirect({ to: '/log' });
-  },
+  component: () => (
+    <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
+      <HomePage />
+    </Sentry.ErrorBoundary>
+  ),
 });
 
 // --- Auth routes ---
@@ -206,6 +212,17 @@ export const statsRoute = createRoute({
   ),
 });
 
+// /stats/prs — PR board
+export const prBoardRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/stats/prs',
+  component: () => (
+    <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
+      <PRBoardPage />
+    </Sentry.ErrorBoundary>
+  ),
+});
+
 // /stats/:exerciseId — exercise detail charts
 export const exerciseStatsRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
@@ -213,6 +230,28 @@ export const exerciseStatsRoute = createRoute({
   component: () => (
     <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
       <ExerciseStatsPage />
+    </Sentry.ErrorBoundary>
+  ),
+});
+
+// /analysis — AI training analysis
+export const analysisRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/analysis',
+  component: () => (
+    <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
+      <AnalysisPage />
+    </Sentry.ErrorBoundary>
+  ),
+});
+
+// /plans — workout plans
+export const plansRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/plans',
+  component: () => (
+    <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
+      <PlansPage />
     </Sentry.ErrorBoundary>
   ),
 });
@@ -231,8 +270,8 @@ export const profileRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   authLayoutRoute.addChildren([loginRoute, signUpRoute, forgotPasswordRoute, onboardingRoute]),
   appLayoutRoute.addChildren([
-    indexRoute,
     protectedLayoutRoute.addChildren([
+      homeRoute,
       logRoute,
       machineIdentifyRoute,
       setLoggerRoute,
@@ -240,7 +279,10 @@ const routeTree = rootRoute.addChildren([
       historyRoute,
       sessionDetailRoute,
       statsRoute,
+      prBoardRoute,
       exerciseStatsRoute,
+      analysisRoute,
+      plansRoute,
       profileRoute,
     ]),
   ]),

@@ -375,16 +375,21 @@ export function ExerciseListPage() {
               >
                 All Exercises
               </Typography>
-              <Box sx={{ px: 1 }}>
-                <List dense disablePadding>
-                  {exercisesQuery.data?.map((exercise) => (
-                    <ExerciseListItem
-                      key={exercise.id}
-                      exercise={exercise}
-                      lastLoggedInfo={lastLoggedMap.get(exercise.id)}
-                    />
-                  ))}
-                </List>
+              <Box
+                sx={{
+                  px: 1,
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
+                  gap: { xs: 0, md: 0.5 },
+                }}
+              >
+                {exercisesQuery.data?.map((exercise) => (
+                  <ExerciseListItem
+                    key={exercise.id}
+                    exercise={exercise}
+                    lastLoggedInfo={lastLoggedMap.get(exercise.id)}
+                  />
+                ))}
               </Box>
             </Box>
           )}

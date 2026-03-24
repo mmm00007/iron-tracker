@@ -94,6 +94,35 @@ export interface Gym {
   is_active: boolean;
 }
 
+export interface Plan {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PlanDay {
+  id: string;
+  plan_id: string;
+  weekday: number; // 0=Monday, 6=Sunday
+  label: string | null;
+}
+
+export interface PlanItem {
+  id: string;
+  plan_day_id: string;
+  exercise_id: string;
+  sort_order: number;
+  target_sets: number;
+  target_reps_min: number;
+  target_reps_max: number;
+  target_weight: number | null;
+  notes: string | null;
+}
+
 export interface GymMachine {
   id: string;
   gym_id: string;

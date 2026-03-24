@@ -22,6 +22,7 @@ import RemoveIcon from '@mui/icons-material/Remove';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useAuthStore } from '@/stores/authStore';
 import { useProfile, useUpdateProfile } from '@/hooks/useProfile';
+import { DataExport } from '@/components/profile/DataExport';
 import type { Profile } from '@/types/database';
 
 export function ProfilePage() {
@@ -206,6 +207,8 @@ export function ProfilePage() {
       >
         {updateProfile.isPending ? <CircularProgress size={20} color="inherit" /> : 'Save'}
       </Button>
+
+      <DataExport />
 
       <Divider sx={{ my: 2 }} />
 

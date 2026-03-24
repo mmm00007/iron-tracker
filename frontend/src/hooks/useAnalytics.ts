@@ -9,7 +9,9 @@ import {
   e1rmTrend,
   weeklyVolume,
   exercisePRs,
+  computeStreak,
 } from '@/utils/analytics';
+import type { TrainingStreakResult } from '@/utils/analytics';
 
 type Period = 'week' | 'month' | '3months' | 'all';
 
@@ -276,6 +278,37 @@ export function useTopExercises(limit = 5, period?: Period) {
         setCount: t.setCount,
         trend: t.trend,
       }));
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ─── Volume Trend (last 8 weeks, for sparkline) ─────────────────────────────
+
+export function useVolumeTrendSpark() {
+  return useQuery<number[]>({
+    queryKey: ['analytics', 'volumeTrendSpark'],
+    queryFn: async () => {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 56); // 8 weeks
+      const sets = await fetchUserSets(cutoff);
+      const weekly = weeklyVolume(sets);
+      return weekly.map((w) => w.volume);
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ─── Training Streak ────────────────────────────────────────────────────────
+
+export function useTrainingStreak() {
+  return useQuery<TrainingStreakResult>({
+    queryKey: ['analytics', 'trainingStreak'],
+    queryFn: async () => {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 90);
+      const sets = await fetchUserSets(cutoff);
+      return computeStreak(sets);
     },
     staleTime: 5 * 60 * 1000,
   });

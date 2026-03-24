@@ -458,6 +458,42 @@ export function SetLoggerPage() {
             </Typography>
           )}
 
+          {/* Weight progression suggestion */}
+          {lastSet && lastSet.rpe !== null && lastSet.rpe > 0 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
+              <Chip
+                size="small"
+                onClick={() => {
+                  // RPE-based suggestion: if RPE < 7, increase weight; if RPE > 8.5, decrease
+                  const increment = variants.length > 0 ? (variants[0]?.weight_increment ?? 2.5) : 2.5;
+                  const suggested = lastSet.rpe! < 7
+                    ? lastSet.weight + increment
+                    : lastSet.rpe! > 8.5
+                      ? Math.max(0, lastSet.weight - increment)
+                      : lastSet.weight;
+                  setWeight(suggested);
+                }}
+                label={
+                  lastSet.rpe! < 7
+                    ? `Try ${lastSet.weight + (variants[0]?.weight_increment ?? 2.5)} ${weightUnit} (RPE was ${lastSet.rpe})`
+                    : lastSet.rpe! > 8.5
+                      ? `Consider ${Math.max(0, lastSet.weight - (variants[0]?.weight_increment ?? 2.5))} ${weightUnit} (RPE was ${lastSet.rpe})`
+                      : `Keep ${lastSet.weight} ${weightUnit} (RPE ${lastSet.rpe} — on target)`
+                }
+                sx={{
+                  backgroundColor: lastSet.rpe! < 7
+                    ? 'rgba(102, 187, 106, 0.12)'
+                    : lastSet.rpe! > 8.5
+                      ? 'rgba(255, 152, 0, 0.12)'
+                      : 'rgba(168, 199, 250, 0.12)',
+                  color: lastSet.rpe! < 7 ? 'success.main' : lastSet.rpe! > 8.5 ? 'warning.main' : 'primary.main',
+                  fontWeight: 500,
+                  fontSize: '0.7rem',
+                }}
+              />
+            </Box>
+          )}
+
           {/* Weight row */}
           <Box sx={{ mb: 2.5 }}>
             <Typography

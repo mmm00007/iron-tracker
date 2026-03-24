@@ -37,6 +37,33 @@ class ExerciseE1RM(BaseModel):
     estimated_1rm: float
 
 
+class AnalysisInsight(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    metric: str
+    finding: str
+    delta: str | None = None
+    recommendation: str
+
+
+class AnalysisRequest(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    scope_type: str  # 'day', 'week', 'month'
+    scope_start: str  # ISO date
+    scope_end: str  # ISO date
+    goals: list[str] = []
+
+
+class AnalysisResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    summary: str
+    insights: list[AnalysisInsight]
+    created_at: str
+
+
 class HealthResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

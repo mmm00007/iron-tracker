@@ -1,37 +1,102 @@
-import { Box, BottomNavigation, BottomNavigationAction } from '@mui/material';
+import { Box } from '@mui/material';
 import { Outlet, useRouter, useLocation } from '@tanstack/react-router';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import HistoryIcon from '@mui/icons-material/History';
-import BarChartIcon from '@mui/icons-material/BarChart';
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import { OfflineIndicator } from '@/components/common/OfflineIndicator';
 import { GlobalRestTimer } from '@/components/common/GlobalRestTimer';
 import { SyncStatus } from '@/components/common/SyncStatus';
 import { InstallPrompt } from '@/components/common/InstallPrompt';
-
-const NAV_TABS = [
-  { label: 'Log', value: '/log', icon: <FitnessCenterIcon /> },
-  { label: 'History', value: '/history', icon: <HistoryIcon /> },
-  { label: 'Stats', value: '/stats', icon: <BarChartIcon /> },
-  { label: 'Profile', value: '/profile', icon: <PersonOutlineIcon /> },
-] as const;
-
-type NavPath = (typeof NAV_TABS)[number]['value'];
-
-function getActiveTab(pathname: string): NavPath {
-  const match = NAV_TABS.find((tab) => pathname.startsWith(tab.value));
-  return match?.value ?? '/log';
-}
+import { useLayoutMode } from '@/hooks/useLayoutMode';
+import { getActiveTab } from './navConfig';
+import { BottomNav } from './BottomNav';
+import { RailNav, RAIL_WIDTH } from './RailNav';
+import { TopNav, TOP_NAV_HEIGHT } from './TopNav';
 
 export function AppLayout() {
   const router = useRouter();
   const location = useLocation();
+  const layoutMode = useLayoutMode();
   const activeTab = getActiveTab(location.pathname);
 
   const handleNavChange = (_event: React.SyntheticEvent, newValue: string) => {
     void router.navigate({ to: newValue });
   };
 
+  const overlays = (
+    <>
+      <OfflineIndicator />
+      <GlobalRestTimer />
+      <SyncStatus />
+      <InstallPrompt />
+    </>
+  );
+
+  // Phone: column layout with bottom nav
+  if (layoutMode === 'phone') {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100dvh',
+          backgroundColor: 'background.default',
+          position: 'relative',
+        }}
+      >
+        {overlays}
+        <Box
+          component="main"
+          sx={{
+            flex: 1,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            backgroundColor: 'background.default',
+            pb: '80px',
+          }}
+        >
+          <Outlet />
+        </Box>
+        <BottomNav activeTab={activeTab} onChange={handleNavChange} />
+      </Box>
+    );
+  }
+
+  // Tablet: rail sidebar on left
+  if (layoutMode === 'tablet') {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          height: '100dvh',
+          backgroundColor: 'background.default',
+          position: 'relative',
+        }}
+      >
+        <RailNav activeTab={activeTab} onChange={handleNavChange} />
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            flex: 1,
+            ml: `${RAIL_WIDTH}px`,
+          }}
+        >
+          {overlays}
+          <Box
+            component="main"
+            sx={{
+              flex: 1,
+              overflowY: 'auto',
+              overflowX: 'hidden',
+              backgroundColor: 'background.default',
+            }}
+          >
+            <Outlet />
+          </Box>
+        </Box>
+      </Box>
+    );
+  }
+
+  // Desktop: top nav
   return (
     <Box
       sx={{
@@ -42,19 +107,8 @@ export function AppLayout() {
         position: 'relative',
       }}
     >
-      {/* Offline indicator — rendered above the app bar */}
-      <OfflineIndicator />
-
-      {/* Global rest timer — persists across all screens */}
-      <GlobalRestTimer />
-
-      {/* Sync status chip — appears after coming back online */}
-      <SyncStatus />
-
-      {/* PWA install prompt — shown after 3 visits */}
-      <InstallPrompt />
-
-      {/* Main content area */}
+      <TopNav activeTab={activeTab} onChange={handleNavChange} />
+      {overlays}
       <Box
         component="main"
         sx={{
@@ -62,60 +116,12 @@ export function AppLayout() {
           overflowY: 'auto',
           overflowX: 'hidden',
           backgroundColor: 'background.default',
-          // Ensure content doesn't go under bottom nav
-          pb: '80px',
+          pt: `${TOP_NAV_HEIGHT}px`,
         }}
       >
-        <Outlet />
-      </Box>
-
-      {/* MD3 NavigationBar — bottom navigation */}
-      <Box
-        component="nav"
-        sx={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: (theme) => theme.zIndex.appBar,
-        }}
-      >
-        <BottomNavigation value={activeTab} onChange={handleNavChange} showLabels>
-          {NAV_TABS.map((tab) => (
-            <BottomNavigationAction
-              key={tab.value}
-              label={tab.label}
-              value={tab.value}
-              icon={tab.icon}
-              sx={{
-                // MD3 active indicator pill
-                '&.Mui-selected': {
-                  '& .MuiBottomNavigationAction-label': {
-                    color: 'primary.main',
-                  },
-                  '& .MuiSvgIcon-root': {
-                    color: 'primary.main',
-                  },
-                },
-                '&.Mui-selected::before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: '8px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: '64px',
-                  height: '32px',
-                  backgroundColor: 'rgba(168, 199, 250, 0.16)',
-                  borderRadius: '100px',
-                  zIndex: -1,
-                },
-                position: 'relative',
-                overflow: 'visible',
-                minWidth: 0,
-              }}
-            />
-          ))}
-        </BottomNavigation>
+        <Box sx={{ maxWidth: 1400, mx: 'auto', width: '100%' }}>
+          <Outlet />
+        </Box>
       </Box>
     </Box>
   );

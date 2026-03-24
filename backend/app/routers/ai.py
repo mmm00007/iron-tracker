@@ -3,12 +3,13 @@ import logging
 from collections import OrderedDict
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
 
 from app.auth import get_current_user
 from app.config import Settings, get_settings
-from app.models.schemas import MachineIdentificationResponse
+from app.models.schemas import AnalysisRequest, AnalysisResponse, MachineIdentificationResponse
 from app.services.ai_service import AIService
+from app.services.analysis_service import analyze_training
 
 logger = logging.getLogger(__name__)
 
@@ -158,3 +159,43 @@ async def identify_machine(
     # Cache successful result
     _image_cache.set(image_hash, result)
     return result
+
+
+@router.post("/analyze", response_model=AnalysisResponse)
+async def analyze_training_data(
+    body: AnalysisRequest,
+    request: Request,
+    user_id: str = Depends(get_current_user),
+    settings: Settings = Depends(get_settings),
+) -> AnalysisResponse:
+    """Generate AI-powered training analysis for a date range.
+
+    Rate limited to 5 requests per user per day.
+    """
+    _check_rate_limit(user_id, min(settings.AI_RATE_LIMIT_PER_DAY, 5))
+
+    db_pool = getattr(request.app.state, "db_pool", None)
+    if db_pool is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database not available",
+        )
+
+    try:
+        result = await analyze_training(
+            db_pool=db_pool,
+            user_id=user_id,
+            api_key=settings.ANTHROPIC_API_KEY,
+            scope_type=body.scope_type,
+            scope_start=body.scope_start,
+            scope_end=body.scope_end,
+            goals=body.goals,
+        )
+    except Exception as exc:
+        logger.exception("Analysis error for user %s: %s", user_id, exc)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Analysis service temporarily unavailable.",
+        ) from exc
+
+    return AnalysisResponse(**result)

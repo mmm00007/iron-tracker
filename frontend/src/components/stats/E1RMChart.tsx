@@ -128,7 +128,7 @@ export function E1RMChart({ data, isLoading, isError, variantNames }: E1RMChartP
   };
 
   return (
-    <Box sx={{ width: '100%', height: 240 }}>
+    <Box sx={{ width: '100%', height: { xs: 240, md: 320, lg: 400 } }}>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData} margin={{ top: 5, right: 12, left: -10, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(202, 196, 208, 0.1)" />

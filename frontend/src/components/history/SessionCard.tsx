@@ -15,6 +15,28 @@ import {
   formatVolume,
   formatWeightReps,
 } from '@/utils/formatters';
+import { MiniBarChart } from '@/components/common/MiniBarChart';
+
+const MUSCLE_CHIP_COLORS: Record<string, string> = {
+  Chest: '#EF5350',
+  Back: '#42A5F5',
+  Shoulders: '#FFA726',
+  Biceps: '#66BB6A',
+  Triceps: '#AB47BC',
+  Legs: '#26C6DA',
+  Quadriceps: '#26C6DA',
+  Hamstrings: '#00897B',
+  Glutes: '#EC407A',
+  Core: '#F9A825',
+  Abdominals: '#F9A825',
+  Calves: '#78909C',
+  Forearms: '#8D6E63',
+};
+
+function getMuscleColor(category: string | undefined): string {
+  if (!category) return '#A8C7FA';
+  return MUSCLE_CHIP_COLORS[category] ?? '#A8C7FA';
+}
 
 interface SessionCardProps {
   session: SessionGroup;
@@ -98,6 +120,27 @@ export function SessionCard({ session }: SessionCardProps) {
             </Typography>
           </Box>
 
+          {/* Muscle group chips — color-coded by exercise category */}
+          {session.exercises.length > 0 && (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, px: 2, pb: 1 }}>
+              {[...new Set(session.exercises.map((ex) => ex.exerciseName.split(' ')[0]))].slice(0, 5).map((tag) => (
+                <Chip
+                  key={tag}
+                  label={tag}
+                  size="small"
+                  sx={{
+                    height: 20,
+                    fontSize: '0.6rem',
+                    fontWeight: 600,
+                    backgroundColor: `${getMuscleColor(tag)}20`,
+                    color: getMuscleColor(tag),
+                    border: `1px solid ${getMuscleColor(tag)}40`,
+                  }}
+                />
+              ))}
+            </Box>
+          )}
+
           {/* Exercise summary list */}
           {session.exercises.length > 0 && (
             <>
@@ -141,15 +184,22 @@ export function SessionCard({ session }: SessionCardProps) {
             </>
           )}
 
-          {/* Footer: total volume */}
+          {/* Footer: total volume + mini bar chart */}
           <Divider sx={{ borderColor: 'rgba(202, 196, 208, 0.06)', mx: 2 }} />
-          <Box sx={{ px: 2, py: 1.25 }}>
+          <Box sx={{ px: 2, py: 1.25, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
               Volume:{' '}
               <Box component="span" sx={{ color: 'primary.main', fontWeight: 600 }}>
                 {formatVolume(session.totalVolume)}
               </Box>
             </Typography>
+            <MiniBarChart
+              data={session.exercises.slice(0, 6).map(
+                (ex) => ex.topSet.weight * ex.topSet.reps * ex.setCount
+              )}
+              height={24}
+              width={48}
+            />
           </Box>
         </CardContent>
       </CardActionArea>

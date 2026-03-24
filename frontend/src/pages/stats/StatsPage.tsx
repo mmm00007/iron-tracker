@@ -14,7 +14,7 @@ import {
   ListItemIcon,
   Button,
 } from '@mui/material';
-import { EmojiEvents, TrendingUp, TrendingDown, FitnessCenter, BarChart as BarChartIcon } from '@mui/icons-material';
+import { EmojiEvents, TrendingUp, TrendingDown, FitnessCenter, BarChart as BarChartIcon, AutoAwesome, MilitaryTech } from '@mui/icons-material';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { statsRoute } from '@/router';
 import { WeeklySnapshotCard } from '@/components/stats/WeeklySnapshotCard';
@@ -63,7 +63,7 @@ export function StatsPage() {
   const isAllLoading = prsLoading || freqLoading || muscleLoading || topLoading;
 
   return (
-    <Box sx={{ pb: 10 }}>
+    <Box sx={{ pb: { xs: 10, md: 2 } }}>
       <AppBar position="static" elevation={0} color="transparent">
         <Toolbar>
           <Typography variant="h6" fontWeight={700} sx={{ flexGrow: 1 }}>
@@ -71,6 +71,28 @@ export function StatsPage() {
           </Typography>
         </Toolbar>
       </AppBar>
+
+      {/* Quick links */}
+      <Box sx={{ px: 2, pb: 1, display: 'flex', gap: 1 }}>
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<AutoAwesome />}
+          onClick={() => navigate({ to: '/analysis' })}
+          sx={{ borderRadius: '20px' }}
+        >
+          AI Analysis
+        </Button>
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<MilitaryTech />}
+          onClick={() => navigate({ to: '/stats/prs' })}
+          sx={{ borderRadius: '20px' }}
+        >
+          PR Board
+        </Button>
+      </Box>
 
       {/* Period filter chips */}
       <Stack direction="row" spacing={1} sx={{ px: 2, pb: 2, overflowX: 'auto' }}>
@@ -116,12 +138,20 @@ export function StatsPage() {
           <Box sx={{ px: 2 }}>
             <DeloadBanner />
 
-            <Stack spacing={2}>
-              {/* Card 1: Weekly Snapshot */}
-              <WeeklySnapshotCard />
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
+                gap: 2,
+              }}
+            >
+              {/* Card 1: Weekly Snapshot — full width */}
+              <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+                <WeeklySnapshotCard />
+              </Box>
 
-              {/* Card 2: Recent PRs */}
-              <Card>
+              {/* Card 2: Recent PRs — full width */}
+              <Card sx={{ gridColumn: { md: '1 / -1' } }}>
                 <CardContent>
                   <Typography variant="subtitle1" fontWeight={600} gutterBottom>
                     Recent PRs
@@ -164,8 +194,10 @@ export function StatsPage() {
                 </CardContent>
               </Card>
 
-              {/* Card 3: Training Calendar */}
-              <TrainingCalendar />
+              {/* Card 3: Training Calendar — full width */}
+              <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+                <TrainingCalendar />
+              </Box>
 
               {/* Card 4: Muscle Distribution */}
               <Card>
@@ -225,7 +257,7 @@ export function StatsPage() {
                   )}
                 </CardContent>
               </Card>
-            </Stack>
+            </Box>
           </Box>
         )
       )}

@@ -3,6 +3,15 @@ import { createTheme } from '@mui/material/styles';
 // MD3 dark palette seeded from #2E75B6 (steel blue)
 // Primary tones mapped to MUI palette roles
 export const theme = createTheme({
+  breakpoints: {
+    values: {
+      xs: 0,
+      sm: 600,
+      md: 768,   // tablet
+      lg: 1200,  // desktop
+      xl: 1536,
+    },
+  },
   palette: {
     mode: 'dark',
     primary: {

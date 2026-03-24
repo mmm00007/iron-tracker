@@ -1,12 +1,27 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import Skeleton from '@mui/material/Skeleton';
+import TextField from '@mui/material/TextField';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
+import InputAdornment from '@mui/material/InputAdornment';
+import IconButton from '@mui/material/IconButton';
+import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
 import HistoryIcon from '@mui/icons-material/History';
+import SearchIcon from '@mui/icons-material/Search';
+import ClearIcon from '@mui/icons-material/Clear';
+
+type DateFilter = 'all' | 'week' | 'month' | '3months';
+const DATE_FILTER_LABELS: Record<DateFilter, string> = {
+  all: 'All',
+  week: 'This Week',
+  month: 'This Month',
+  '3months': '3 Months',
+};
 import { useSessions } from '@/hooks/useSessions';
 import { SessionCard } from '@/components/history/SessionCard';
 import type { SessionGroup } from '@/utils/sessionGrouping';
@@ -75,6 +90,8 @@ export function HistoryPage() {
   const [allSessions, setAllSessions] = useState<SessionGroup[]>([]);
   const loadedPages = useRef(new Set<number>());
   const [hasMore, setHasMore] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
 
   const sessionsQuery = useSessions(page);
 
@@ -99,8 +116,33 @@ export function HistoryPage() {
   }, [sessionsQuery.isSuccess, sessionsQuery.data, page]);
 
   const isInitialLoading = sessionsQuery.isLoading && page === 0;
-  const isEmpty = !isInitialLoading && allSessions.length === 0;
   const isLoadingMore = sessionsQuery.isLoading && page > 0;
+
+  // Filter sessions by exercise name search and date range
+  const filteredSessions = useMemo(() => {
+    let result = allSessions;
+
+    // Date filter
+    if (dateFilter !== 'all') {
+      const cutoff = new Date();
+      if (dateFilter === 'week') cutoff.setDate(cutoff.getDate() - 7);
+      else if (dateFilter === 'month') cutoff.setMonth(cutoff.getMonth() - 1);
+      else if (dateFilter === '3months') cutoff.setMonth(cutoff.getMonth() - 3);
+      result = result.filter((s) => new Date(s.startedAt) >= cutoff);
+    }
+
+    // Exercise name search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((session) =>
+        session.exercises.some((ex) => ex.exerciseName.toLowerCase().includes(q))
+      );
+    }
+
+    return result;
+  }, [allSessions, searchQuery, dateFilter]);
+
+  const isEmpty = !isInitialLoading && allSessions.length === 0;
 
   return (
     <Box
@@ -135,6 +177,48 @@ export function HistoryPage() {
         </Toolbar>
       </AppBar>
 
+      {/* Search bar */}
+      {!isEmpty && !isInitialLoading && (
+        <Box sx={{ px: 2, pt: 1.5, pb: 0.5 }}>
+          <TextField
+            size="small"
+            fullWidth
+            placeholder="Search by exercise name..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                  </InputAdornment>
+                ),
+                endAdornment: searchQuery ? (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={() => setSearchQuery('')}>
+                      <ClearIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                  </InputAdornment>
+                ) : null,
+              },
+            }}
+          />
+          <Stack direction="row" spacing={0.75} sx={{ mt: 1, overflowX: 'auto' }}>
+            {(Object.keys(DATE_FILTER_LABELS) as DateFilter[]).map((f) => (
+              <Chip
+                key={f}
+                label={DATE_FILTER_LABELS[f]}
+                size="small"
+                onClick={() => setDateFilter(f)}
+                color={dateFilter === f ? 'primary' : 'default'}
+                variant={dateFilter === f ? 'filled' : 'outlined'}
+                sx={{ fontSize: '0.7rem' }}
+              />
+            ))}
+          </Stack>
+        </Box>
+      )}
+
       {/* Content */}
       {isInitialLoading ? (
         <LoadingSkeleton />
@@ -146,10 +230,18 @@ export function HistoryPage() {
       ) : isEmpty ? (
         <EmptyState />
       ) : (
-        <Box sx={{ px: 2, pt: 1.5, pb: 2 }}>
-          {allSessions.map((session) => (
-            <SessionCard key={session.id} session={session} />
-          ))}
+        <Box sx={{ px: 2, pt: 1.5, pb: { xs: 2, md: 2 } }}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
+              gap: { xs: 0, md: 2 },
+            }}
+          >
+            {filteredSessions.map((session) => (
+              <SessionCard key={session.id} session={session} />
+            ))}
+          </Box>
 
           {hasMore && (
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>

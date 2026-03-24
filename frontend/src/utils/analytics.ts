@@ -317,6 +317,100 @@ const PR_REP_RANGES = [1, 3, 5, 8, 10];
 /**
  * Returns personal records across rep ranges for a given exercise.
  */
+// ─── Training streak ─────────────────────────────────────────────────────────
+
+export interface TrainingStreakResult {
+  currentDayStreak: number;
+  currentWeekStreak: number;
+  lastTrainedAt: string | null;
+  longestDayStreak: number;
+}
+
+/**
+ * Compute training streak from sets.
+ * Day streak: consecutive calendar days with at least one set.
+ * Week streak: consecutive ISO weeks with at least one training day.
+ */
+export function computeStreak(sets: WorkoutSet[]): TrainingStreakResult {
+  if (sets.length === 0) {
+    return { currentDayStreak: 0, currentWeekStreak: 0, lastTrainedAt: null, longestDayStreak: 0 };
+  }
+
+  // Unique training days, sorted ascending
+  const days = [...new Set(sets.map((s) => s.logged_at.slice(0, 10)))].sort();
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+
+  // Current day streak — count backwards from today or yesterday
+  let dayStreak = 0;
+  if (days.includes(today) || days.includes(yesterday)) {
+    let cursor = days.includes(today) ? today : yesterday;
+    for (let i = days.length - 1; i >= 0; i--) {
+      if (days[i] === cursor) {
+        dayStreak++;
+        const d = new Date(cursor);
+        d.setDate(d.getDate() - 1);
+        cursor = d.toISOString().slice(0, 10);
+      } else {
+        break;
+      }
+    }
+  }
+
+  // Longest day streak
+  let longest = 1;
+  let cur = 1;
+  for (let i = 1; i < days.length; i++) {
+    const prev = new Date(days[i - 1]!);
+    prev.setDate(prev.getDate() + 1);
+    if (prev.toISOString().slice(0, 10) === days[i]) {
+      cur++;
+      longest = Math.max(longest, cur);
+    } else {
+      cur = 1;
+    }
+  }
+
+  // Current week streak
+  const weeks = [...new Set(sets.map((s) => isoWeek(new Date(s.logged_at))))].sort();
+  const currentWeekStr = isoWeek(new Date());
+  const prevWeekDate = new Date();
+  prevWeekDate.setDate(prevWeekDate.getDate() - 7);
+  const prevWeekStr = isoWeek(prevWeekDate);
+
+  let weekStreak = 0;
+  if (weeks.includes(currentWeekStr) || weeks.includes(prevWeekStr)) {
+    // Start from the most recent active week
+    let weekCursor = weeks.includes(currentWeekStr) ? currentWeekStr : prevWeekStr;
+    for (let i = weeks.length - 1; i >= 0; i--) {
+      if (weeks[i] === weekCursor) {
+        weekStreak++;
+        // Step back one week
+        const parts = weekCursor.split('-W');
+        const yr = Number(parts[0]);
+        const wk = Number(parts[1]);
+        if (wk === 1) {
+          weekCursor = `${yr - 1}-W52`;
+          if (!weeks.includes(weekCursor)) {
+            weekCursor = `${yr - 1}-W53`;
+          }
+        } else {
+          weekCursor = `${yr}-W${String(wk - 1).padStart(2, '0')}`;
+        }
+      } else if (weeks[i]! < weekCursor) {
+        break;
+      }
+    }
+  }
+
+  return {
+    currentDayStreak: dayStreak,
+    currentWeekStreak: weekStreak,
+    lastTrainedAt: days[days.length - 1] ?? null,
+    longestDayStreak: longest,
+  };
+}
+
 export function exercisePRs(sets: WorkoutSet[], exerciseId: string): PRRecord[] {
   const filtered = sets.filter((s) => s.exercise_id === exerciseId);
   const records = new Map<number, PRRecord>();
