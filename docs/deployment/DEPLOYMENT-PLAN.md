@@ -13,6 +13,12 @@
 | Security audit | Skill | Skill | - |
 | Code generation / editing | Full | Full | Full |
 
+## Shared File Handoff
+
+Agents coordinate via `docs/deployment/handoff.json` — no manual copy-paste of credentials between agents. Each agent writes its outputs to the handoff file after completing its phase, and the next agent reads from it. The file is `.gitignore`d since it contains secrets.
+
+See the main `CLAUDE.md` (root of workspace) for the full handoff file format and rules.
+
 ## Deployment Sequence
 
 ### Phase 1: Repository & Infrastructure Setup (Claude Code Desktop)
@@ -30,46 +36,54 @@
   2. `supabase/seed/002_exercises.sql`
   3. `supabase/seed/003_exercise_muscles.sql`
 - Enable Google OAuth provider in Auth settings
-- Copy project URL, anon key, DB connection string, and JWT secret
+- Write project URL, anon key, DB connection string, and JWT secret to `docs/deployment/handoff.json` under `phase1.outputs`
 
 **Step 3 — Sentry**
 - Create Sentry project `iron-tracker-frontend` (JavaScript/React) via connector
 - Create Sentry project `iron-tracker-api` (Python/FastAPI) via connector
-- Copy both DSN values
+- Write both DSN values to `docs/deployment/handoff.json` under `phase1.outputs`
+- Set `phase1.status` to `"complete"`
 
 ### Phase 2: Backend Deployment (Codex Desktop)
 
 **Step 4 — Render**
+- Read `docs/deployment/handoff.json` to get Phase 1 outputs (Supabase credentials, Sentry backend DSN)
 - Deploy `backend/` as a Python web service via Render deploy skill
 - Build command: `pip install .`
 - Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-- Set environment variables:
+- Set environment variables (values from handoff.json phase1):
   ```
-  SUPABASE_URL=<from step 2>
-  SUPABASE_DB_URL=<from step 2>
-  SUPABASE_JWT_SECRET=<from step 2>
+  SUPABASE_URL=<from handoff.json phase1.outputs.supabase_url>
+  SUPABASE_DB_URL=<from handoff.json phase1.outputs.supabase_db_url>
+  SUPABASE_JWT_SECRET=<from handoff.json phase1.outputs.supabase_jwt_secret>
   ANTHROPIC_API_KEY=<user provides>
-  SENTRY_DSN=<from step 3, iron-tracker-api>
-  ALLOWED_ORIGINS=https://<netlify-domain>
+  SENTRY_DSN=<from handoff.json phase1.outputs.sentry_backend_dsn>
+  ALLOWED_ORIGINS=https://<netlify-domain>  (update after Phase 3)
   DEBUG=false
   ```
 - Verify: `GET /health` returns `{"status": "ok"}`
+- Write Render service URL to `docs/deployment/handoff.json` under `phase2.outputs.render_url`
+- Set `phase2.status` to `"complete"`
 
 ### Phase 3: Frontend Deployment (Claude Code Desktop or Codex Desktop)
 
 **Step 5 — Netlify**
+- Read `docs/deployment/handoff.json` to get Phase 1 outputs (Supabase, Sentry) and Phase 2 outputs (Render URL)
 - Deploy `frontend/` via Netlify connector/skill
 - Build command: `npm run build`
 - Publish directory: `dist`
-- Set environment variables:
+- Set environment variables (values from handoff.json):
   ```
-  VITE_SUPABASE_URL=<from step 2>
-  VITE_SUPABASE_ANON_KEY=<from step 2>
-  VITE_API_URL=https://<render-service>.onrender.com
-  VITE_SENTRY_DSN=<from step 3, iron-tracker-frontend>
+  VITE_SUPABASE_URL=<from handoff.json phase1.outputs.supabase_url>
+  VITE_SUPABASE_ANON_KEY=<from handoff.json phase1.outputs.supabase_anon_key>
+  VITE_API_URL=<from handoff.json phase2.outputs.render_url>
+  VITE_SENTRY_DSN=<from handoff.json phase1.outputs.sentry_frontend_dsn>
   ```
 - Configure redirect rule: `/* /index.html 200` (SPA routing)
 - Verify: app loads at Netlify URL, dark theme renders
+- Write Netlify URL to `docs/deployment/handoff.json` under `phase3.outputs.netlify_url`
+- Set `phase3.status` to `"complete"`
+- Codex Desktop then updates `ALLOWED_ORIGINS` on Render with the Netlify URL from handoff.json
 
 ### Phase 4: Verification (Both)
 

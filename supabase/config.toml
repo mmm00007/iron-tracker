@@ -1,7 +1,3 @@
-[project]
-id = ""
-name = "iron-tracker"
-
 [api]
 port = 54321
 schemas = ["public"]

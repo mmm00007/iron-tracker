@@ -2,6 +2,13 @@
 
 Machine-aware, set-centric gym tracking PWA.
 
+## Repository & Environments
+
+This project is its own git repo — versioned independently from the NanoClaw workspace.
+
+- **Frontend**: Node.js environment with its own `node_modules` and `package.json`
+- **Backend**: Python environment managed by `uv` — venv at `backend/.venv`, deps in `backend/pyproject.toml`. Always use `uv run` / `uv sync`, never `pip install` directly.
+
 ## Architecture
 
 Monorepo with two apps:
@@ -38,12 +45,14 @@ cd frontend && npm run typecheck  # tsc --noEmit
 
 ### Backend
 ```bash
-cd backend && pip install -e ".[dev]"   # Install deps
-cd backend && uvicorn app.main:app --reload  # Dev server (port 8000)
-cd backend && pytest                    # Run tests
-cd backend && ruff check .              # Lint
-cd backend && ruff format .             # Format
+cd backend && uv sync --all-extras      # Install deps (uses uv)
+cd backend && uv run uvicorn app.main:app --reload  # Dev server (port 8000)
+cd backend && uv run pytest             # Run tests
+cd backend && uv run ruff check .       # Lint
+cd backend && uv run ruff format .      # Format
 ```
+
+> **Python environment**: Managed by [uv](https://docs.astral.sh/uv/). The venv lives at `backend/.venv`. Always use `uv run` or `uv sync` — never `pip install` directly.
 
 ## Key Design Decisions
 
