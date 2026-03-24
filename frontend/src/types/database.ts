@@ -11,6 +11,12 @@ export interface Profile {
   updated_at: string;
 }
 
+export type MovementPattern =
+  | 'squat' | 'hip_hinge' | 'lunge'
+  | 'horizontal_push' | 'vertical_push'
+  | 'horizontal_pull' | 'vertical_pull'
+  | 'carry' | 'rotation' | 'isolation' | 'other';
+
 export interface Exercise {
   id: string;
   name: string;
@@ -25,6 +31,22 @@ export interface Exercise {
   is_custom: boolean;
   created_by: string | null;
   created_at: string;
+  updated_at: string;
+  // New fields from migration 015
+  source_id: string | null;
+  movement_pattern: MovementPattern | null;
+  variations: string[];
+  default_weight: number;
+  default_reps: number;
+  video_url: string | null;
+  notes: string | null;
+}
+
+export interface ExerciseMuscle {
+  exercise_id: string;
+  muscle_group_id: number;
+  is_primary: boolean;
+  activation_percent: number | null;
 }
 
 export interface MuscleGroup {
@@ -50,6 +72,9 @@ export interface EquipmentVariant {
   photo_url: string | null;
   last_used_at: string | null;
   created_at: string;
+  is_default: boolean;
+  weight_range_min: number | null;
+  weight_range_max: number | null;
 }
 
 export interface WorkoutSet {
@@ -92,6 +117,8 @@ export interface Gym {
   photo_url: string | null;
   machine_count: number;
   is_active: boolean;
+  slug: string | null;
+  country_code: string;
 }
 
 export interface Plan {
@@ -130,9 +157,16 @@ export interface GymMachine {
   name: string;
   equipment_type: string;
   manufacturer: string | null;
+  model: string | null;
   weight_range_min: number | null;
   weight_range_max: number | null;
   weight_increment: number;
+  weight_unit: 'kg' | 'lb';
+  seat_adjustment_labels: string[];
+  location_hint: string | null;
   photo_url: string | null;
+  notes: string | null;
+  sort_order: number;
   is_active: boolean;
+  updated_at: string;
 }

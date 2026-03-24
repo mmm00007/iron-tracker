@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Alert from '@mui/material/Alert';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -235,12 +236,19 @@ export function PlansPage() {
   const [newPlanName, setNewPlanName] = useState('');
   const [newPlanDesc, setNewPlanDesc] = useState('');
 
+  const [createError, setCreateError] = useState<string | null>(null);
+
   const handleCreate = async () => {
     if (!newPlanName.trim()) return;
-    await createPlan.mutateAsync({ name: newPlanName, description: newPlanDesc || undefined });
-    setNewPlanName('');
-    setNewPlanDesc('');
-    setShowCreate(false);
+    setCreateError(null);
+    try {
+      await createPlan.mutateAsync({ name: newPlanName, description: newPlanDesc || undefined });
+      setNewPlanName('');
+      setNewPlanDesc('');
+      setShowCreate(false);
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : 'Failed to create plan. The plans table may not be set up yet — run migration 011.');
+    }
   };
 
   return (
@@ -287,13 +295,20 @@ export function PlansPage() {
         <DialogTitle>New Workout Plan</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
+            {createError && (
+              <Alert severity="error" onClose={() => setCreateError(null)}>
+                {createError}
+              </Alert>
+            )}
             <TextField label="Plan Name" value={newPlanName} onChange={(e) => setNewPlanName(e.target.value)} fullWidth autoFocus placeholder="e.g. Push Pull Legs" />
             <TextField label="Description (optional)" value={newPlanDesc} onChange={(e) => setNewPlanDesc(e.target.value)} fullWidth multiline rows={2} placeholder="e.g. 6-day PPL split" />
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowCreate(false)}>Cancel</Button>
-          <Button variant="contained" onClick={() => void handleCreate()} disabled={!newPlanName.trim() || createPlan.isPending}>Create</Button>
+          <Button variant="contained" onClick={() => void handleCreate()} disabled={!newPlanName.trim() || createPlan.isPending}>
+            {createPlan.isPending ? 'Creating...' : 'Create'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

@@ -11,7 +11,9 @@ import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
+import StarIcon from '@mui/icons-material/Star';
 import { useNavigate } from '@tanstack/react-router';
+import { useFavoriteIds } from '@/hooks/useFavorites';
 
 const EQUIPMENT_TYPES = ['barbell', 'dumbbell', 'cable', 'machine', 'body only', 'bands', 'kettlebell'] as const;
 import {
@@ -146,6 +148,8 @@ export function ExerciseListPage() {
   const [searchInput, setSearchInput] = useState('');
   const [equipmentFilter, setEquipmentFilter] = useState<string | null>(null);
   const [muscleFilter, setMuscleFilter] = useState<string | null>(null);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const favoriteIds = useFavoriteIds();
   const debouncedSearch = useDebounce(searchInput, 200);
   const isSearching = debouncedSearch.trim().length > 0;
 
@@ -189,9 +193,12 @@ export function ExerciseListPage() {
     return map;
   }, [exercisesQuery.data]);
 
-  // Filter exercises by equipment type and muscle group (category)
+  // Filter exercises by equipment type, muscle group, and favorites
   const filteredExercises = useMemo(() => {
     let list = exercisesQuery.data ?? [];
+    if (showFavoritesOnly) {
+      list = list.filter((e) => favoriteIds.has(e.id));
+    }
     if (equipmentFilter) {
       list = list.filter((e) => e.equipment?.toLowerCase() === equipmentFilter);
     }
@@ -199,9 +206,9 @@ export function ExerciseListPage() {
       list = list.filter((e) => e.category === muscleFilter);
     }
     return list;
-  }, [exercisesQuery.data, equipmentFilter, muscleFilter]);
+  }, [exercisesQuery.data, equipmentFilter, muscleFilter, showFavoritesOnly, favoriteIds]);
 
-  const isFiltering = equipmentFilter !== null || muscleFilter !== null;
+  const isFiltering = equipmentFilter !== null || muscleFilter !== null || showFavoritesOnly;
 
   const hasRecentExercises = (recentQuery.data?.length ?? 0) > 0;
   const hasAnyExercises = (exercisesQuery.data?.length ?? 0) > 0;
@@ -261,6 +268,15 @@ export function ExerciseListPage() {
       {!isLoading && hasAnyExercises && (
         <Box sx={{ px: 2, pb: 0.5 }}>
           <Stack direction="row" spacing={0.5} sx={{ overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, pb: 0.5 }}>
+            <Chip
+              icon={<StarIcon sx={{ fontSize: '14px !important', color: showFavoritesOnly ? '#FFD700' : undefined }} />}
+              label={`Favorites${favoriteIds.size > 0 ? ` (${favoriteIds.size})` : ''}`}
+              size="small"
+              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+              color={showFavoritesOnly ? 'warning' : 'default'}
+              variant={showFavoritesOnly ? 'filled' : 'outlined'}
+              sx={{ fontSize: '0.7rem', height: 26, flexShrink: 0 }}
+            />
             {EQUIPMENT_TYPES.map((type) => (
               <Chip
                 key={type}
