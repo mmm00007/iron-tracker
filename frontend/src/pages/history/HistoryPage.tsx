@@ -24,6 +24,7 @@ const DATE_FILTER_LABELS: Record<DateFilter, string> = {
 };
 import { useSessions } from '@/hooks/useSessions';
 import { SessionCard } from '@/components/history/SessionCard';
+import { useAllSessionNames } from '@/hooks/useSessionNames';
 import type { SessionGroup } from '@/utils/sessionGrouping';
 
 function LoadingSkeleton() {
@@ -94,6 +95,7 @@ export function HistoryPage() {
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
 
   const sessionsQuery = useSessions(page);
+  const { data: sessionNames } = useAllSessionNames();
 
   // Accumulate sessions across pages — each page is appended only once
   useEffect(() => {
@@ -239,7 +241,11 @@ export function HistoryPage() {
             }}
           >
             {filteredSessions.map((session) => (
-              <SessionCard key={session.id} session={session} />
+              <SessionCard
+                key={session.id}
+                session={session}
+                customName={sessionNames?.get(session.startedAt)}
+              />
             ))}
           </Box>
 

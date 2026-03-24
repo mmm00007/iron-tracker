@@ -4,6 +4,7 @@ import { OfflineIndicator } from '@/components/common/OfflineIndicator';
 import { GlobalRestTimer } from '@/components/common/GlobalRestTimer';
 import { SyncStatus } from '@/components/common/SyncStatus';
 import { InstallPrompt } from '@/components/common/InstallPrompt';
+import { SorenessPrompt } from '@/components/soreness/SorenessPrompt';
 import { useLayoutMode } from '@/hooks/useLayoutMode';
 import { getActiveTab } from './navConfig';
 import { BottomNav } from './BottomNav';
@@ -26,6 +27,7 @@ export function AppLayout() {
       <GlobalRestTimer />
       <SyncStatus />
       <InstallPrompt />
+      <SorenessPrompt />
     </>
   );
 

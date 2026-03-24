@@ -20,6 +20,7 @@ import { statsRoute } from '@/router';
 import { WeeklySnapshotCard } from '@/components/stats/WeeklySnapshotCard';
 import { TrainingCalendar } from '@/components/stats/TrainingCalendar';
 import { MuscleDistributionChart } from '@/components/stats/MuscleDistributionChart';
+import { MuscleVolumeChart } from '@/components/stats/MuscleVolumeChart';
 import { DeloadBanner } from '@/components/stats/DeloadBanner';
 import {
   useRecentPRs,
@@ -27,6 +28,7 @@ import {
   useMuscleDistribution,
   useTopExercises,
 } from '@/hooks/useAnalytics';
+import { useWeeklyMuscleVolume } from '@/hooks/useMuscleVolume';
 import { useProfile } from '@/hooks/useProfile';
 import { formatRelativeDate, formatVolume } from '@/utils/formatters';
 
@@ -57,6 +59,7 @@ export function StatsPage() {
   const { isLoading: freqLoading } = useTrainingFrequency(period);
   const { data: muscleData, isLoading: muscleLoading } = useMuscleDistribution(period);
   const { data: topExercises, isLoading: topLoading } = useTopExercises(5, period);
+  const { data: muscleVolumeData } = useWeeklyMuscleVolume(period);
   const { data: profile } = useProfile();
   const weightUnit = profile?.preferred_weight_unit ?? 'kg';
 
@@ -215,7 +218,23 @@ export function StatsPage() {
                 </CardContent>
               </Card>
 
-              {/* Card 5: Top Exercises */}
+              {/* Card 5: Weekly Volume by Muscle Group */}
+              <Card sx={{ gridColumn: { md: '1 / -1' } }}>
+                <CardContent>
+                  <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+                    Weekly Volume by Muscle
+                  </Typography>
+                  {muscleVolumeData && muscleVolumeData.length > 0 ? (
+                    <MuscleVolumeChart data={muscleVolumeData} />
+                  ) : (
+                    <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+                      No data for this period
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Card 6: Top Exercises */}
               <Card>
                 <CardContent>
                   <Typography variant="subtitle1" fontWeight={600} gutterBottom>

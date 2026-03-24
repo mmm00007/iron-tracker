@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -27,6 +27,7 @@ import { ExerciseCard } from '@/components/exercises/ExerciseCard';
 import { ExerciseListItem } from '@/components/exercises/ExerciseListItem';
 import { ExerciseSearch } from '@/components/exercises/ExerciseSearch';
 import { MuscleGroupSection } from '@/components/exercises/MuscleGroupSection';
+import { AlphabetScrubber } from '@/components/exercises/AlphabetScrubber';
 
 function LoadingSkeleton() {
   return (
@@ -214,6 +215,22 @@ export function ExerciseListPage() {
   const hasAnyExercises = (exercisesQuery.data?.length ?? 0) > 0;
 
   const isFirstTimeUser = !isLoading && !hasAnyExercises && !hasRecentExercises;
+
+  // Compute active letters for the alphabet scrubber
+  const activeLetters = useMemo(() => {
+    const letters = new Set<string>();
+    for (const exercise of exercisesQuery.data ?? []) {
+      const first = exercise.name[0]?.toUpperCase();
+      if (first && first >= 'A' && first <= 'Z') letters.add(first);
+    }
+    return letters;
+  }, [exercisesQuery.data]);
+
+  const handleLetterSelect = useCallback((letter: string) => {
+    // Find the first exercise starting with this letter and scroll to it
+    const el = document.getElementById(`exercise-letter-${letter}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
 
   return (
     <Box
@@ -478,19 +495,30 @@ export function ExerciseListPage() {
               <Box
                 sx={{
                   px: 1,
+                  pr: { xs: 3, md: 1 }, // extra right padding for scrubber on mobile
                   display: 'grid',
                   gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
                   gap: { xs: 0, md: 0.5 },
                 }}
               >
-                {exercisesQuery.data?.map((exercise) => (
-                  <ExerciseListItem
-                    key={exercise.id}
-                    exercise={exercise}
-                    lastLoggedInfo={lastLoggedMap.get(exercise.id)}
-                  />
-                ))}
+                {exercisesQuery.data?.map((exercise, idx) => {
+                  const letter = exercise.name[0]?.toUpperCase() ?? '';
+                  const prevLetter = idx > 0 ? exercisesQuery.data?.[idx - 1]?.name[0]?.toUpperCase() : '';
+                  const isFirstOfLetter = letter !== prevLetter;
+                  return (
+                    <Box key={exercise.id} id={isFirstOfLetter ? `exercise-letter-${letter}` : undefined}>
+                      <ExerciseListItem
+                        exercise={exercise}
+                        lastLoggedInfo={lastLoggedMap.get(exercise.id)}
+                      />
+                    </Box>
+                  );
+                })}
               </Box>
+              <AlphabetScrubber
+                onLetterSelect={handleLetterSelect}
+                activeLetters={activeLetters}
+              />
             </Box>
           )}
         </Box>

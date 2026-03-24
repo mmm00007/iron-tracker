@@ -40,9 +40,10 @@ function getMuscleColor(category: string | undefined): string {
 
 interface SessionCardProps {
   session: SessionGroup;
+  customName?: string;
 }
 
-export function SessionCard({ session }: SessionCardProps) {
+export function SessionCard({ session, customName }: SessionCardProps) {
   const navigate = useNavigate();
 
   const handleClick = () => {
@@ -77,12 +78,22 @@ export function SessionCard({ session }: SessionCardProps) {
               pb: 1,
             }}
           >
-            <Typography
-              variant="subtitle1"
-              sx={{ fontWeight: 700, color: 'text.primary', letterSpacing: '-0.01em' }}
-            >
-              {dateLabel}
-            </Typography>
+            <Box>
+              {customName && (
+                <Typography
+                  variant="caption"
+                  sx={{ color: 'primary.main', fontWeight: 600, display: 'block', lineHeight: 1.2 }}
+                >
+                  {customName}
+                </Typography>
+              )}
+              <Typography
+                variant="subtitle1"
+                sx={{ fontWeight: 700, color: 'text.primary', letterSpacing: '-0.01em' }}
+              >
+                {dateLabel}
+              </Typography>
+            </Box>
 
             <Chip
               icon={<AccessTimeIcon sx={{ fontSize: '14px !important' }} />}

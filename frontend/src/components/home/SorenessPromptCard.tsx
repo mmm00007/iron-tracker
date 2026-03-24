@@ -48,11 +48,11 @@ export function SorenessPromptCard() {
 
   const handleSubmit = async () => {
     if (selectedMuscleId === null) return;
-    await reportSoreness.mutateAsync({
+    await reportSoreness.mutateAsync([{
       muscleGroupId: selectedMuscleId,
       level,
       trainingDate: currentDate,
-    });
+    }]);
     setSelectedMuscle(null);
     setSelectedMuscleId(null);
     setLevel(1);

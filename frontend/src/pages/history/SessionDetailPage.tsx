@@ -14,6 +14,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useNavigate, useParams } from '@tanstack/react-router';
 import { useSessionSets } from '@/hooks/useSessions';
+import { useSessionName } from '@/hooks/useSessionNames';
 import { SetRow } from '@/components/log/SetRow';
 import { groupSetsIntoSessions } from '@/utils/sessionGrouping';
 import {
@@ -154,6 +155,7 @@ export function SessionDetailPage() {
 
   const setsQuery = useSessionSets(startedAt, initialEndedAt);
   const sets = setsQuery.data ?? [];
+  const { data: sessionNameData } = useSessionName(startedAt);
 
   // Group the fetched sets into sessions to get the precise endedAt
   const sessionGroup = useMemo(() => {
@@ -203,12 +205,22 @@ export function SessionDetailPage() {
           >
             <ArrowBackIcon />
           </IconButton>
-          <Typography
-            variant="h6"
-            sx={{ flex: 1, fontWeight: 700, letterSpacing: '-0.01em', color: 'text.primary' }}
-          >
-            {dateLabel}
-          </Typography>
+          <Box sx={{ flex: 1 }}>
+            {sessionNameData?.name && (
+              <Typography
+                variant="caption"
+                sx={{ color: 'primary.main', fontWeight: 600, display: 'block', lineHeight: 1.2 }}
+              >
+                {sessionNameData.name}
+              </Typography>
+            )}
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: 700, letterSpacing: '-0.01em', color: 'text.primary' }}
+            >
+              {dateLabel}
+            </Typography>
+          </Box>
         </Toolbar>
       </AppBar>
 
