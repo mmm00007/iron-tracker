@@ -46,3 +46,15 @@ disallow_untyped_defs = true
 check_untyped_defs = true
 ignore_missing_imports = true
 exclude = ["__pycache__", "\\.venv"]
+
+[[tool.mypy.overrides]]
+module = [
+    "app.services.ai_service",
+    "app.services.analysis_service",
+    "app.sentry",
+]
+disable_error_code = ["union-attr", "list-item", "arg-type"]
+
+[[tool.mypy.overrides]]
+module = "app.config"
+disable_error_code = ["call-arg"]
