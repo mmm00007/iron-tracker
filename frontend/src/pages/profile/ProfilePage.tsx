@@ -20,12 +20,15 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import LogoutIcon from '@mui/icons-material/Logout';
+import BugReportIcon from '@mui/icons-material/BugReport';
+import { useNavigate } from '@tanstack/react-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useProfile, useUpdateProfile } from '@/hooks/useProfile';
 import { DataExport } from '@/components/profile/DataExport';
 import type { Profile } from '@/types/database';
 
 export function ProfilePage() {
+  const navigate = useNavigate();
   const { user, signOut } = useAuthStore();
   const { data: profile, isLoading } = useProfile();
   const updateProfile = useUpdateProfile();
@@ -209,6 +212,16 @@ export function ProfilePage() {
       </Button>
 
       <DataExport />
+
+      <Button
+        variant="text"
+        fullWidth
+        startIcon={<BugReportIcon />}
+        onClick={() => void navigate({ to: '/diagnostics' })}
+        sx={{ mt: 2, color: 'text.secondary', justifyContent: 'flex-start' }}
+      >
+        Diagnostics
+      </Button>
 
       <Divider sx={{ my: 2 }} />
 

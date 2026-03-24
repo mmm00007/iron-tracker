@@ -27,6 +27,7 @@ import { SetRow } from '@/components/log/SetRow';
 import { PRCelebration } from '@/components/log/PRCelebration';
 import { checkForPRs, filterPRsForExercise } from '@/utils/prDetection';
 import type { PRCheckResult } from '@/utils/prDetection';
+import { triggerHaptic } from '@/hooks/useSwipeToDelete';
 
 /** Returns rest duration in seconds based on exercise category.
  * - Heavy compound (strength / powerlifting): 180 s
@@ -242,6 +243,7 @@ export function SetLoggerPage() {
 
     setLastLoggedSetId(loggedSet.id);
     setSnackbarOpen(true);
+    triggerHaptic(50);
     startRestTimer(getRestDuration(exercise?.category ?? null));
     resetUserEdited();
 

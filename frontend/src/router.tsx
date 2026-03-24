@@ -20,6 +20,7 @@ import { HomePage } from '@/pages/home/HomePage';
 import { PlansPage } from '@/pages/plans/PlansPage';
 import { AnalysisPage } from '@/pages/analysis/AnalysisPage';
 import { PRBoardPage } from '@/pages/stats/PRBoardPage';
+import { DiagnosticsPage } from '@/pages/diagnostics/DiagnosticsPage';
 
 function PageErrorFallback() {
   const navigate = useNavigate();
@@ -256,6 +257,17 @@ export const plansRoute = createRoute({
   ),
 });
 
+// /diagnostics — diagnostics and debug
+export const diagnosticsRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/diagnostics',
+  component: () => (
+    <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
+      <DiagnosticsPage />
+    </Sentry.ErrorBoundary>
+  ),
+});
+
 // /profile — user profile
 export const profileRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
@@ -283,6 +295,7 @@ const routeTree = rootRoute.addChildren([
       exerciseStatsRoute,
       analysisRoute,
       plansRoute,
+      diagnosticsRoute,
       profileRoute,
     ]),
   ]),

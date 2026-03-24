@@ -70,6 +70,18 @@ def create_app() -> FastAPI:
     async def health_check() -> HealthResponse:
         return HealthResponse(status="ok")
 
+    @app.get("/api/rollout-flags", tags=["config"])
+    async def rollout_flags() -> dict:
+        return {
+            "plansEnabled": True,
+            "analysisEnabled": True,
+            "sorenessEnabled": True,
+            "prBoardEnabled": True,
+            "dataExportEnabled": True,
+            "weightSuggestionEnabled": True,
+            "diagnosticsEnabled": True,
+        }
+
     return app
 
 

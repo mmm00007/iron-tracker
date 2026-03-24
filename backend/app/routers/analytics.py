@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from app.auth import get_current_user
 from app.models.schemas import ExerciseE1RM, WeeklySummary
 from app.services import analytics_service
+from app.services.weekly_summary_service import generate_weekly_summaries
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
@@ -41,3 +42,16 @@ async def compute_1rm(
     sorted oldest to newest.
     """
     return await analytics_service.compute_1rm_trend(user_id, exercise_id, db_pool)
+
+
+@router.post("/jobs/generate-weekly-trends")
+async def generate_weekly_trends(
+    db_pool: asyncpg.Pool = Depends(get_db_pool),
+) -> dict:
+    """Generate weekly training summaries for all active users.
+
+    Designed to be called by a cron job (e.g., Monday 6 AM UTC).
+    No auth required — should be protected by network policy or API key in production.
+    """
+    count = await generate_weekly_summaries(db_pool)
+    return {"status": "ok", "summaries_generated": count}
