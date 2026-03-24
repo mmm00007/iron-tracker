@@ -15,24 +15,32 @@ from app.sentry import init_sentry
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Initialize and teardown application resources."""
     import asyncpg
+    import logging
 
+    logger = logging.getLogger(__name__)
     settings = get_settings()
 
     # Supabase requires SSL for external connections
     ctx = _ssl.create_default_context()
 
-    # Initialize asyncpg connection pool (direct Postgres, service role)
-    app.state.db_pool = await asyncpg.create_pool(
-        dsn=settings.SUPABASE_DB_URL,
-        min_size=2,
-        max_size=10,
-        ssl=ctx,
-    )
+    try:
+        # Initialize asyncpg connection pool (direct Postgres)
+        app.state.db_pool = await asyncpg.create_pool(
+            dsn=settings.SUPABASE_DB_URL,
+            min_size=1,
+            max_size=10,
+            ssl=ctx,
+        )
+        logger.info("Database pool initialized")
+    except Exception as e:
+        logger.error("Failed to initialize database pool: %s", e)
+        app.state.db_pool = None
 
     yield
 
     # Cleanup
-    await app.state.db_pool.close()
+    if app.state.db_pool:
+        await app.state.db_pool.close()
 
 
 def create_app() -> FastAPI:
