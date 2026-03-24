@@ -1,5 +1,5 @@
 import asyncpg
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.auth import get_current_user
 from app.models.schemas import ExerciseE1RM, WeeklySummary
@@ -10,7 +10,10 @@ router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
 def get_db_pool(request: Request) -> asyncpg.Pool:
     """Extract the asyncpg connection pool from app state."""
-    return request.app.state.db_pool
+    pool = request.app.state.db_pool
+    if pool is None:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    return pool
 
 
 @router.get("/weekly-summary", response_model=WeeklySummary)

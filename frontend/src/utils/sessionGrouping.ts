@@ -46,11 +46,11 @@ export function groupSetsIntoSessions(
 
   const gapMs = gapMinutes * 60 * 1000;
   const rawSessions: SetWithExerciseName[][] = [];
-  let current: SetWithExerciseName[] = [sorted[0]];
+  let current: SetWithExerciseName[] = [sorted[0]!];
 
   for (let i = 1; i < sorted.length; i++) {
-    const prev = sorted[i - 1];
-    const curr = sorted[i];
+    const prev = sorted[i - 1]!;
+    const curr = sorted[i]!;
     const gap = new Date(curr.logged_at).getTime() - new Date(prev.logged_at).getTime();
 
     if (gap > gapMs) {
@@ -64,8 +64,8 @@ export function groupSetsIntoSessions(
 
   // Build SessionGroup objects
   const sessions: SessionGroup[] = rawSessions.map((sessionSets) => {
-    const startedAt = sessionSets[0].logged_at;
-    const endedAt = sessionSets[sessionSets.length - 1].logged_at;
+    const startedAt = sessionSets[0]!.logged_at;
+    const endedAt = sessionSets[sessionSets.length - 1]!.logged_at;
 
     // Per-exercise aggregation
     const exerciseMap = new Map<

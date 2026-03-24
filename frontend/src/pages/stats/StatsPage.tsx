@@ -24,6 +24,7 @@ import {
   useMuscleDistribution,
   useTopExercises,
 } from '@/hooks/useAnalytics';
+import { useProfile } from '@/hooks/useProfile';
 import { formatRelativeDate, formatVolume } from '@/utils/formatters';
 
 type Period = 'week' | 'month' | '3months' | 'all';
@@ -44,6 +45,8 @@ export function StatsPage() {
   const { data: frequency, isLoading: freqLoading } = useTrainingFrequency();
   const { data: muscleData, isLoading: muscleLoading } = useMuscleDistribution(period);
   const { data: topExercises, isLoading: topLoading } = useTopExercises(5);
+  const { data: profile } = useProfile();
+  const weightUnit = profile?.preferred_weight_unit ?? 'kg';
 
   return (
     <Box sx={{ pb: 10 }}>
@@ -72,7 +75,7 @@ export function StatsPage() {
         {snapshotLoading ? (
           <Skeleton variant="rounded" height={120} />
         ) : snapshot ? (
-          <WeeklySnapshotCard snapshot={snapshot} />
+          <WeeklySnapshotCard />
         ) : null}
 
         {/* Card 2: Recent PRs */}
@@ -102,16 +105,16 @@ export function StatsPage() {
                     <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                       <EmojiEvents sx={{ color: '#FFD700', fontSize: 20, mb: 0.5 }} />
                       <Typography variant="body2" fontWeight={600} noWrap>
-                        {pr.exercise_name || 'Exercise'}
+                        {pr.exerciseName || 'Exercise'}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {pr.record_type.replace('_', ' ')}
+                        {pr.recordType.replace('_', ' ')}
                       </Typography>
                       <Typography variant="body2" fontWeight={700} sx={{ color: '#FFD700' }}>
-                        {pr.value} kg
+                        {pr.value} {weightUnit}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {formatRelativeDate(pr.achieved_at)}
+                        {formatRelativeDate(pr.achievedAt)}
                       </Typography>
                     </CardContent>
                   </Card>
@@ -134,7 +137,7 @@ export function StatsPage() {
             {freqLoading ? (
               <Skeleton variant="rounded" height={160} />
             ) : frequency ? (
-              <TrainingCalendar data={frequency} />
+              <TrainingCalendar />
             ) : (
               <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
                 Log some workouts to see your training calendar
@@ -192,9 +195,9 @@ export function StatsPage() {
                       primary={ex.exerciseName}
                       secondary={formatVolume(ex.totalVolume)}
                     />
-                    {ex.trend > 0 ? (
+                    {ex.trend === 'up' ? (
                       <TrendingUp sx={{ color: 'success.main', fontSize: 20 }} />
-                    ) : ex.trend < 0 ? (
+                    ) : ex.trend === 'down' ? (
                       <TrendingDown sx={{ color: 'error.main', fontSize: 20 }} />
                     ) : (
                       <FitnessCenter sx={{ color: 'text.disabled', fontSize: 20 }} />

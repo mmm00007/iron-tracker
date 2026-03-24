@@ -26,15 +26,17 @@ import {
   useExerciseHistory,
 } from '@/hooks/useAnalytics';
 import { useVariants } from '@/hooks/useVariants';
+import { useExercises } from '@/hooks/useExercises';
 import { formatRelativeDate, formatWeightReps } from '@/utils/formatters';
 
 export function ExerciseStatsPage() {
-  const { exerciseId } = useParams({ from: '/stats/$exerciseId' as any });
+  const { exerciseId } = useParams({ from: '/stats/$exerciseId' });
   const navigate = useNavigate();
   const [tab, setTab] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
 
   const { data: variants } = useVariants(exerciseId);
+  const { data: exercises } = useExercises();
   const { data: e1rmData, isLoading: e1rmLoading } = useE1RMTrend(exerciseId, selectedVariant);
   const { data: volumeData, isLoading: volumeLoading } = useExerciseVolumeTrend(exerciseId);
   const { data: prRecords, isLoading: prsLoading } = useExercisePRs(exerciseId);
@@ -44,7 +46,7 @@ export function ExerciseStatsPage() {
   );
 
   const exerciseName =
-    history && history.length > 0 ? (history[0] as any).exercise_name || 'Exercise' : 'Exercise';
+    exercises?.find((e) => e.id === exerciseId)?.name ?? 'Exercise';
 
   return (
     <Box sx={{ pb: 10 }}>
@@ -127,7 +129,14 @@ export function ExerciseStatsPage() {
                 {prsLoading ? (
                   <Skeleton variant="rounded" height={200} />
                 ) : prRecords && prRecords.length > 0 ? (
-                  <PRTable records={prRecords} />
+                  <PRTable
+                    records={prRecords.map((r) => ({
+                      repCount: r.repRange,
+                      weight: r.weight,
+                      estimated1rm: r.e1rm,
+                      date: r.date,
+                    }))}
+                  />
                 ) : (
                   <Typography
                     variant="body2"

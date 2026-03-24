@@ -6,6 +6,8 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import { OfflineIndicator } from '@/components/common/OfflineIndicator';
 import { GlobalRestTimer } from '@/components/common/GlobalRestTimer';
+import { SyncStatus } from '@/components/common/SyncStatus';
+import { InstallPrompt } from '@/components/common/InstallPrompt';
 
 const NAV_TABS = [
   { label: 'Log', value: '/log', icon: <FitnessCenterIcon /> },
@@ -45,6 +47,12 @@ export function AppLayout() {
 
       {/* Global rest timer — persists across all screens */}
       <GlobalRestTimer />
+
+      {/* Sync status chip — appears after coming back online */}
+      <SyncStatus />
+
+      {/* PWA install prompt — shown after 3 visits */}
+      <InstallPrompt />
 
       {/* App bar */}
       <Box

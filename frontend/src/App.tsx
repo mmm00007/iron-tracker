@@ -1,8 +1,12 @@
 import { useEffect } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { RouterProvider } from '@tanstack/react-router';
+import * as Sentry from '@sentry/react';
 import { theme } from '@/theme';
 import { queryClient } from '@/lib/queryClient';
 import { indexedDBPersister } from '@/lib/offlinePersistence';
@@ -11,6 +15,27 @@ import { useAuthStore } from '@/stores/authStore';
 
 /** 24 hours in milliseconds — how long the persisted cache is considered valid */
 const PERSIST_MAX_AGE = 1000 * 60 * 60 * 24;
+
+function ErrorFallback() {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100dvh',
+        gap: 2,
+        px: 3,
+      }}
+    >
+      <Typography variant="h6">Something went wrong</Typography>
+      <Button variant="contained" onClick={() => window.location.reload()}>
+        Reload
+      </Button>
+    </Box>
+  );
+}
 
 function AppProviders() {
   const initialize = useAuthStore((state) => state.initialize);
@@ -42,9 +67,11 @@ function AppProviders() {
 
 export function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <AppProviders />
-    </ThemeProvider>
+    <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <AppProviders />
+      </ThemeProvider>
+    </Sentry.ErrorBoundary>
   );
 }

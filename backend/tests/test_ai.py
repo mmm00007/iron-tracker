@@ -1,22 +1,27 @@
 import io
+from datetime import date
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 
-from app.models.schemas import MachineIdentificationResponse
+from app.models.schemas import MachineIdentificationResponse, TargetMuscles
 from app.routers.ai import _image_cache, _rate_limit_store
 
 FAKE_IDENTIFICATION = MachineIdentificationResponse(
-    exercise_name="Leg Press",
+    exercise_names=["Leg Press"],
     equipment_type="Plate-Loaded",
     manufacturer="Life Fitness",
-    muscles=["quadriceps", "glutes", "hamstrings"],
+    target_muscles=TargetMuscles(
+        primary=["quadriceps", "glutes"],
+        secondary=["hamstrings"],
+    ),
     form_tips=[
         "Keep your back flat against the pad",
         "Do not lock your knees at the top",
         "Position feet shoulder-width apart",
     ],
+    confidence="high",
 )
 
 
@@ -56,10 +61,10 @@ def test_identify_machine_success(test_client: TestClient) -> None:
 
     assert response.status_code == 200
     data = response.json()
-    assert data["exercise_name"] == "Leg Press"
+    assert "Leg Press" in data["exercise_names"]
     assert data["equipment_type"] == "Plate-Loaded"
     assert data["manufacturer"] == "Life Fitness"
-    assert "quadriceps" in data["muscles"]
+    assert "quadriceps" in data["target_muscles"]["primary"]
     assert len(data["form_tips"]) == 3
 
 
@@ -107,7 +112,7 @@ def test_identify_machine_rate_limit(test_client: TestClient) -> None:
         # Hit rate limit by setting count to the limit directly
         from tests.conftest import FAKE_USER_ID
 
-        _rate_limit_store[FAKE_USER_ID] = 10  # Default limit
+        _rate_limit_store[FAKE_USER_ID] = (date.today().isoformat(), 10)  # Default limit
 
         response = test_client.post(
             "/api/ai/identify-machine",

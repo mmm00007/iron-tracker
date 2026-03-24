@@ -54,7 +54,7 @@ Respond ONLY with valid JSON."""
 
 class AIService:
     def __init__(self, api_key: str) -> None:
-        self.client = anthropic.Anthropic(api_key=api_key)
+        self.client = anthropic.AsyncAnthropic(api_key=api_key)
 
     async def identify_machine(
         self,
@@ -76,7 +76,7 @@ class AIService:
         media_type = media_type_map.get(content_type.lower(), "image/jpeg")
 
         try:
-            message = self.client.messages.create(
+            message = await self.client.messages.create(
                 model="claude-sonnet-4-5-20250514",
                 max_tokens=1024,
                 system=SYSTEM_PROMPT,

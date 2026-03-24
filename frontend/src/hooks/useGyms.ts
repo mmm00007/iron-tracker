@@ -51,7 +51,7 @@ export function useUserGyms() {
       if (!userId) return [];
 
       const { data, error } = await supabase
-        .from('gym_memberships')
+        .from('user_gym_memberships')
         .select('*, gym:gyms(*)')
         .eq('user_id', userId)
         .order('joined_at', { ascending: false });
@@ -74,7 +74,7 @@ export function useJoinGym() {
       if (!userId) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
-        .from('gym_memberships')
+        .from('user_gym_memberships')
         .insert({
           user_id: userId,
           gym_id: gymId,
@@ -105,7 +105,7 @@ export function useLeaveGym() {
       if (!userId) throw new Error('Not authenticated');
 
       const { error } = await supabase
-        .from('gym_memberships')
+        .from('user_gym_memberships')
         .delete()
         .eq('user_id', userId)
         .eq('gym_id', gymId);
