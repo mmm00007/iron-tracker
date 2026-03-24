@@ -7,6 +7,7 @@ interface AuthState {
   session: Session | null;
   loading: boolean;
   error: string | null;
+  sessionExpired: boolean;
   initialize: () => Promise<() => void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string) => Promise<void>;
@@ -21,6 +22,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   session: null,
   loading: true,
   error: null,
+  sessionExpired: false,
 
   initialize: async () => {
     // Get initial session
@@ -36,11 +38,18 @@ export const useAuthStore = create<AuthState>((set) => ({
     // Subscribe to auth state changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      // Detect unexpected session loss (token could not be refreshed) vs.
+      // a deliberate sign-out initiated by the user via signOut().
+      const isUnexpiredSignOut =
+        (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && session == null)) &&
+        useAuthStore.getState().user != null &&
+        !useAuthStore.getState().loading;
       set({
         user: session?.user ?? null,
         session: session ?? null,
         loading: false,
+        ...(isUnexpiredSignOut ? { sessionExpired: true } : {}),
       });
     });
 
@@ -89,7 +98,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ loading: false, error: error.message });
       throw error;
     }
-    set({ user: null, session: null, loading: false, error: null });
+    set({ user: null, session: null, loading: false, error: null, sessionExpired: false });
   },
 
   resetPassword: async (email: string) => {

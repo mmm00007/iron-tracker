@@ -1,11 +1,15 @@
+import { useState, useEffect } from 'react';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
 import Skeleton from '@mui/material/Skeleton';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import HistoryIcon from '@mui/icons-material/History';
 import { useSessions } from '@/hooks/useSessions';
 import { SessionCard } from '@/components/history/SessionCard';
+import type { SessionGroup } from '@/utils/sessionGrouping';
 
 function LoadingSkeleton() {
   return (
@@ -67,10 +71,27 @@ function EmptyState() {
 }
 
 export function HistoryPage() {
-  const sessionsQuery = useSessions();
+  const [page, setPage] = useState(0);
+  const [allSessions, setAllSessions] = useState<SessionGroup[]>([]);
 
-  const sessions = sessionsQuery.data ?? [];
-  const isEmpty = !sessionsQuery.isLoading && sessions.length === 0;
+  const sessionsQuery = useSessions(page);
+  const pageSessions = sessionsQuery.data ?? [];
+
+  // Accumulate sessions across pages
+  useEffect(() => {
+    if (sessionsQuery.isSuccess && pageSessions.length > 0) {
+      if (page === 0) {
+        setAllSessions(pageSessions);
+      } else {
+        setAllSessions((prev) => [...prev, ...pageSessions]);
+      }
+    }
+  }, [sessionsQuery.isSuccess, page, pageSessions]);
+
+  const isInitialLoading = sessionsQuery.isLoading && page === 0;
+  const isEmpty = !isInitialLoading && allSessions.length === 0;
+  const hasMore = pageSessions.length > 0;
+  const isLoadingMore = sessionsQuery.isLoading && page > 0;
 
   return (
     <Box
@@ -106,15 +127,29 @@ export function HistoryPage() {
       </AppBar>
 
       {/* Content */}
-      {sessionsQuery.isLoading ? (
+      {isInitialLoading ? (
         <LoadingSkeleton />
       ) : isEmpty ? (
         <EmptyState />
       ) : (
         <Box sx={{ px: 2, pt: 1.5, pb: 2 }}>
-          {sessions.map((session) => (
+          {allSessions.map((session) => (
             <SessionCard key={session.id} session={session} />
           ))}
+
+          {hasMore && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+              <Button
+                variant="outlined"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={isLoadingMore}
+                startIcon={isLoadingMore ? <CircularProgress size={16} /> : undefined}
+                sx={{ borderRadius: '20px', px: 3 }}
+              >
+                {isLoadingMore ? 'Loading…' : 'Load More'}
+              </Button>
+            </Box>
+          )}
         </Box>
       )}
     </Box>

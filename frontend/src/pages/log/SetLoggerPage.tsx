@@ -13,7 +13,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import RemoveIcon from '@mui/icons-material/Remove';
-import { useNavigate, useParams } from '@tanstack/react-router';
+import { useParams } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { Exercise } from '@/types/database';
@@ -94,7 +94,6 @@ function StepperBtn({ label, onClick, secondary = false }: StepperBtnProps) {
 // ─── Set Logger Page ────────────────────────────────────────────────────────────
 
 export function SetLoggerPage() {
-  const navigate = useNavigate();
   const { exerciseId } = useParams({ strict: false });
 
   const {
@@ -256,7 +255,7 @@ export function SetLoggerPage() {
       <AppBar position="sticky" elevation={0}>
         <Toolbar sx={{ px: 1, minHeight: '56px !important' }}>
           <IconButton
-            onClick={() => void navigate({ to: '/log' })}
+            onClick={() => window.history.back()}
             aria-label="Back"
             sx={{ color: 'text.primary', mr: 0.5 }}
           >

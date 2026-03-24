@@ -10,6 +10,7 @@ import Skeleton from '@mui/material/Skeleton';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useNavigate, useParams } from '@tanstack/react-router';
 import { useSessionSets } from '@/hooks/useSessions';
 import { SetRow } from '@/components/log/SetRow';
@@ -164,7 +165,11 @@ export function SessionDetailPage() {
   const exerciseBlocks = useMemo(() => buildExerciseBlocks(sets), [sets]);
 
   const handleBack = () => {
-    void navigate({ to: '/history' });
+    window.history.back();
+  };
+
+  const handleExerciseTap = (exerciseId: string) => {
+    void navigate({ to: '/stats/$exerciseId', params: { exerciseId } });
   };
 
   const dateLabel = formatRelativeDate(startedAt);
@@ -225,19 +230,25 @@ export function SessionDetailPage() {
               <Box key={block.exerciseId} sx={{ mb: 3 }}>
                 {/* Exercise header */}
                 <Box
+                  onClick={() => handleExerciseTap(block.exerciseId)}
                   sx={{
                     display: 'flex',
-                    alignItems: 'baseline',
+                    alignItems: 'center',
                     justifyContent: 'space-between',
                     mb: 1,
+                    cursor: 'pointer',
+                    '&:hover': { opacity: 0.8 },
                   }}
                 >
-                  <Typography
-                    variant="subtitle2"
-                    sx={{ color: 'text.primary', fontWeight: 600 }}
-                  >
-                    {block.exerciseName}
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{ color: 'text.primary', fontWeight: 600 }}
+                    >
+                      {block.exerciseName}
+                    </Typography>
+                    <ChevronRightIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                  </Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                     {formatVolume(block.volume)}
                   </Typography>

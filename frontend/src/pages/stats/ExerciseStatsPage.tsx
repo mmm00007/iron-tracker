@@ -60,7 +60,7 @@ export function ExerciseStatsPage() {
           pb: 0.5,
         }}
       >
-        <IconButton onClick={() => navigate({ to: '/stats' })}>
+        <IconButton onClick={() => window.history.back()}>
           <ArrowBack />
         </IconButton>
         <Typography variant="h6" fontWeight={600} sx={{ flex: 1, textAlign: 'center', mr: 5 }}>
@@ -191,7 +191,17 @@ export function ExerciseStatsPage() {
               ) : history && history.length > 0 ? (
                 <List disablePadding>
                   {history.map((set) => (
-                    <ListItem key={set.id} divider sx={{ py: 1 }}>
+                    <ListItem
+                      key={set.id}
+                      divider
+                      sx={{ py: 1, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                      onClick={() =>
+                        void navigate({
+                          to: '/history/$sessionId',
+                          params: { sessionId: encodeURIComponent(set.logged_at) },
+                        })
+                      }
+                    >
                       <ListItemText
                         primary={formatWeightReps(set.weight, set.reps, set.weight_unit)}
                         secondary={formatRelativeDate(set.logged_at)}

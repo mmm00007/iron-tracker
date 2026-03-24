@@ -11,8 +11,9 @@ import {
   ListItemButton,
   ListItemText,
   ListItemIcon,
+  Button,
 } from '@mui/material';
-import { EmojiEvents, TrendingUp, TrendingDown, FitnessCenter } from '@mui/icons-material';
+import { EmojiEvents, TrendingUp, TrendingDown, FitnessCenter, BarChart as BarChartIcon } from '@mui/icons-material';
 import { useNavigate } from '@tanstack/react-router';
 import { WeeklySnapshotCard } from '@/components/stats/WeeklySnapshotCard';
 import { TrainingCalendar } from '@/components/stats/TrainingCalendar';
@@ -70,6 +71,24 @@ export function StatsPage() {
         ))}
       </Stack>
 
+      {/* Unified empty state — shown only when all data sources are empty */}
+      {!snapshotLoading && !prsLoading && !freqLoading && !muscleLoading && !topLoading &&
+        !snapshot &&
+        (!recentPRs || recentPRs.length === 0) &&
+        (!topExercises || topExercises.length === 0) ? (
+        <Box sx={{ textAlign: 'center', py: 8, px: 3 }}>
+          <BarChartIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+          <Typography variant="h6" gutterBottom>
+            Your stats will appear here
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Log your first workout to see weekly summaries, personal records, and training trends.
+          </Typography>
+          <Button variant="contained" onClick={() => navigate({ to: '/log' })}>
+            Start Logging
+          </Button>
+        </Box>
+      ) : (
       <Stack spacing={2} sx={{ px: 2 }}>
         {/* Card 1: Weekly Snapshot */}
         {snapshotLoading ? (
@@ -213,6 +232,7 @@ export function StatsPage() {
           </CardContent>
         </Card>
       </Stack>
+      )}
     </Box>
   );
 }

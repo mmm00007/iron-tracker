@@ -15,7 +15,7 @@ import {
   Toolbar,
   Typography,
 } from '@mui/material';
-import { useNavigate, useParams } from '@tanstack/react-router';
+import { useParams } from '@tanstack/react-router';
 import { useState } from 'react';
 import { VariantBottomSheet } from '@/components/variants/VariantBottomSheet';
 import { VariantDetail } from '@/components/variants/VariantDetail';
@@ -33,7 +33,6 @@ interface VariantManagerPageProps {
 }
 
 export function VariantManagerPage({ exerciseId, exerciseName }: VariantManagerPageProps) {
-  const navigate = useNavigate();
   const { data: variants = [], isLoading: variantsLoading } = useVariants(exerciseId);
   const { data: gymMachines = [], isLoading: machinesLoading } = useGymMachines(exerciseId);
   const deleteVariant = useDeleteVariant();
@@ -80,7 +79,7 @@ export function VariantManagerPage({ exerciseId, exerciseName }: VariantManagerP
         <Toolbar>
           <Button
             startIcon={<ArrowBackIcon />}
-            onClick={() => navigate({ to: '/log/$exerciseId', params: { exerciseId } })}
+            onClick={() => window.history.back()}
             sx={{ mr: 1, minHeight: 48 }}
             color="inherit"
           >

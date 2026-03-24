@@ -1,6 +1,6 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate, useLocation } from '@tanstack/react-router';
-import { Box, CircularProgress } from '@mui/material';
+import { Box, CircularProgress, Snackbar, Alert } from '@mui/material';
 import { useAuthStore } from '@/stores/authStore';
 import { useProfile } from '@/hooks/useProfile';
 
@@ -9,20 +9,30 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const { user, loading } = useAuthStore();
+  const { user, loading, sessionExpired } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
   const { data: profile, isLoading: profileLoading } = useProfile();
+  const [showExpiredToast, setShowExpiredToast] = useState(false);
 
   const isAuthLoading = loading || (user != null && profileLoading);
 
   // Redirect unauthenticated users to login — deferred to avoid render-time
   // navigation which causes TanStack Router's buildAndCommitLocation loop.
+  // When the session expired unexpectedly, show a brief warning first.
   useEffect(() => {
     if (!isAuthLoading && !user) {
-      void navigate({ to: '/login' });
+      if (sessionExpired) {
+        setShowExpiredToast(true);
+        const timer = setTimeout(() => {
+          void navigate({ to: '/login' });
+        }, 2000);
+        return () => clearTimeout(timer);
+      } else {
+        void navigate({ to: '/login' });
+      }
     }
-  }, [isAuthLoading, user, navigate]);
+  }, [isAuthLoading, user, sessionExpired, navigate]);
 
   // Routes that are accessible mid-onboarding (before onboarding_completed = true).
   const ONBOARDING_ALLOWED_PATHS = ['/onboarding', '/log/identify'];
@@ -52,6 +62,14 @@ export function AuthGuard({ children }: AuthGuardProps) {
         }}
       >
         <CircularProgress />
+        <Snackbar
+          open={showExpiredToast}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
+          <Alert severity="warning" variant="filled" sx={{ width: '100%' }}>
+            Session expired — please sign in again
+          </Alert>
+        </Snackbar>
       </Box>
     );
   }

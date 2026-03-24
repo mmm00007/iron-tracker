@@ -13,7 +13,6 @@ import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
 import ReplayIcon from '@mui/icons-material/Replay';
-import { useNavigate } from '@tanstack/react-router';
 import { VariantBottomSheet } from '@/components/variants/VariantBottomSheet';
 import { useMachineIdentify } from '@/hooks/useMachineIdentify';
 import type { MachineIdentificationResult } from '@/hooks/useMachineIdentify';
@@ -420,7 +419,6 @@ function PickState({ onFileSelected }: { onFileSelected: (file: File) => void })
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function MachineIdentifyPage() {
-  const navigate = useNavigate();
   const { mutate, isPending, error, data, reset } = useMachineIdentify();
 
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -488,7 +486,7 @@ export function MachineIdentifyPage() {
           <IconButton
             edge="start"
             aria-label="back"
-            onClick={() => void navigate({ to: '/log' })}
+            onClick={() => window.history.back()}
             sx={{ color: 'text.secondary', mr: 1 }}
           >
             <ArrowBackIcon />
