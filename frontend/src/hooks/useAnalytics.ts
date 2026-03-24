@@ -31,7 +31,7 @@ async function fetchUserSets(since?: Date): Promise<WorkoutSet[]> {
     query = query.gte('logged_at', since.toISOString());
   }
 
-  const { data, error } = await query;
+  const { data, error } = await query.limit(5000);
   if (error) throw error;
   return (data ?? []) as WorkoutSet[];
 }
@@ -226,13 +226,15 @@ export interface TopExerciseWithName {
 }
 
 /**
- * Top exercises by total volume (all time), enriched with exercise names.
+ * Top exercises by total volume over the last 6 months, enriched with exercise names.
  */
 export function useTopExercises(limit = 5) {
   return useQuery<TopExerciseWithName[]>({
     queryKey: ['analytics', 'topExercises', limit],
     queryFn: async () => {
-      const sets = await fetchUserSets();
+      const since = new Date();
+      since.setMonth(since.getMonth() - 6);
+      const sets = await fetchUserSets(since);
       if (sets.length === 0) return [];
 
       const top = topExercises(sets, limit);
@@ -265,12 +267,15 @@ export function useTopExercises(limit = 5) {
 
 /**
  * Estimated 1RM trend for a specific exercise (+ optional variant).
+ * Fetches up to 12 months of history.
  */
 export function useE1RMTrend(exerciseId: string, variantId?: string | null) {
   return useQuery({
     queryKey: ['analytics', 'e1rmTrend', exerciseId, variantId ?? 'all'],
     queryFn: async () => {
-      const sets = await fetchUserSets();
+      const since = new Date();
+      since.setMonth(since.getMonth() - 12);
+      const sets = await fetchUserSets(since);
       return e1rmTrend(sets, exerciseId, variantId);
     },
     enabled: !!exerciseId,

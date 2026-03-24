@@ -1,5 +1,6 @@
 import hashlib
 import logging
+from collections import OrderedDict
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
@@ -19,23 +20,64 @@ _ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
 # Maximum image size: 5 MB
 _MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
+# Magic byte signatures for supported image formats
+_MAGIC_BYTES = {
+    b"\xff\xd8\xff": "image/jpeg",
+    b"\x89PNG": "image/png",
+    b"RIFF": "image/webp",
+}
+
+
+def _validate_image_magic(data: bytes) -> bool:
+    return any(data.startswith(magic) for magic in _MAGIC_BYTES)
+
+
 # In-memory rate limit tracker: {user_id: (date_str, count)}
 # Resets automatically when the date changes.
 _rate_limit_store: dict[str, tuple[str, int]] = {}
 
-# Image hash cache: {image_hash: MachineIdentificationResponse}
-_image_cache: dict[str, MachineIdentificationResponse] = {}
+
+class _LRUCache:
+    """Bounded LRU cache backed by an OrderedDict."""
+
+    def __init__(self, maxsize: int = 100) -> None:
+        self._cache: OrderedDict[str, MachineIdentificationResponse] = OrderedDict()
+        self._maxsize = maxsize
+
+    def get(self, key: str) -> MachineIdentificationResponse | None:
+        if key in self._cache:
+            self._cache.move_to_end(key)
+            return self._cache[key]
+        return None
+
+    def set(self, key: str, value: MachineIdentificationResponse) -> None:
+        if key in self._cache:
+            self._cache.move_to_end(key)
+        self._cache[key] = value
+        if len(self._cache) > self._maxsize:
+            self._cache.popitem(last=False)
+
+
+# Image hash cache — bounded to 100 entries; oldest entry evicted when full.
+_image_cache = _LRUCache(maxsize=100)
 
 
 def _check_rate_limit(user_id: str, limit: int) -> None:
     """Check if user has exceeded the daily AI request limit.
 
     Tracks requests per calendar day (UTC). Resets automatically at midnight.
+    Purges stale entries from previous days to keep memory bounded.
     """
     today = date.today().isoformat()
+
+    # Evict entries from previous days to prevent unbounded growth.
+    stale_keys = [uid for uid, (d, _) in _rate_limit_store.items() if d != today]
+    for key in stale_keys:
+        del _rate_limit_store[key]
+
     entry = _rate_limit_store.get(user_id)
 
-    if entry is None or entry[0] != today:
+    if entry is None:
         # First request today — initialise counter
         _rate_limit_store[user_id] = (today, 1)
         return
@@ -82,6 +124,12 @@ async def identify_machine(
             detail="Uploaded image is empty.",
         )
 
+    if not _validate_image_magic(image_bytes):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="File does not appear to be a valid image.",
+        )
+
     if len(image_bytes) > _MAX_IMAGE_BYTES:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -90,9 +138,10 @@ async def identify_machine(
 
     # --- Cache lookup ---
     image_hash = hashlib.sha256(image_bytes).hexdigest()
-    if image_hash in _image_cache:
+    cached = _image_cache.get(image_hash)
+    if cached is not None:
         logger.info("Cache hit for image hash %s (user %s)", image_hash[:12], user_id)
-        return _image_cache[image_hash]
+        return cached
 
     # --- AI identification ---
     ai_service = AIService(api_key=settings.ANTHROPIC_API_KEY)
@@ -107,5 +156,5 @@ async def identify_machine(
         ) from exc
 
     # Cache successful result
-    _image_cache[image_hash] = result
+    _image_cache.set(image_hash, result)
     return result

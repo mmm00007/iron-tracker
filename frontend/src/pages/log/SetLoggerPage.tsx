@@ -29,7 +29,22 @@ import { MetadataChips } from '@/components/log/MetadataChips';
 import { RestTimerPill } from '@/components/log/RestTimerPill';
 import { SetRow } from '@/components/log/SetRow';
 
-const REST_TIMER_DURATION = 90; // seconds
+/** Returns rest duration in seconds based on exercise category.
+ * - Heavy compound (strength / powerlifting): 180 s
+ * - Moderate compound (weightlifting): 120 s
+ * - Isolation / hypertrophy / everything else: 90 s
+ */
+function getRestDuration(category: string | null): number {
+  switch (category?.toLowerCase()) {
+    case 'strength':
+    case 'powerlifting':
+      return 180;
+    case 'weightlifting':
+      return 120;
+    default:
+      return 90;
+  }
+}
 
 /** Relative time string, e.g. "3 days ago" */
 function relativeTime(isoString: string): string {
@@ -214,7 +229,7 @@ export function SetLoggerPage() {
 
     setLastLoggedSetId(loggedSet.id);
     setSnackbarOpen(true);
-    startRestTimer(REST_TIMER_DURATION);
+    startRestTimer(getRestDuration(exercise?.category ?? null));
   };
 
   // ── Overflow menu handlers ────────────────────────────────────────────────

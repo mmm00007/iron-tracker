@@ -100,12 +100,14 @@ export function SetRow({ set, setNumber, onDelete, isPR = false }: SetRowProps) 
 
       {/* Delete button */}
       <IconButton
-        size="small"
+        size="medium"
         onClick={() => onDelete(set.id)}
         aria-label={`Delete set ${setNumber}`}
         sx={{
           color: 'text.disabled',
           flexShrink: 0,
+          minWidth: 44,
+          minHeight: 44,
           '&:hover': { color: 'error.main', backgroundColor: 'rgba(255, 180, 171, 0.08)' },
         }}
       >
