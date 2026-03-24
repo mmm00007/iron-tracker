@@ -166,6 +166,7 @@ def transform_exercise(ex: dict) -> dict:
 
     return {
         'name': ex.get('name', '').strip(),
+        'source_id': ex.get('id'),  # original ID from free-exercise-db
         'force': FORCE_MAP.get(raw_force),
         'level': LEVEL_MAP.get(raw_level),
         'mechanic': MECHANIC_MAP.get(raw_mechanic),
