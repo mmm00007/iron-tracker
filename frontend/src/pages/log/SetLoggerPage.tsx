@@ -8,6 +8,7 @@ import IconButton from '@mui/material/IconButton';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Paper from '@mui/material/Paper';
+import Snackbar from '@mui/material/Snackbar';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -111,6 +112,10 @@ export function SetLoggerPage() {
   // Overflow menu
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
 
+  // Snackbar state
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [lastLoggedSetId, setLastLoggedSetId] = useState<string | null>(null);
+
   // ── Data fetching ──────────────────────────────────────────────────────────
 
   const exerciseQuery = useQuery<Exercise | null>({
@@ -194,7 +199,7 @@ export function SetLoggerPage() {
     } = await supabase.auth.getUser();
     if (!user) return;
 
-    await logSetMutation.mutateAsync({
+    const loggedSet = await logSetMutation.mutateAsync({
       user_id: user.id,
       exercise_id: exerciseId,
       variant_id: selectedVariantId,
@@ -207,6 +212,8 @@ export function SetLoggerPage() {
       logged_at: new Date().toISOString(),
     });
 
+    setLastLoggedSetId(loggedSet.id);
+    setSnackbarOpen(true);
     startRestTimer(REST_TIMER_DURATION);
   };
 
@@ -663,6 +670,33 @@ export function SetLoggerPage() {
         onApply={handleNumpadApply}
         recentValues={numpadTarget === 'weight' ? recentWeights : recentReps}
         allowDecimal={numpadTarget === 'weight'}
+      />
+
+      {/* ── Set Logged Snackbar ──────────────────────────────────────────────── */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={(_event, reason) => {
+          if (reason === 'clickaway') return;
+          setSnackbarOpen(false);
+        }}
+        message="Set logged"
+        action={
+          <Button
+            size="small"
+            onClick={() => {
+              if (lastLoggedSetId) {
+                deleteSetMutation.mutate({ setId: lastLoggedSetId, exerciseId });
+              }
+              setSnackbarOpen(false);
+            }}
+            sx={{ color: 'primary.light', fontWeight: 700 }}
+          >
+            Undo
+          </Button>
+        }
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ bottom: { xs: 80 } }}
       />
     </Box>
   );

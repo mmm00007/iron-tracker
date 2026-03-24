@@ -9,16 +9,9 @@ from app.models.schemas import ExerciseE1RM, WeeklySummary
 
 def _epley(weight: float, reps: int) -> float:
     """Epley formula: weight × (1 + reps / 30). Returns weight for 1 rep."""
-    if weight <= 0 or reps <= 0:
-        return 0.0
-    if reps == 1:
+    if reps <= 0 or weight <= 0:
         return weight
-    if reps <= 12:
-        return weight * (1 + reps / 30)
-    # Brzycki for reps > 12
-    if reps >= 37:
-        return weight
-    return weight * (36 / (37 - reps))
+    return weight * (1 + reps / 30)
 
 
 # ─── Weekly summary ───────────────────────────────────────────────────────────

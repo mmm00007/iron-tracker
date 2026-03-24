@@ -22,8 +22,8 @@ def init_sentry() -> None:
         ],
         # Performance: capture 20% of transactions
         traces_sample_rate=0.2 if not settings.DEBUG else 1.0,
-        # Send PII (user IDs) for debugging — no passwords or tokens
-        send_default_pii=True,
+        # PII sending disabled to protect user data
+        send_default_pii=False,
         # Filter out health check noise
         before_send=_before_send,
     )
