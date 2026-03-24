@@ -1,3 +1,4 @@
+import ssl as _ssl
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
@@ -17,11 +18,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     settings = get_settings()
 
+    # Supabase requires SSL for external connections
+    ctx = _ssl.create_default_context()
+
     # Initialize asyncpg connection pool (direct Postgres, service role)
     app.state.db_pool = await asyncpg.create_pool(
         dsn=settings.SUPABASE_DB_URL,
         min_size=2,
         max_size=10,
+        ssl=ctx,
     )
 
     yield
