@@ -1,14 +1,6 @@
 from functools import lru_cache
-from typing import Annotated
 
-from pydantic import BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-
-def _parse_origins(v: str | list[str]) -> list[str]:
-    if isinstance(v, str):
-        return [origin.strip() for origin in v.split(",")]
-    return v
 
 
 class Settings(BaseSettings):
@@ -18,10 +10,14 @@ class Settings(BaseSettings):
     SUPABASE_DB_URL: str
     SUPABASE_JWT_SECRET: str
     ANTHROPIC_API_KEY: str = ""
-    ALLOWED_ORIGINS: Annotated[list[str], BeforeValidator(_parse_origins)] = ["http://localhost:5173"]
+    ALLOWED_ORIGINS: str = "http://localhost:5173"
     SENTRY_DSN: str = ""
     AI_RATE_LIMIT_PER_DAY: int = 10
     DEBUG: bool = False
+
+    @property
+    def allowed_origins_list(self) -> list[str]:
+        return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
 
 
 @lru_cache
