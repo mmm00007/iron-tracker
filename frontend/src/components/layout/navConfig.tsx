@@ -2,12 +2,14 @@ import HomeIcon from '@mui/icons-material/Home';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import HistoryIcon from '@mui/icons-material/History';
 import BarChartIcon from '@mui/icons-material/BarChart';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 
 export const NAV_TABS = [
   { label: 'Home', value: '/', icon: <HomeIcon /> },
   { label: 'Log', value: '/log', icon: <FitnessCenterIcon /> },
+  { label: 'Library', value: '/library', icon: <MenuBookIcon /> },
   { label: 'Plans', value: '/plans', icon: <EventNoteIcon /> },
   { label: 'History', value: '/history', icon: <HistoryIcon /> },
   { label: 'Stats', value: '/stats', icon: <BarChartIcon /> },

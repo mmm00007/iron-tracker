@@ -110,7 +110,7 @@ export function TrainingCalendar() {
 
   return (
     <Card sx={{ mb: 2 }}>
-      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+      <CardContent sx={{ p: { xs: 1.5, md: 2 }, '&:last-child': { pb: { xs: 1.5, md: 2 } } }}>
         <Typography variant="overline" sx={{ color: 'text.secondary', display: 'block', mb: 1.5 }}>
           Training Calendar
         </Typography>
@@ -157,7 +157,13 @@ export function TrainingCalendar() {
             {/* Calendar grid — rows = weeks, cols = days */}
             <Box
               ref={calendarRef}
-              sx={{ display: 'flex', flexDirection: 'column', gap: '3px' }}
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: { xs: '2px', md: '3px', lg: '4px' },
+                maxWidth: { lg: 600 },
+                mx: { lg: 'auto' },
+              }}
             >
               {cells.map((week, weekIdx) => (
                 <Box
@@ -165,7 +171,7 @@ export function TrainingCalendar() {
                   sx={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(7, 1fr)',
-                    gap: '3px',
+                    gap: { xs: '2px', md: '3px', lg: '4px' },
                   }}
                 >
                   {week.map((cell, dayIdx) => {

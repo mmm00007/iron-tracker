@@ -8,7 +8,9 @@ import { HomeMuscleDonut } from '@/components/home/HomeMuscleDonut';
 import { VolumeTrendCard } from '@/components/home/VolumeTrendCard';
 import { TodaysPlanCard } from '@/components/home/TodaysPlanCard';
 import { SorenessPromptCard } from '@/components/home/SorenessPromptCard';
+import { ExerciseProgressCard } from '@/components/home/ExerciseProgressCard';
 import { WeeklySnapshotCard } from '@/components/stats/WeeklySnapshotCard';
+import { TrainingCalendar } from '@/components/stats/TrainingCalendar';
 
 export function HomePage() {
   return (
@@ -53,6 +55,16 @@ export function HomePage() {
 
             {/* Muscle donut */}
             <HomeMuscleDonut />
+
+            {/* Exercise Progress — full width */}
+            <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+              <ExerciseProgressCard />
+            </Box>
+
+            {/* Training Calendar — full width */}
+            <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+              <TrainingCalendar />
+            </Box>
 
             {/* Recent PRs — full width */}
             <Box sx={{ gridColumn: { md: '1 / -1' } }}>

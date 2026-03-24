@@ -91,7 +91,7 @@ export function MuscleDistributionChart({ data, isLoading, isError }: MuscleDist
 
         {!isLoading && !isError && data.length > 0 && (
           <>
-            <Box sx={{ position: 'relative', height: 220 }}>
+            <Box sx={{ position: 'relative', height: { xs: 220, md: 280, lg: 320 } }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie

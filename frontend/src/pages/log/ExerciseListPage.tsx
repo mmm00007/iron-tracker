@@ -2,14 +2,18 @@ import { useState, useMemo, useRef } from 'react';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
 import IconButton from '@mui/material/IconButton';
 import List from '@mui/material/List';
 import Skeleton from '@mui/material/Skeleton';
+import Stack from '@mui/material/Stack';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import { useNavigate } from '@tanstack/react-router';
+
+const EQUIPMENT_TYPES = ['barbell', 'dumbbell', 'cable', 'machine', 'body only', 'bands', 'kettlebell'] as const;
 import {
   useExercises,
   useExerciseSearch,
@@ -140,6 +144,8 @@ export function ExerciseListPage() {
   const navigate = useNavigate();
   const searchRef = useRef<HTMLInputElement>(null);
   const [searchInput, setSearchInput] = useState('');
+  const [equipmentFilter, setEquipmentFilter] = useState<string | null>(null);
+  const [muscleFilter, setMuscleFilter] = useState<string | null>(null);
   const debouncedSearch = useDebounce(searchInput, 200);
   const isSearching = debouncedSearch.trim().length > 0;
 
@@ -182,6 +188,20 @@ export function ExerciseListPage() {
 
     return map;
   }, [exercisesQuery.data]);
+
+  // Filter exercises by equipment type and muscle group (category)
+  const filteredExercises = useMemo(() => {
+    let list = exercisesQuery.data ?? [];
+    if (equipmentFilter) {
+      list = list.filter((e) => e.equipment?.toLowerCase() === equipmentFilter);
+    }
+    if (muscleFilter) {
+      list = list.filter((e) => e.category === muscleFilter);
+    }
+    return list;
+  }, [exercisesQuery.data, equipmentFilter, muscleFilter]);
+
+  const isFiltering = equipmentFilter !== null || muscleFilter !== null;
 
   const hasRecentExercises = (recentQuery.data?.length ?? 0) > 0;
   const hasAnyExercises = (exercisesQuery.data?.length ?? 0) > 0;
@@ -233,9 +253,43 @@ export function ExerciseListPage() {
       </AppBar>
 
       {/* Search Bar */}
-      <Box sx={{ px: 2, pt: 2, pb: 1 }}>
+      <Box sx={{ px: 2, pt: 2, pb: 0.5 }}>
         <ExerciseSearch value={searchInput} onChange={setSearchInput} inputRef={searchRef} />
       </Box>
+
+      {/* Filter chips: equipment type */}
+      {!isLoading && hasAnyExercises && (
+        <Box sx={{ px: 2, pb: 0.5 }}>
+          <Stack direction="row" spacing={0.5} sx={{ overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, pb: 0.5 }}>
+            {EQUIPMENT_TYPES.map((type) => (
+              <Chip
+                key={type}
+                label={type === 'body only' ? 'Bodyweight' : type.charAt(0).toUpperCase() + type.slice(1)}
+                size="small"
+                onClick={() => setEquipmentFilter(equipmentFilter === type ? null : type)}
+                color={equipmentFilter === type ? 'primary' : 'default'}
+                variant={equipmentFilter === type ? 'filled' : 'outlined'}
+                sx={{ fontSize: '0.7rem', height: 26, flexShrink: 0 }}
+              />
+            ))}
+          </Stack>
+
+          {/* Muscle group filter chips */}
+          <Stack direction="row" spacing={0.5} sx={{ overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, mt: 0.5 }}>
+            {(muscleGroupsQuery.data ?? []).slice(0, 12).map((mg) => (
+              <Chip
+                key={mg.id}
+                label={mg.name}
+                size="small"
+                onClick={() => setMuscleFilter(muscleFilter === mg.name ? null : mg.name)}
+                color={muscleFilter === mg.name ? 'secondary' : 'default'}
+                variant={muscleFilter === mg.name ? 'filled' : 'outlined'}
+                sx={{ fontSize: '0.65rem', height: 24, flexShrink: 0 }}
+              />
+            ))}
+          </Stack>
+        </Box>
+      )}
 
       {/* Content */}
       {isLoading ? (
@@ -271,6 +325,36 @@ export function ExerciseListPage() {
                 />
               ))}
             </List>
+          )}
+        </Box>
+      ) : isFiltering ? (
+        /* Filtered results */
+        <Box sx={{ px: 1 }}>
+          {filteredExercises.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                No exercises match the selected filters
+              </Typography>
+              <Button size="small" onClick={() => { setEquipmentFilter(null); setMuscleFilter(null); }} sx={{ mt: 1 }}>
+                Clear Filters
+              </Button>
+            </Box>
+          ) : (
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
+                gap: { xs: 0, md: 0.5 },
+              }}
+            >
+              {filteredExercises.map((exercise) => (
+                <ExerciseListItem
+                  key={exercise.id}
+                  exercise={exercise}
+                  lastLoggedInfo={lastLoggedMap.get(exercise.id)}
+                />
+              ))}
+            </Box>
           )}
         </Box>
       ) : (

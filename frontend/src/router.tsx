@@ -21,6 +21,7 @@ import { PlansPage } from '@/pages/plans/PlansPage';
 import { AnalysisPage } from '@/pages/analysis/AnalysisPage';
 import { PRBoardPage } from '@/pages/stats/PRBoardPage';
 import { DiagnosticsPage } from '@/pages/diagnostics/DiagnosticsPage';
+import { LibraryPage } from '@/pages/library/LibraryPage';
 
 function PageErrorFallback() {
   const navigate = useNavigate();
@@ -177,6 +178,17 @@ export const variantManagerRoute = createRoute({
   component: VariantManagerPageRoute,
 });
 
+// /library — exercise library
+export const libraryRoute = createRoute({
+  getParentRoute: () => protectedLayoutRoute,
+  path: '/library',
+  component: () => (
+    <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
+      <LibraryPage />
+    </Sentry.ErrorBoundary>
+  ),
+});
+
 // /history — session timeline
 export const historyRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
@@ -288,6 +300,7 @@ const routeTree = rootRoute.addChildren([
       machineIdentifyRoute,
       setLoggerRoute,
       variantManagerRoute,
+      libraryRoute,
       historyRoute,
       sessionDetailRoute,
       statsRoute,
