@@ -428,7 +428,7 @@ export function OnboardingPage() {
 
       sessionStorage.removeItem('onboarding-step');
       void navigate({ to: '/log' });
-    } catch (_err) {
+    } catch {
       // Even on error, navigate to app — don't block the user
       sessionStorage.removeItem('onboarding-step');
       void navigate({ to: '/log' });
