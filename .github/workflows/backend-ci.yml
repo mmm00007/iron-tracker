@@ -1,0 +1,61 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Mypy type check
+        run: uv run mypy app
+
+      - name: Run tests with coverage
+        env:
+          SUPABASE_URL: "https://test.supabase.co"
+          SUPABASE_DB_URL: "postgresql://test:test@localhost:5432/test"
+          SUPABASE_JWT_SECRET: "test-jwt-secret-that-is-at-least-32-chars-long"
+          ANTHROPIC_API_KEY: ""
+          ALLOWED_ORIGINS: "http://localhost:5173"
+        run: |
+          uv run pytest --cov=app --cov-report=xml --cov-report=term-missing -v
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml
