@@ -60,7 +60,7 @@ export function MetadataChips() {
             variant={currentRpe !== null ? 'filled' : 'outlined'}
             size="small"
             sx={{
-              height: 32,
+              height: 40,
               ...(currentRpe !== null
                 ? {
                     backgroundColor: 'rgba(168, 199, 250, 0.15)',
@@ -83,7 +83,7 @@ export function MetadataChips() {
             variant={currentSetType !== 'working' ? 'filled' : 'outlined'}
             size="small"
             sx={{
-              height: 32,
+              height: 40,
               ...(currentSetType !== 'working'
                 ? {
                     backgroundColor: 'rgba(249, 168, 37, 0.12)',
@@ -105,7 +105,7 @@ export function MetadataChips() {
           variant={currentNotes.length > 0 ? 'filled' : 'outlined'}
           size="small"
           sx={{
-            height: 32,
+            height: 40,
             ...(currentNotes.length > 0
               ? {
                   backgroundColor: 'rgba(102, 187, 106, 0.12)',
@@ -164,11 +164,12 @@ export function MetadataChips() {
           {/* Clear option */}
           <Chip
             label="—"
-            size="small"
+            size="medium"
             onClick={() => { setRpe(null); setRpeOpen(false); }}
             variant={currentRpe === null ? 'filled' : 'outlined'}
             sx={{
               minWidth: 42,
+              minHeight: 40,
               ...(currentRpe === null
                 ? { backgroundColor: 'primary.main', color: 'primary.contrastText' }
                 : { borderColor: 'rgba(202, 196, 208, 0.3)', color: 'text.secondary' }),
@@ -178,11 +179,12 @@ export function MetadataChips() {
             <Chip
               key={rpe}
               label={rpe}
-              size="small"
+              size="medium"
               onClick={() => { setRpe(rpe); setRpeOpen(false); }}
               variant={currentRpe === rpe ? 'filled' : 'outlined'}
               sx={{
                 minWidth: 42,
+                minHeight: 40,
                 ...(currentRpe === rpe
                   ? { backgroundColor: 'primary.main', color: 'primary.contrastText' }
                   : { borderColor: 'rgba(202, 196, 208, 0.3)', color: 'text.secondary' }),

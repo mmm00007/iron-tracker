@@ -42,11 +42,11 @@ export function ExerciseSearch({
         endAdornment: value ? (
           <InputAdornment position="end">
             <IconButton
-              size="small"
+              size="medium"
               onClick={() => onChange('')}
               aria-label="Clear search"
               edge="end"
-              sx={{ color: 'text.secondary' }}
+              sx={{ color: 'text.secondary', minWidth: 44, minHeight: 44 }}
             >
               <ClearIcon fontSize="small" />
             </IconButton>

@@ -98,9 +98,9 @@ export function InstallPrompt() {
         Install
       </Button>
       <IconButton
-        size="small"
+        size="medium"
         onClick={handleDismiss}
-        sx={{ color: 'text.secondary', flexShrink: 0, p: 0.5 }}
+        sx={{ color: 'text.secondary', flexShrink: 0, minWidth: 44, minHeight: 44 }}
         aria-label="Dismiss install prompt"
       >
         <CloseIcon fontSize="small" />

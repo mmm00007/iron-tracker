@@ -5,8 +5,6 @@ import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import IconButton from '@mui/material/IconButton';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
 import Paper from '@mui/material/Paper';
 import Snackbar from '@mui/material/Snackbar';
 import Toolbar from '@mui/material/Toolbar';
@@ -14,7 +12,6 @@ import Typography from '@mui/material/Typography';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
 import RemoveIcon from '@mui/icons-material/Remove';
 import { useNavigate, useParams } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
@@ -26,7 +23,6 @@ import { useWorkoutStore } from '@/stores/workoutStore';
 import { useProfile } from '@/hooks/useProfile';
 import { NumpadBottomSheet } from '@/components/log/NumpadBottomSheet';
 import { MetadataChips } from '@/components/log/MetadataChips';
-import { RestTimerPill } from '@/components/log/RestTimerPill';
 import { SetRow } from '@/components/log/SetRow';
 
 /** Returns rest duration in seconds based on exercise category.
@@ -109,12 +105,7 @@ export function SetLoggerPage() {
     currentNotes,
     setWeight,
     setReps,
-    isRestTimerActive,
-    restTimerEndTime,
-    restTimerDuration,
     startRestTimer,
-    adjustRestTimer,
-    stopRestTimer,
     prefillFromSet,
   } = useWorkoutStore();
 
@@ -123,9 +114,6 @@ export function SetLoggerPage() {
 
   // Bottom sheet state
   const [numpadTarget, setNumpadTarget] = useState<'weight' | 'reps' | null>(null);
-
-  // Overflow menu
-  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
 
   // Snackbar state
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -234,11 +222,6 @@ export function SetLoggerPage() {
 
   // ── Overflow menu handlers ────────────────────────────────────────────────
 
-  const handleMenuOpen = (e: React.MouseEvent<HTMLButtonElement>) => {
-    setMenuAnchor(e.currentTarget);
-  };
-  const handleMenuClose = () => setMenuAnchor(null);
-
   // ── Numpad helpers ────────────────────────────────────────────────────────
 
   const numpadLabel =
@@ -295,46 +278,8 @@ export function SetLoggerPage() {
             {exerciseQuery.isLoading ? '…' : (exercise?.name ?? 'Exercise')}
           </Typography>
 
-          <IconButton
-            onClick={handleMenuOpen}
-            aria-label="More options"
-            sx={{ color: 'text.secondary' }}
-          >
-            <MoreVertIcon />
-          </IconButton>
         </Toolbar>
       </AppBar>
-
-      {/* Overflow menu */}
-      <Menu
-        anchorEl={menuAnchor}
-        open={Boolean(menuAnchor)}
-        onClose={handleMenuClose}
-        PaperProps={{
-          sx: { backgroundColor: '#2A2A3E', border: '1px solid rgba(202, 196, 208, 0.12)' },
-        }}
-      >
-        <MenuItem onClick={handleMenuClose} sx={{ color: 'text.primary', fontSize: '0.875rem' }}>
-          Exercise History
-        </MenuItem>
-        <MenuItem onClick={handleMenuClose} sx={{ color: 'text.primary', fontSize: '0.875rem' }}>
-          Edit Variants
-        </MenuItem>
-        <MenuItem onClick={handleMenuClose} sx={{ color: 'text.primary', fontSize: '0.875rem' }}>
-          Exercise Info
-        </MenuItem>
-      </Menu>
-
-      {/* ── Rest Timer Pill ─────────────────────────────────────────────────── */}
-      {isRestTimerActive && restTimerEndTime !== null && (
-        <RestTimerPill
-          durationSeconds={restTimerDuration}
-          endTime={restTimerEndTime}
-          onDismiss={stopRestTimer}
-          onAddTime={(s) => adjustRestTimer(s)}
-          onSubtractTime={(s) => adjustRestTimer(-s)}
-        />
-      )}
 
       {/* ── Main Content ────────────────────────────────────────────────────── */}
       <Box sx={{ flex: 1, px: 2, pt: 2, pb: '120px' }}>
@@ -379,19 +324,7 @@ export function SetLoggerPage() {
                 }}
               />
             ))}
-            {/* + Add chip */}
-            <Chip
-              label="+ Add"
-              icon={<AddIcon sx={{ fontSize: '0.9rem !important' }} />}
-              variant="outlined"
-              sx={{
-                flexShrink: 0,
-                height: 36,
-                borderColor: 'rgba(202, 196, 208, 0.2)',
-                color: 'text.disabled',
-                '& .MuiChip-icon': { color: 'text.disabled' },
-              }}
-            />
+
           </Box>
         )}
 

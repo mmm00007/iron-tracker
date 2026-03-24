@@ -161,10 +161,10 @@ export function ProfilePage() {
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <IconButton
-                size="small"
+                size="medium"
                 onClick={() => setTrainingDays((d: number) => Math.max(1, d - 1))}
                 disabled={trainingDays <= 1}
-                sx={{ border: '1px solid', borderColor: 'divider' }}
+                sx={{ border: '1px solid', borderColor: 'divider', minWidth: 44, minHeight: 44 }}
               >
                 <RemoveIcon fontSize="small" />
               </IconButton>
@@ -172,10 +172,10 @@ export function ProfilePage() {
                 {trainingDays}
               </Typography>
               <IconButton
-                size="small"
+                size="medium"
                 onClick={() => setTrainingDays((d: number) => Math.min(7, d + 1))}
                 disabled={trainingDays >= 7}
-                sx={{ border: '1px solid', borderColor: 'divider' }}
+                sx={{ border: '1px solid', borderColor: 'divider', minWidth: 44, minHeight: 44 }}
               >
                 <AddIcon fontSize="small" />
               </IconButton>

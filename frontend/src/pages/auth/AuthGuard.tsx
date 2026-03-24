@@ -24,6 +24,9 @@ export function AuthGuard({ children }: AuthGuardProps) {
     }
   }, [isAuthLoading, user, navigate]);
 
+  // Routes that are accessible mid-onboarding (before onboarding_completed = true).
+  const ONBOARDING_ALLOWED_PATHS = ['/onboarding', '/log/identify'];
+
   // Redirect to onboarding if the user hasn't completed it yet.
   useEffect(() => {
     if (
@@ -31,7 +34,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
       user &&
       profile &&
       !profile.onboarding_completed &&
-      location.pathname !== '/onboarding'
+      !ONBOARDING_ALLOWED_PATHS.includes(location.pathname)
     ) {
       void navigate({ to: '/onboarding' });
     }
@@ -55,7 +58,8 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   // While the onboarding redirect is pending (profile loaded but not completed),
   // keep showing the spinner so the protected page content never flashes.
-  if (profile && !profile.onboarding_completed) {
+  // Exception: allow /log/identify so the camera flow works during onboarding step 4.
+  if (profile && !profile.onboarding_completed && !ONBOARDING_ALLOWED_PATHS.includes(location.pathname)) {
     return (
       <Box
         sx={{

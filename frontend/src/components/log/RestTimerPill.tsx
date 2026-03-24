@@ -96,15 +96,15 @@ export function RestTimerPill({
       {/* -30s button */}
       {!isComplete && (
         <IconButton
-          size="small"
+          size="medium"
           onClick={(e) => {
             e.stopPropagation();
             onSubtractTime(30);
           }}
-          sx={{ color: barColor, p: 0.25 }}
+          sx={{ color: barColor, minWidth: 44, minHeight: 44 }}
           aria-label="Subtract 30 seconds"
         >
-          <RemoveIcon fontSize="small" />
+          <RemoveIcon />
         </IconButton>
       )}
 
@@ -143,15 +143,15 @@ export function RestTimerPill({
       {/* +30s button */}
       {!isComplete && (
         <IconButton
-          size="small"
+          size="medium"
           onClick={(e) => {
             e.stopPropagation();
             onAddTime(30);
           }}
-          sx={{ color: barColor, p: 0.25 }}
+          sx={{ color: barColor, minWidth: 44, minHeight: 44 }}
           aria-label="Add 30 seconds"
         >
-          <AddIcon fontSize="small" />
+          <AddIcon />
         </IconButton>
       )}
     </Box>

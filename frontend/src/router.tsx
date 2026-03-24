@@ -1,4 +1,5 @@
-import { createRootRoute, createRoute, createRouter, Outlet, redirect } from '@tanstack/react-router';
+import { createRootRoute, createRoute, createRouter, Outlet, redirect, useNavigate } from '@tanstack/react-router';
+import { Box, Button, Typography } from '@mui/material';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { AuthGuard } from '@/pages/auth/AuthGuard';
 import { LoginPage } from '@/pages/auth/LoginPage';
@@ -15,9 +16,32 @@ import { ExerciseStatsPage } from '@/pages/stats/ExerciseStatsPage';
 import { MachineIdentifyPage } from '@/pages/log/MachineIdentifyPage';
 import { OnboardingPage } from '@/pages/onboarding/OnboardingPage';
 
+function NotFoundPage() {
+  const navigate = useNavigate();
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        gap: 2,
+        p: 3,
+      }}
+    >
+      <Typography variant="h5">Page not found</Typography>
+      <Button variant="contained" onClick={() => navigate({ to: '/log' })}>
+        Go to Log
+      </Button>
+    </Box>
+  );
+}
+
 // Root route — renders either auth layout or app layout via child routes
 const rootRoute = createRootRoute({
   component: Outlet,
+  notFoundComponent: NotFoundPage,
 });
 
 // Auth layout route — renders auth pages without AppLayout nav

@@ -97,10 +97,10 @@ function DeloadBannerInner({
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
           <IconButton
-            size="small"
+            size="medium"
             onClick={() => setExpanded((e) => !e)}
             aria-label={expanded ? 'Show less' : 'Show details'}
-            sx={{ color: 'text.secondary' }}
+            sx={{ color: 'text.secondary', minWidth: 44, minHeight: 44 }}
           >
             {expanded ? (
               <ExpandLessIcon fontSize="small" />
@@ -109,10 +109,10 @@ function DeloadBannerInner({
             )}
           </IconButton>
           <IconButton
-            size="small"
+            size="medium"
             onClick={onDismiss}
             aria-label="Dismiss deload recommendation"
-            sx={{ color: 'text.disabled' }}
+            sx={{ color: 'text.disabled', minWidth: 44, minHeight: 44 }}
           >
             <CloseIcon fontSize="small" />
           </IconButton>
@@ -193,12 +193,13 @@ function DeloadBannerInner({
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
               variant="outlined"
-              size="small"
+              size="medium"
               onClick={onDismiss}
               sx={{
                 borderColor: 'rgba(255,255,255,0.15)',
                 color: 'text.secondary',
                 fontSize: '0.75rem',
+                minHeight: 44,
                 '&:hover': { borderColor: 'rgba(255,255,255,0.3)' },
               }}
             >
@@ -206,12 +207,13 @@ function DeloadBannerInner({
             </Button>
             <Button
               variant="contained"
-              size="small"
+              size="medium"
               onClick={onStartDeload}
               sx={{
                 backgroundColor: styles.iconColor,
                 color: '#fff',
                 fontSize: '0.75rem',
+                minHeight: 44,
                 '&:hover': { filter: 'brightness(0.9)' },
               }}
             >
