@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -16,7 +16,7 @@ import RemoveIcon from '@mui/icons-material/Remove';
 import { useParams } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import type { Exercise } from '@/types/database';
+import type { Exercise, PersonalRecord } from '@/types/database';
 import { useVariants } from '@/hooks/useVariants';
 import { useTodaySets, useLastSet, useLogSet, useDeleteSet } from '@/hooks/useSets';
 import { useWorkoutStore } from '@/stores/workoutStore';
@@ -24,6 +24,9 @@ import { useProfile } from '@/hooks/useProfile';
 import { NumpadBottomSheet } from '@/components/log/NumpadBottomSheet';
 import { MetadataChips } from '@/components/log/MetadataChips';
 import { SetRow } from '@/components/log/SetRow';
+import { PRCelebration } from '@/components/log/PRCelebration';
+import { checkForPRs, filterPRsForExercise } from '@/utils/prDetection';
+import type { PRCheckResult } from '@/utils/prDetection';
 
 /** Returns rest duration in seconds based on exercise category.
  * - Heavy compound (strength / powerlifting): 180 s
@@ -102,10 +105,12 @@ export function SetLoggerPage() {
     currentRpe,
     currentSetType,
     currentNotes,
+    hasUserEdited,
     setWeight,
     setReps,
     startRestTimer,
     prefillFromSet,
+    resetUserEdited,
   } = useWorkoutStore();
 
   // Selected variant (null = no specific variant)
@@ -114,9 +119,17 @@ export function SetLoggerPage() {
   // Bottom sheet state
   const [numpadTarget, setNumpadTarget] = useState<'weight' | 'reps' | null>(null);
 
-  // Snackbar state
+  // Snackbar state — "Set logged" undo
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [lastLoggedSetId, setLastLoggedSetId] = useState<string | null>(null);
+
+  // Snackbar state — "Set deleted" undo (soft delete)
+  const [deleteSnackbarOpen, setDeleteSnackbarOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // PR celebration state
+  const [prCelebration, setPrCelebration] = useState<PRCheckResult | null>(null);
 
   // ── Data fetching ──────────────────────────────────────────────────────────
 
@@ -152,10 +165,10 @@ export function SetLoggerPage() {
   // ── Pre-fill from last set ────────────────────────────────────────────────
 
   useEffect(() => {
-    if (lastSet) {
+    if (lastSet && !hasUserEdited) {
       prefillFromSet(lastSet);
     }
-  }, [lastSet, prefillFromSet]);
+  }, [lastSet, hasUserEdited, prefillFromSet]);
 
   // Auto-select most recently used variant on load
   useEffect(() => {
@@ -217,7 +230,75 @@ export function SetLoggerPage() {
     setLastLoggedSetId(loggedSet.id);
     setSnackbarOpen(true);
     startRestTimer(getRestDuration(exercise?.category ?? null));
+    resetUserEdited();
+
+    // ── PR check ────────────────────────────────────────────────────────────
+    // Fetch existing personal records for this exercise+variant and check
+    // whether the newly logged set breaks any of them.
+    try {
+      const { data: existingPRs } = await supabase
+        .from('personal_records')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('exercise_id', exerciseId);
+
+      if (existingPRs && exerciseId) {
+        const filtered = filterPRsForExercise(
+          existingPRs as PersonalRecord[],
+          exerciseId,
+          selectedVariantId,
+        );
+        const result = checkForPRs(
+          { weight: currentWeight, reps: currentReps, exerciseId, variantId: selectedVariantId },
+          filtered,
+        );
+        if (result.isPR) {
+          setPrCelebration(result);
+        }
+      }
+    } catch {
+      // PR check is best-effort — never block the happy path
+    }
   };
+
+  // ── Delete set handler (soft delete with undo) ───────────────────────────
+
+  const handleDeleteSet = (setId: string) => {
+    // Cancel any in-flight delete timer for a previous pending delete
+    if (deleteTimerRef.current) {
+      clearTimeout(deleteTimerRef.current);
+    }
+    // If there was already a pending delete that hasn't been committed yet,
+    // commit it immediately before starting the new one.
+    if (pendingDeleteId && pendingDeleteId !== setId) {
+      deleteSetMutation.mutate({ setId: pendingDeleteId, exerciseId });
+    }
+    setPendingDeleteId(setId);
+    setDeleteSnackbarOpen(true);
+    deleteTimerRef.current = setTimeout(() => {
+      deleteSetMutation.mutate({ setId, exerciseId });
+      setPendingDeleteId(null);
+      deleteTimerRef.current = null;
+    }, 4000);
+  };
+
+  const handleUndoDelete = () => {
+    if (deleteTimerRef.current) {
+      clearTimeout(deleteTimerRef.current);
+      deleteTimerRef.current = null;
+    }
+    setPendingDeleteId(null);
+    setDeleteSnackbarOpen(false);
+  };
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (deleteTimerRef.current) {
+        clearTimeout(deleteTimerRef.current);
+      }
+    };
+  }, []);
 
   // ── Overflow menu handlers ────────────────────────────────────────────────
 
@@ -251,6 +332,15 @@ export function SetLoggerPage() {
         backgroundColor: 'background.default',
       }}
     >
+      {/* ── PR Celebration Banner ───────────────────────────────────────────── */}
+      {prCelebration && (
+        <PRCelebration
+          prResult={prCelebration}
+          exerciseName={exercise?.name ?? 'Exercise'}
+          onDismiss={() => setPrCelebration(null)}
+        />
+      )}
+
       {/* ── Top App Bar ────────────────────────────────────────────────────── */}
       <AppBar position="sticky" elevation={0}>
         <Toolbar sx={{ px: 1, minHeight: '56px !important' }}>
@@ -566,7 +656,7 @@ export function SetLoggerPage() {
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
               <CircularProgress size={24} />
             </Box>
-          ) : todaySets.length === 0 ? (
+          ) : todaySets.filter((s) => s.id !== pendingDeleteId).length === 0 ? (
             <Box
               sx={{
                 py: 4,
@@ -593,16 +683,16 @@ export function SetLoggerPage() {
                 overflow: 'hidden',
               }}
             >
-              {todaySets.map((set, index) => (
-                <SetRow
-                  key={set.id}
-                  set={set}
-                  setNumber={todaySets.length - index}
-                  onDelete={(id) =>
-                    deleteSetMutation.mutate({ setId: id, exerciseId })
-                  }
-                />
-              ))}
+              {todaySets
+                .filter((s) => s.id !== pendingDeleteId)
+                .map((set, index, filtered) => (
+                  <SetRow
+                    key={set.id}
+                    set={set}
+                    setNumber={filtered.length - index}
+                    onDelete={handleDeleteSet}
+                  />
+                ))}
             </Paper>
           )}
         </Box>
@@ -637,6 +727,28 @@ export function SetLoggerPage() {
               }
               setSnackbarOpen(false);
             }}
+            sx={{ color: 'primary.light', fontWeight: 700 }}
+          >
+            Undo
+          </Button>
+        }
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ bottom: { xs: 80 } }}
+      />
+
+      {/* ── Set Deleted Snackbar ─────────────────────────────────────────────── */}
+      <Snackbar
+        open={deleteSnackbarOpen}
+        autoHideDuration={4000}
+        onClose={(_event, reason) => {
+          if (reason === 'clickaway') return;
+          setDeleteSnackbarOpen(false);
+        }}
+        message="Set deleted"
+        action={
+          <Button
+            size="small"
+            onClick={handleUndoDelete}
             sx={{ color: 'primary.light', fontWeight: 700 }}
           >
             Undo

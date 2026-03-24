@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import { EmojiEvents } from '@mui/icons-material';
 import { formatRelativeDate } from '@/utils/formatters';
+import { useProfile } from '@/hooks/useProfile';
 
 interface PRRecord {
   repCount: number;
@@ -25,6 +26,9 @@ interface PRTableProps {
 const REP_RANGES = [1, 3, 5, 8, 10];
 
 export function PRTable({ records }: PRTableProps) {
+  const { data: profile } = useProfile();
+  const unit = profile?.preferred_weight_unit ?? 'kg';
+
   const recordMap = new Map(records.map((r) => [r.repCount, r]));
 
   return (
@@ -58,7 +62,7 @@ export function PRTable({ records }: PRTableProps) {
                 <TableCell align="right">
                   {record ? (
                     <Typography variant="body2" fontWeight={600}>
-                      {record.weight} kg
+                      {record.weight} {unit}
                     </Typography>
                   ) : (
                     <Typography variant="body2" color="text.disabled">
@@ -68,7 +72,7 @@ export function PRTable({ records }: PRTableProps) {
                 </TableCell>
                 <TableCell align="right">
                   {record ? (
-                    <Typography variant="body2">{Math.round(record.estimated1rm)} kg</Typography>
+                    <Typography variant="body2">{Math.round(record.estimated1rm)} {unit}</Typography>
                   ) : (
                     <Typography variant="body2" color="text.disabled">
                       —

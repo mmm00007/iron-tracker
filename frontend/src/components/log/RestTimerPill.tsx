@@ -50,14 +50,6 @@ export function RestTimerPill({
     return () => clearInterval(interval);
   }, [endTime]);
 
-  // Auto-dismiss 3s after complete
-  useEffect(() => {
-    if (isComplete) {
-      const timeout = setTimeout(() => onDismiss(), 3000);
-      return () => clearTimeout(timeout);
-    }
-  }, [isComplete, onDismiss]);
-
   const handleDismiss = useCallback(() => onDismiss(), [onDismiss]);
 
   // Color: blue at full, amber at ≤30s, red-ish at complete

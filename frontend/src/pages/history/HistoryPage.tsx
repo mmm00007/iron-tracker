@@ -129,6 +129,11 @@ export function HistoryPage() {
       {/* Content */}
       {isInitialLoading ? (
         <LoadingSkeleton />
+      ) : sessionsQuery.isError ? (
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <Typography color="error" gutterBottom>Failed to load sessions</Typography>
+          <Button onClick={() => sessionsQuery.refetch()}>Retry</Button>
+        </Box>
       ) : isEmpty ? (
         <EmptyState />
       ) : (

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -82,6 +82,23 @@ const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 export function TrainingCalendar() {
   const { data, isLoading, isError } = useTrainingFrequency();
   const [tooltip, setTooltip] = useState<{ date: string; volume: number; sets: number } | null>(null);
+  const calendarRef = useRef<HTMLDivElement>(null);
+
+  // Clear tooltip when tapping outside the calendar grid (touch devices)
+  useEffect(() => {
+    if (!tooltip) return;
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      if (calendarRef.current && !calendarRef.current.contains(e.target as Node)) {
+        setTooltip(null);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+    };
+  }, [tooltip]);
 
   const { cells, maxVolume } = useMemo(() => {
     if (!data) return { cells: [], maxVolume: 0 };
@@ -137,7 +154,10 @@ export function TrainingCalendar() {
             </Box>
 
             {/* Calendar grid — rows = weeks, cols = days */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <Box
+              ref={calendarRef}
+              sx={{ display: 'flex', flexDirection: 'column', gap: '3px' }}
+            >
               {cells.map((week, weekIdx) => (
                 <Box
                   key={weekIdx}
@@ -162,6 +182,7 @@ export function TrainingCalendar() {
                     }
 
                     const color = volumeToColor(cell.volume, maxVolume);
+                    const isSelected = tooltip?.date === cell.date;
 
                     return (
                       <Tooltip
@@ -181,6 +202,7 @@ export function TrainingCalendar() {
                             backgroundColor: color,
                             cursor: cell.volume > 0 ? 'pointer' : 'default',
                             transition: 'transform 0.1s',
+                            outline: isSelected ? '2px solid rgba(255,255,255,0.5)' : 'none',
                             '&:hover': cell.volume > 0
                               ? { transform: 'scale(1.2)', zIndex: 1 }
                               : {},
@@ -190,6 +212,17 @@ export function TrainingCalendar() {
                             setTooltip({ date: cell.date, volume: cell.volume, sets: cell.setCount })
                           }
                           onMouseLeave={() => setTooltip(null)}
+                          onClick={() => {
+                            if (cell.volume === 0) {
+                              setTooltip(null);
+                              return;
+                            }
+                            // Toggle off if same cell tapped again; otherwise show this cell
+                            setTooltip(isSelected
+                              ? null
+                              : { date: cell.date, volume: cell.volume, sets: cell.setCount }
+                            );
+                          }}
                         />
                       </Tooltip>
                     );

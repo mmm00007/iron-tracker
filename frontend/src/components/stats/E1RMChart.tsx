@@ -13,6 +13,7 @@ import {
   Legend,
 } from 'recharts';
 import type { E1RMDataPoint } from '@/utils/analytics';
+import { useProfile } from '@/hooks/useProfile';
 
 // Colors for multiple variants
 const VARIANT_COLORS = [
@@ -32,9 +33,10 @@ interface CustomTooltipProps {
   active?: boolean;
   payload?: Array<{ value: number; name: string; color: string }>;
   label?: string;
+  unit?: string;
 }
 
-function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
+function CustomTooltip({ active, payload, label, unit = 'kg' }: CustomTooltipProps) {
   if (!active || !payload || payload.length === 0) return null;
   return (
     <Box
@@ -52,7 +54,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
         <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: p.color }} />
           <Typography variant="caption" sx={{ color: 'text.primary' }}>
-            {p.name}: {p.value.toFixed(1)} kg
+            {p.name}: {p.value.toFixed(1)} {unit}
           </Typography>
         </Box>
       ))}
@@ -69,6 +71,9 @@ interface E1RMChartProps {
 }
 
 export function E1RMChart({ data, isLoading, isError, variantNames }: E1RMChartProps) {
+  const { data: profile } = useProfile();
+  const unit = profile?.preferred_weight_unit ?? 'kg';
+
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
@@ -140,7 +145,7 @@ export function E1RMChart({ data, isLoading, isError, variantNames }: E1RMChartP
             tickFormatter={(v) => `${v}`}
             width={40}
           />
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={<CustomTooltip unit={unit} />} />
           {multiVariant && (
             <Legend
               formatter={(value) => (

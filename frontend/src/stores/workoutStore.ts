@@ -16,6 +16,9 @@ interface WorkoutState {
   currentSetType: SetType;
   currentNotes: string;
 
+  // Edit tracking
+  hasUserEdited: boolean;
+
   // Actions
   setWeight: (w: number) => void;
   setReps: (r: number) => void;
@@ -26,6 +29,7 @@ interface WorkoutState {
   adjustRestTimer: (seconds: number) => void;
   stopRestTimer: () => void;
   resetInput: () => void;
+  resetUserEdited: () => void;
   prefillFromSet: (set: Pick<WorkoutSet, 'weight' | 'reps' | 'rpe'>) => void;
 }
 
@@ -42,8 +46,11 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   currentSetType: 'working',
   currentNotes: '',
 
-  setWeight: (w) => set({ currentWeight: Math.max(0, w) }),
-  setReps: (r) => set({ currentReps: Math.max(0, r) }),
+  // Edit tracking
+  hasUserEdited: false,
+
+  setWeight: (w) => set({ currentWeight: Math.max(0, w), hasUserEdited: true }),
+  setReps: (r) => set({ currentReps: Math.max(0, r), hasUserEdited: true }),
   setRpe: (rpe) => set({ currentRpe: rpe }),
   setSetType: (type) => set({ currentSetType: type }),
   setNotes: (notes) => set({ currentNotes: notes }),
@@ -75,11 +82,16 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     });
   },
 
+  resetUserEdited: () => {
+    set({ hasUserEdited: false });
+  },
+
   prefillFromSet: (s) => {
     set({
       currentWeight: s.weight,
       currentReps: s.reps,
       currentRpe: s.rpe ?? null,
+      hasUserEdited: false,
     });
   },
 }));

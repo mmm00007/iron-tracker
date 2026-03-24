@@ -6,6 +6,7 @@ import CardContent from '@mui/material/CardContent';
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
+import Button from '@mui/material/Button';
 import Skeleton from '@mui/material/Skeleton';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
@@ -214,6 +215,11 @@ export function SessionDetailPage() {
 
       {setsQuery.isLoading ? (
         <LoadingSkeleton />
+      ) : setsQuery.isError ? (
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <Typography color="error" gutterBottom>Failed to load sessions</Typography>
+          <Button onClick={() => setsQuery.refetch()}>Retry</Button>
+        </Box>
       ) : (
         <>
           {/* Summary card */}
