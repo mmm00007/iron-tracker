@@ -55,8 +55,8 @@ export function ProgressionBadge({ exerciseId, variantId, onApply }: Progression
     suggestion.confidence === 'high'
       ? 0.75
       : suggestion.confidence === 'medium'
-        ? 0.55
-        : 0.4;
+        ? 0.65
+        : 0.6;
 
   return (
     <Tooltip

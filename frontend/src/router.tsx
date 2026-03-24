@@ -1,5 +1,6 @@
 import { createRootRoute, createRoute, createRouter, Outlet, redirect, useNavigate } from '@tanstack/react-router';
 import { Box, Button, Typography } from '@mui/material';
+import * as Sentry from '@sentry/react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { AuthGuard } from '@/pages/auth/AuthGuard';
 import { LoginPage } from '@/pages/auth/LoginPage';
@@ -15,6 +16,28 @@ import { StatsPage } from '@/pages/stats/StatsPage';
 import { ExerciseStatsPage } from '@/pages/stats/ExerciseStatsPage';
 import { MachineIdentifyPage } from '@/pages/log/MachineIdentifyPage';
 import { OnboardingPage } from '@/pages/onboarding/OnboardingPage';
+
+function PageErrorFallback() {
+  const navigate = useNavigate();
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '50vh',
+        gap: 2,
+        p: 3,
+      }}
+    >
+      <Typography variant="h6">Something went wrong on this page</Typography>
+      <Button variant="contained" onClick={() => navigate({ to: -1 as never })}>
+        Go back
+      </Button>
+    </Box>
+  );
+}
 
 function NotFoundPage() {
   const navigate = useNavigate();
@@ -115,14 +138,22 @@ const protectedLayoutRoute = createRoute({
 export const logRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
   path: '/log',
-  component: ExerciseListPage,
+  component: () => (
+    <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
+      <ExerciseListPage />
+    </Sentry.ErrorBoundary>
+  ),
 });
 
 // /log/:exerciseId — set logger
 export const setLoggerRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
   path: '/log/$exerciseId',
-  component: SetLoggerPage,
+  component: () => (
+    <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
+      <SetLoggerPage />
+    </Sentry.ErrorBoundary>
+  ),
 });
 
 // /log/identify — AI machine photo identification
@@ -143,35 +174,55 @@ export const variantManagerRoute = createRoute({
 export const historyRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
   path: '/history',
-  component: HistoryPage,
+  component: () => (
+    <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
+      <HistoryPage />
+    </Sentry.ErrorBoundary>
+  ),
 });
 
 // /history/:sessionId — session detail
 export const sessionDetailRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
   path: '/history/$sessionId',
-  component: SessionDetailPage,
+  component: () => (
+    <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
+      <SessionDetailPage />
+    </Sentry.ErrorBoundary>
+  ),
 });
 
 // /stats — stats dashboard
 export const statsRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
   path: '/stats',
-  component: StatsPage,
+  component: () => (
+    <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
+      <StatsPage />
+    </Sentry.ErrorBoundary>
+  ),
 });
 
 // /stats/:exerciseId — exercise detail charts
 export const exerciseStatsRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
   path: '/stats/$exerciseId',
-  component: ExerciseStatsPage,
+  component: () => (
+    <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
+      <ExerciseStatsPage />
+    </Sentry.ErrorBoundary>
+  ),
 });
 
 // /profile — user profile
 export const profileRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
   path: '/profile',
-  component: ProfilePage,
+  component: () => (
+    <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
+      <ProfilePage />
+    </Sentry.ErrorBoundary>
+  ),
 });
 
 const routeTree = rootRoute.addChildren([

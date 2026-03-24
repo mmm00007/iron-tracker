@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { RefObject } from 'react';
 import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
 import IconButton from '@mui/material/IconButton';
@@ -9,12 +10,14 @@ interface ExerciseSearchProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  inputRef?: RefObject<HTMLInputElement>;
 }
 
 export function ExerciseSearch({
   value,
   onChange,
   placeholder = 'Search exercises...',
+  inputRef,
 }: ExerciseSearchProps) {
   const [focused, setFocused] = useState(false);
 
@@ -26,6 +29,7 @@ export function ExerciseSearch({
       placeholder={placeholder}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
+      inputRef={inputRef}
       size="small"
       InputProps={{
         startAdornment: (

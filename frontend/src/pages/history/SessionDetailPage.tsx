@@ -144,16 +144,15 @@ export function SessionDetailPage() {
   // sessionId is the startedAt timestamp (URL-encoded)
   const startedAt = decodeURIComponent(sessionId);
 
-  // We need the endedAt to bound the query. Derive it by fetching 1 session's sets first,
-  // then the hook re-runs with the proper range. We approximate endedAt as startedAt + 3h
-  // for the initial fetch so we capture the full session even before we know it.
-  const approximateEndedAt = useMemo(() => {
+  // Use a 24h window to bound the query — generous enough to never cut off a real session.
+  // Duration is shown from sessionGroup.endedAt (max logged_at of fetched sets), not this bound.
+  const initialEndedAt = useMemo(() => {
     const d = new Date(startedAt);
-    d.setHours(d.getHours() + 3);
+    d.setHours(d.getHours() + 24);
     return d.toISOString();
   }, [startedAt]);
 
-  const setsQuery = useSessionSets(startedAt, approximateEndedAt);
+  const setsQuery = useSessionSets(startedAt, initialEndedAt);
   const sets = setsQuery.data ?? [];
 
   // Group the fetched sets into sessions to get the precise endedAt

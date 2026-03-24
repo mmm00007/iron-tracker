@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { Exercise, MuscleGroup } from '@/types/database';
 
@@ -43,23 +43,23 @@ export function useExercisesByMuscle(muscleGroupId: number) {
 }
 
 export function useExerciseSearch(query: string) {
+  const queryClient = useQueryClient();
+
   return useQuery<Exercise[]>({
     queryKey: ['exercises', 'search', query],
-    queryFn: async () => {
-      if (!query.trim()) return [];
+    queryFn: () => {
+      const trimmed = query.trim();
+      if (!trimmed) return [];
 
-      const { data, error } = await supabase
-        .from('exercises')
-        .select('*')
-        .ilike('name', `%${query.trim()}%`)
-        .order('name', { ascending: true })
-        .limit(50);
-
-      if (error) throw error;
-      return data ?? [];
+      const cached = queryClient.getQueryData<Exercise[]>(['exercises']) ?? [];
+      const lower = trimmed.toLowerCase();
+      const results = cached
+        .filter((e) => e.name.toLowerCase().includes(lower))
+        .slice(0, 50);
+      return results;
     },
     enabled: query.trim().length > 0,
-    staleTime: 2 * 60 * 1000,
+    staleTime: Infinity, // derived from cached exercise list — no expiry needed
   });
 }
 

@@ -20,7 +20,6 @@ import { TrainingCalendar } from '@/components/stats/TrainingCalendar';
 import { MuscleDistributionChart } from '@/components/stats/MuscleDistributionChart';
 import { DeloadBanner } from '@/components/stats/DeloadBanner';
 import {
-  useWeeklySnapshot,
   useRecentPRs,
   useTrainingFrequency,
   useMuscleDistribution,
@@ -42,9 +41,8 @@ export function StatsPage() {
   const [period, setPeriod] = useState<Period>('month');
   const navigate = useNavigate();
 
-  const { data: snapshot, isLoading: snapshotLoading } = useWeeklySnapshot();
   const { data: recentPRs, isLoading: prsLoading } = useRecentPRs();
-  const { data: frequency, isLoading: freqLoading } = useTrainingFrequency();
+  const { isLoading: freqLoading } = useTrainingFrequency();
   const { data: muscleData, isLoading: muscleLoading } = useMuscleDistribution(period);
   const { data: topExercises, isLoading: topLoading } = useTopExercises(5);
   const { data: profile } = useProfile();
@@ -73,8 +71,7 @@ export function StatsPage() {
       </Stack>
 
       {/* Unified empty state — shown only when all data sources are empty */}
-      {!snapshotLoading && !prsLoading && !freqLoading && !muscleLoading && !topLoading &&
-        !snapshot &&
+      {!prsLoading && !freqLoading && !muscleLoading && !topLoading &&
         (!recentPRs || recentPRs.length === 0) &&
         (!topExercises || topExercises.length === 0) ? (
         <Box sx={{ textAlign: 'center', py: 8, px: 3 }}>
@@ -95,11 +92,7 @@ export function StatsPage() {
 
           <Stack spacing={2}>
             {/* Card 1: Weekly Snapshot */}
-            {snapshotLoading ? (
-              <Skeleton variant="rounded" height={120} />
-            ) : snapshot ? (
-              <WeeklySnapshotCard />
-            ) : null}
+            <WeeklySnapshotCard />
 
             {/* Card 2: Recent PRs */}
             <Card>
@@ -152,22 +145,7 @@ export function StatsPage() {
             </Card>
 
             {/* Card 3: Training Calendar */}
-            <Card>
-              <CardContent>
-                <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                  Training Frequency
-                </Typography>
-                {freqLoading ? (
-                  <Skeleton variant="rounded" height={160} />
-                ) : frequency ? (
-                  <TrainingCalendar />
-                ) : (
-                  <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
-                    Log some workouts to see your training calendar
-                  </Typography>
-                )}
-              </CardContent>
-            </Card>
+            <TrainingCalendar />
 
             {/* Card 4: Muscle Distribution */}
             <Card>

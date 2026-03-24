@@ -32,8 +32,8 @@ function highlightText(text: string, query: string) {
       <Box
         component="mark"
         sx={{
-          backgroundColor: 'rgba(168, 199, 250, 0.3)',
-          color: 'primary.main',
+          backgroundColor: 'rgba(168, 199, 250, 0.25)',
+          color: '#fff',
           borderRadius: '2px',
           px: 0.25,
         }}
