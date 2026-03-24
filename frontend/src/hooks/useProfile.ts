@@ -43,7 +43,7 @@ export function useProfile() {
         };
         const { data: created, error: createError } = await supabase
           .from('profiles')
-          .insert(newProfile)
+          .upsert(newProfile, { onConflict: 'id', ignoreDuplicates: true })
           .select()
           .single();
 

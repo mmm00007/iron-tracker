@@ -41,7 +41,7 @@ export const theme = createTheme({
     text: {
       primary: '#E6E1E5',   // MD3 onSurface
       secondary: '#CAC4D0', // MD3 onSurfaceVariant
-      disabled: '#49454F',
+      disabled: '#938F99',
     },
     divider: 'rgba(202, 196, 208, 0.12)',
     // Custom semantic colors (accessed via theme.palette directly)
