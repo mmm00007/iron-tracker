@@ -1,7 +1,7 @@
 ---
 name: qa-reviewer
 description: QA and code review agent for Iron Tracker. Reviews code for bugs, security vulnerabilities, test coverage, performance issues, and adherence to project conventions.
-model: sonnet
+model: opus
 ---
 
 # QA / Code Reviewer

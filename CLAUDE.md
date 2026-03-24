@@ -101,7 +101,8 @@ All agents live in `.claude/agents/`. Use the right specialist for the task at h
 | `frontend-specialist` | sonnet | React components, state management, Supabase client |
 | `ux-ui-specialist` | opus | User flows, interaction design, accessibility, visual consistency |
 | `fitness-domain-expert` | opus | Exercise science, anatomy, nutrition, training algorithms |
-| `qa-reviewer` | sonnet | Code review, security audit, test coverage, conventions |
+| `qa-reviewer` | opus | Code review, bug detection, test coverage, conventions |
+| `security-specialist` | opus | Auth audit, RLS review, threat modeling, OWASP compliance |
 | `deployment-specialist` | sonnet | CI/CD, cloud services, env vars, production ops |
 | `database-specialist` | sonnet | Schema design, migrations, RLS, query optimization |
 
@@ -111,6 +112,7 @@ All agents live in `.claude/agents/`. Use the right specialist for the task at h
 - **Domain logic** (exercises, 1RM, deload, volume) → `fitness-domain-expert` before implementing
 - **UI changes** → `ux-ui-specialist` for design review
 - **Before merging** → `qa-reviewer` for code review
+- **Security concerns** → `security-specialist` for audit
 - **Deploy issues** → `deployment-specialist`
 
 ## Error Tracking (Sentry)
