@@ -51,6 +51,10 @@ class _LRUCache:
             return self._cache[key]
         return None
 
+    def clear(self) -> None:
+        """Remove all entries from the cache."""
+        self._cache.clear()
+
     def set(self, key: str, value: MachineIdentificationResponse) -> None:
         if key in self._cache:
             self._cache.move_to_end(key)

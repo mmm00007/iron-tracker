@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
@@ -7,11 +7,12 @@ import Typography from '@mui/material/Typography';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { RouterProvider } from '@tanstack/react-router';
 import * as Sentry from '@sentry/react';
-import { theme } from '@/theme';
+import { createAppTheme } from '@/theme';
 import { queryClient } from '@/lib/queryClient';
 import { indexedDBPersister } from '@/lib/offlinePersistence';
 import { router } from '@/router';
 import { useAuthStore } from '@/stores/authStore';
+import { useThemeMode } from '@/hooks/useThemeMode';
 
 /** 24 hours in milliseconds — how long the persisted cache is considered valid */
 const PERSIST_MAX_AGE = 1000 * 60 * 60 * 24;
@@ -66,9 +67,12 @@ function AppProviders() {
 }
 
 export function App() {
+  const { mode } = useThemeMode();
+  const appTheme = useMemo(() => createAppTheme(mode), [mode]);
+
   return (
     <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
-      <ThemeProvider theme={theme}>
+      <ThemeProvider theme={appTheme}>
         <CssBaseline />
         <AppProviders />
       </ThemeProvider>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import LinearProgress from '@mui/material/LinearProgress';
@@ -21,6 +21,43 @@ function formatTime(seconds: number): string {
   return `${m}:${sec.toString().padStart(2, '0')}`;
 }
 
+/**
+ * Request notification permission (only once per session).
+ * Called on first timer start.
+ */
+let permissionRequested = false;
+function requestNotificationPermission(): void {
+  if (permissionRequested) return;
+  permissionRequested = true;
+  if ('Notification' in window && Notification.permission === 'default') {
+    void Notification.requestPermission();
+  }
+}
+
+/**
+ * Fire browser notification + haptic vibration on timer completion.
+ */
+function notifyTimerComplete(): void {
+  // Haptic vibration (pulse pattern)
+  if ('vibrate' in navigator) {
+    navigator.vibrate([200, 100, 200]);
+  }
+
+  // Browser notification (if permitted)
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      new Notification('Rest Complete', {
+        body: 'Time for your next set!',
+        icon: '/icons/icon-192.svg',
+        tag: 'rest-timer', // prevents stacking
+        silent: false,
+      });
+    } catch {
+      // Notification constructor may throw in some environments
+    }
+  }
+}
+
 export function RestTimerPill({
   durationSeconds,
   endTime,
@@ -32,6 +69,17 @@ export function RestTimerPill({
     Math.max(0, (endTime - Date.now()) / 1000),
   );
   const [isComplete, setIsComplete] = useState(false);
+  const hasNotified = useRef(false);
+
+  // Request notification permission on mount (first timer start)
+  useEffect(() => {
+    requestNotificationPermission();
+  }, []);
+
+  // Reset notification flag when endTime changes (new timer started)
+  useEffect(() => {
+    hasNotified.current = false;
+  }, [endTime]);
 
   // Tick
   useEffect(() => {
@@ -40,6 +88,11 @@ export function RestTimerPill({
       if (r <= 0) {
         setRemaining(0);
         setIsComplete(true);
+        // Fire notification exactly once per timer cycle
+        if (!hasNotified.current) {
+          hasNotified.current = true;
+          notifyTimerComplete();
+        }
       } else {
         setRemaining(r);
         setIsComplete(false);

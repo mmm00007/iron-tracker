@@ -17,14 +17,18 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material';
+import Switch from '@mui/material/Switch';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import LogoutIcon from '@mui/icons-material/Logout';
 import BugReportIcon from '@mui/icons-material/BugReport';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
+import LightModeIcon from '@mui/icons-material/LightMode';
 import { useNavigate } from '@tanstack/react-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useProfile, useUpdateProfile } from '@/hooks/useProfile';
 import { DataExport } from '@/components/profile/DataExport';
+import { useThemeMode } from '@/hooks/useThemeMode';
 import type { Profile } from '@/types/database';
 
 export function ProfilePage() {
@@ -32,6 +36,7 @@ export function ProfilePage() {
   const { user, signOut } = useAuthStore();
   const { data: profile, isLoading } = useProfile();
   const updateProfile = useUpdateProfile();
+  const { mode: themeMode, toggle: toggleTheme } = useThemeMode();
 
   const [experienceLevel, setExperienceLevel] = useState<Profile['experience_level']>(null);
   const [primaryGoal, setPrimaryGoal] = useState<Profile['primary_goal']>(null);
@@ -92,6 +97,29 @@ export function ProfilePage() {
           ACCOUNT
         </Typography>
         <Typography variant="body1">{user?.email}</Typography>
+      </Paper>
+
+      <Paper sx={{ p: 3, mb: 2 }}>
+        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+          APPEARANCE
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {themeMode === 'dark' ? (
+              <DarkModeIcon sx={{ color: 'text.secondary' }} />
+            ) : (
+              <LightModeIcon sx={{ color: 'text.secondary' }} />
+            )}
+            <Typography variant="body1">
+              {themeMode === 'dark' ? 'Dark mode' : 'Light mode'}
+            </Typography>
+          </Box>
+          <Switch
+            checked={themeMode === 'light'}
+            onChange={toggleTheme}
+            inputProps={{ 'aria-label': 'Toggle light mode' }}
+          />
+        </Box>
       </Paper>
 
       <Paper sx={{ p: 3, mb: 2 }}>

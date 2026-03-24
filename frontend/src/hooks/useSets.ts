@@ -146,6 +146,64 @@ export function useLogSet() {
 }
 
 /**
+ * Update a set's weight and/or reps with optimistic update.
+ * Used for inline editing of recently logged sets.
+ */
+export function useUpdateSet() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      setId,
+      updates,
+    }: {
+      setId: string;
+      exerciseId: string;
+      updates: { weight?: number; reps?: number };
+    }) => {
+      const { data, error } = await supabase
+        .from('sets')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', setId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as WorkoutSet;
+    },
+
+    onMutate: async ({ setId, exerciseId, updates }) => {
+      const key = todaySetsKey(exerciseId);
+      await queryClient.cancelQueries({ queryKey: key });
+
+      const previousSets = queryClient.getQueryData<WorkoutSet[]>(key);
+
+      queryClient.setQueryData<WorkoutSet[]>(key, (old) =>
+        (old ?? []).map((s) => (s.id === setId ? { ...s, ...updates } : s)),
+      );
+
+      return { previousSets };
+    },
+
+    onError: (_err, { exerciseId }, context) => {
+      if (context?.previousSets !== undefined) {
+        queryClient.setQueryData(todaySetsKey(exerciseId), context.previousSets);
+      }
+    },
+
+    onSettled: (data, _err, { exerciseId }) => {
+      // Sync conflict resolution: if server returned a different updated_at than
+      // what we had, the server version wins (last-write-wins).
+      if (data) {
+        queryClient.setQueryData<WorkoutSet[]>(todaySetsKey(exerciseId), (old) =>
+          (old ?? []).map((s) => (s.id === data.id ? data : s)),
+        );
+      }
+      void queryClient.invalidateQueries({ queryKey: todaySetsKey(exerciseId) });
+    },
+  });
+}
+
+/**
  * Delete a set with optimistic update.
  */
 export function useDeleteSet() {
