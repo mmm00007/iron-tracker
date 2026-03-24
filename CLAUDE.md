@@ -54,18 +54,26 @@ cd backend && uv run ruff format .      # Format
 
 > **Python environment**: Managed by [uv](https://docs.astral.sh/uv/). The venv lives at `backend/.venv`. Always use `uv run` or `uv sync` — never `pip install` directly.
 
-### Code Search (ast-grep)
+### Code Analysis Tools
 
-Use `ast-grep` for structural code searches — it matches AST patterns, not text, so it has far fewer false positives than grep.
+| Tool | Command | Use Case |
+|------|---------|----------|
+| **ast-grep** | `ast-grep` | Structural code search using AST patterns. No false positives from comments/strings. |
+| **Tree-sitter CLI** | `tree-sitter` | Parse source into syntax trees. Language-aware analysis and custom queries. |
+| **Universal Ctags** | `ctags` | Symbol index (functions, classes, variables). Navigate large codebases. |
+| **Ripgrep** | `rg` | Fast text search. Keyword searches, import tracing, string literals. |
+| **Joern** | `joern` | Code Property Graph for security: taint analysis, data flow, vulnerability detection. |
+| **CodeQL** | `codeql` | Semantic code analysis queries for vulnerability patterns and coding errors. |
 
 ```bash
+# ast-grep examples for this project
 ast-grep -p '$_ as any' -l ts frontend/src/           # Find all `as any` assertions
 ast-grep -p 'supabase.from($TABLE)' -l ts frontend/    # Audit Supabase table usage
 ast-grep -p 'console.log($$$)' -l ts frontend/src/     # Find debug logs
 ast-grep -p 'await $_.mutateAsync($$$)' -l ts frontend/ # Find all mutation calls
 ```
 
-Prefer `ast-grep` over grep for pattern-based code searches. Use grep for simple keyword lookups.
+Prefer ast-grep over grep for pattern-based searches. Use grep for simple keyword lookups. Agents (QA, security) should use ast-grep, Joern, or CodeQL for thorough audits.
 
 ## Key Design Decisions
 
