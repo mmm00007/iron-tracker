@@ -72,9 +72,9 @@ export interface EquipmentVariant {
   photo_url: string | null;
   last_used_at: string | null;
   created_at: string;
-  is_default: boolean;
-  weight_range_min: number | null;
-  weight_range_max: number | null;
+  is_default?: boolean;
+  weight_range_min?: number | null;
+  weight_range_max?: number | null;
 }
 
 export interface WorkoutSet {
