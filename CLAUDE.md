@@ -90,17 +90,28 @@ Muscles: muscle_groups table + exercise_muscles junction table (normalized, not 
 - SQL: Snake_case, explicit RLS on every table, indexes on all RLS columns
 - Components: One component per file, colocated tests (`Component.test.tsx`)
 
-## Domain Expert Agent
+## Specialist Agents
 
-A fitness domain expert agent validates all exercise science decisions. Located at `.claude/agents/fitness-domain-expert.md`. Use it before implementing or changing:
-- Exercise taxonomy, muscle mappings, or seed data
-- 1RM formulas or progressive overload logic
-- Deload triggers and prescriptions
-- Volume/recovery recommendations
-- Rest timer defaults or session grouping rules
-- Any training algorithm or heuristic
+All agents live in `.claude/agents/`. Use the right specialist for the task at hand.
 
-The domain expert does NOT write code — it evaluates whether the fitness logic is evidence-based and appropriate for the target user (intermediate-to-advanced lifters).
+| Agent | Model | Role |
+|-------|-------|------|
+| `software-architect` | opus | System design, interfaces, trade-offs, cross-layer decisions |
+| `backend-specialist` | sonnet | FastAPI endpoints, asyncpg queries, Python services |
+| `frontend-specialist` | sonnet | React components, state management, Supabase client |
+| `ux-ui-specialist` | opus | User flows, interaction design, accessibility, visual consistency |
+| `fitness-domain-expert` | opus | Exercise science, anatomy, nutrition, training algorithms |
+| `qa-reviewer` | sonnet | Code review, security audit, test coverage, conventions |
+| `deployment-specialist` | sonnet | CI/CD, cloud services, env vars, production ops |
+| `database-specialist` | sonnet | Schema design, migrations, RLS, query optimization |
+
+**When to invoke:**
+- **Architecture decisions** → `software-architect` first, then specialists implement
+- **New feature** → `software-architect` for design, then `frontend-specialist` / `backend-specialist` / `database-specialist` for implementation
+- **Domain logic** (exercises, 1RM, deload, volume) → `fitness-domain-expert` before implementing
+- **UI changes** → `ux-ui-specialist` for design review
+- **Before merging** → `qa-reviewer` for code review
+- **Deploy issues** → `deployment-specialist`
 
 ## Error Tracking (Sentry)
 
