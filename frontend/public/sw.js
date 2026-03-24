@@ -3,7 +3,9 @@
 // Vite hashes all JS/CSS filenames, so we don't need to enumerate them —
 // the runtime cache fills as the app loads.
 
-const CACHE_NAME = 'iron-tracker-v1';
+// Bump this on each deploy
+const VERSION = 'v2026-03-24';
+const CACHE_NAME = 'iron-tracker-' + VERSION;
 
 // App shell — minimal set to bootstrap the SPA offline
 const APP_SHELL = ['/', '/index.html'];

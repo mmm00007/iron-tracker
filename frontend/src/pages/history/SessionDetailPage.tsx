@@ -190,7 +190,7 @@ export function SessionDetailPage() {
         position="sticky"
         elevation={0}
         sx={{
-          backgroundColor: '#1A1A2E',
+          backgroundColor: 'surface.container',
           borderBottom: '1px solid rgba(202, 196, 208, 0.08)',
         }}
       >
@@ -264,7 +264,7 @@ export function SessionDetailPage() {
                   elevation={0}
                   sx={{
                     borderRadius: '12px',
-                    backgroundColor: '#1E1E1E',
+                    backgroundColor: 'surface.containerHighest',
                     border: '1px solid rgba(202, 196, 208, 0.08)',
                     overflow: 'hidden',
                   }}

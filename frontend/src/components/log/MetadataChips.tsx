@@ -151,7 +151,7 @@ export function MetadataChips() {
         PaperProps={{
           sx: {
             p: 2,
-            backgroundColor: '#2A2A3E',
+            backgroundColor: 'surface.containerHigh',
             border: '1px solid rgba(202, 196, 208, 0.12)',
             borderRadius: '16px',
           },
@@ -204,7 +204,7 @@ export function MetadataChips() {
         PaperProps={{
           sx: {
             p: 2,
-            backgroundColor: '#2A2A3E',
+            backgroundColor: 'surface.containerHigh',
             border: '1px solid rgba(202, 196, 208, 0.12)',
             borderRadius: '16px',
           },

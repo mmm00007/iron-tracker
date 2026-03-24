@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -16,6 +17,7 @@ import ReplayIcon from '@mui/icons-material/Replay';
 import { VariantBottomSheet } from '@/components/variants/VariantBottomSheet';
 import { useMachineIdentify } from '@/hooks/useMachineIdentify';
 import type { MachineIdentificationResult } from '@/hooks/useMachineIdentify';
+import type { Exercise } from '@/types/database';
 
 // ─── Loading state ────────────────────────────────────────────────────────────
 
@@ -420,15 +422,25 @@ function PickState({ onFileSelected }: { onFileSelected: (file: File) => void })
 
 export function MachineIdentifyPage() {
   const { mutate, isPending, error, data, reset } = useMachineIdentify();
+  const queryClient = useQueryClient();
 
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [matchedExerciseId, setMatchedExerciseId] = useState<string>('');
 
-  // We need an exerciseId for the VariantBottomSheet — the user will land on this
-  // page from ExerciseListPage, so ideally the exerciseId is passed as a search
-  // param. For now we make it optional: when not provided the sheet still opens
-  // but exercise_id will be empty and the user can edit manually.
-  // (A follow-up task can wire up the exerciseId via router search params.)
-  const exerciseId = '';
+  // When AI returns results, look up the first matched exercise name in the
+  // cached exercise list and store its ID so VariantBottomSheet can use it.
+  useEffect(() => {
+    if (!data || data.exercise_names.length === 0) {
+      setMatchedExerciseId('');
+      return;
+    }
+    const exercises = queryClient.getQueryData<Exercise[]>(['exercises']) ?? [];
+    const firstName = data.exercise_names[0].toLowerCase();
+    const match = exercises.find((ex) => ex.name.toLowerCase() === firstName);
+    setMatchedExerciseId(match?.id ?? '');
+  }, [data, queryClient]);
+
+  const exerciseId = matchedExerciseId;
 
   function handleFileSelected(file: File) {
     reset();
@@ -478,7 +490,7 @@ export function MachineIdentifyPage() {
         position="sticky"
         elevation={0}
         sx={{
-          backgroundColor: '#1A1A2E',
+          backgroundColor: 'surface.container',
           borderBottom: '1px solid rgba(202, 196, 208, 0.08)',
         }}
       >

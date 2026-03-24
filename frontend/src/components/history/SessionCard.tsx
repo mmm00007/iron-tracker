@@ -38,7 +38,7 @@ export function SessionCard({ session }: SessionCardProps) {
       sx={{
         mb: 1.5,
         borderRadius: '16px',
-        backgroundColor: '#1E1E1E',
+        backgroundColor: 'surface.containerHighest',
         border: '1px solid rgba(202, 196, 208, 0.08)',
       }}
     >

@@ -107,7 +107,7 @@ export function HistoryPage() {
         position="sticky"
         elevation={0}
         sx={{
-          backgroundColor: '#1A1A2E',
+          backgroundColor: 'surface.container',
           borderBottom: '1px solid rgba(202, 196, 208, 0.08)',
         }}
       >

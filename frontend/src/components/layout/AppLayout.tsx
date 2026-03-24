@@ -1,4 +1,4 @@
-import { Box, BottomNavigation, BottomNavigationAction, Typography } from '@mui/material';
+import { Box, BottomNavigation, BottomNavigationAction } from '@mui/material';
 import { Outlet, useRouter, useLocation } from '@tanstack/react-router';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import HistoryIcon from '@mui/icons-material/History';
@@ -53,33 +53,6 @@ export function AppLayout() {
 
       {/* PWA install prompt — shown after 3 visits */}
       <InstallPrompt />
-
-      {/* App bar */}
-      <Box
-        component="header"
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          px: 2,
-          py: 1.5,
-          backgroundColor: '#1A1A2E',
-          borderBottom: '1px solid rgba(202, 196, 208, 0.08)',
-          flexShrink: 0,
-        }}
-      >
-        <FitnessCenterIcon sx={{ color: 'primary.main', mr: 1, fontSize: 22 }} />
-        <Typography
-          variant="h6"
-          sx={{
-            color: 'primary.main',
-            fontWeight: 700,
-            letterSpacing: '-0.02em',
-            fontSize: '1.1rem',
-          }}
-        >
-          Iron Tracker
-        </Typography>
-      </Box>
 
       {/* Main content area */}
       <Box

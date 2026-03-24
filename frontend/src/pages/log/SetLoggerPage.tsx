@@ -478,7 +478,11 @@ export function SetLoggerPage() {
 
               {/* Weight display */}
               <Box
+                role="button"
+                tabIndex={0}
+                aria-label="Edit weight"
                 onClick={() => setNumpadTarget('weight')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setNumpadTarget('weight'); } }}
                 sx={{
                   flex: 1,
                   textAlign: 'center',
@@ -566,7 +570,11 @@ export function SetLoggerPage() {
 
               {/* Reps display */}
               <Box
+                role="button"
+                tabIndex={0}
+                aria-label="Edit reps"
                 onClick={() => setNumpadTarget('reps')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setNumpadTarget('reps'); } }}
                 sx={{
                   flex: 1,
                   textAlign: 'center',

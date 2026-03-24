@@ -1,6 +1,7 @@
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
+import { useTheme } from '@mui/material/styles';
 import {
   LineChart,
   Line,
@@ -41,7 +42,7 @@ function CustomTooltip({ active, payload, label, unit = 'kg' }: CustomTooltipPro
   return (
     <Box
       sx={{
-        backgroundColor: '#2A2A3E',
+        backgroundColor: 'surface.containerHigh',
         border: '1px solid rgba(202, 196, 208, 0.2)',
         borderRadius: '8px',
         p: 1.5,
@@ -71,6 +72,7 @@ interface E1RMChartProps {
 }
 
 export function E1RMChart({ data, isLoading, isError, variantNames }: E1RMChartProps) {
+  const theme = useTheme();
   const { data: profile } = useProfile();
   const unit = profile?.preferred_weight_unit ?? 'kg';
 
@@ -173,7 +175,7 @@ export function E1RMChart({ data, isLoading, isError, variantNames }: E1RMChartP
               dataKey="date"
               height={20}
               stroke="rgba(202, 196, 208, 0.2)"
-              fill="#1E1E1E"
+              fill={theme.palette.surface.containerHighest}
               tickFormatter={formatDate}
             />
           )}

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import ToggleButton from '@mui/material/ToggleButton';
@@ -367,8 +367,15 @@ export function OnboardingPage() {
   const updateProfile = useUpdateProfile();
   const joinGym = useJoinGym();
 
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(() => {
+    const saved = sessionStorage.getItem('onboarding-step');
+    return saved ? parseInt(saved, 10) : 0;
+  });
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    sessionStorage.setItem('onboarding-step', String(step));
+  }, [step]);
 
   const [profileDraft, setProfileDraft] = useState<ProfileDraft>({
     experienceLevel: null,
@@ -419,9 +426,11 @@ export function OnboardingPage() {
         );
       }
 
+      sessionStorage.removeItem('onboarding-step');
       void navigate({ to: '/log' });
     } catch (_err) {
       // Even on error, navigate to app — don't block the user
+      sessionStorage.removeItem('onboarding-step');
       void navigate({ to: '/log' });
     } finally {
       setIsSaving(false);

@@ -23,6 +23,9 @@ export const theme = createTheme({
     },
     surface: {
       main: '#121212',
+      container: '#1A1A2E',        // app bars, elevated headers
+      containerHigh: '#2A2A3E',    // popovers, menus, tooltips
+      containerHighest: '#1E1E1E', // cards, paper
     },
     error: {
       main: '#FFB4AB',
@@ -308,12 +311,20 @@ export const theme = createTheme({
 // Extend MUI palette types for custom colors
 declare module '@mui/material/styles' {
   interface Palette {
-    surface: Palette['primary'];
+    surface: Palette['primary'] & {
+      container: string;
+      containerHigh: string;
+      containerHighest: string;
+    };
     prGold: Palette['primary'];
     restTimer: Palette['primary'];
   }
   interface PaletteOptions {
-    surface?: PaletteOptions['primary'];
+    surface?: PaletteOptions['primary'] & {
+      container?: string;
+      containerHigh?: string;
+      containerHighest?: string;
+    };
     prGold?: PaletteOptions['primary'];
     restTimer?: PaletteOptions['primary'];
   }

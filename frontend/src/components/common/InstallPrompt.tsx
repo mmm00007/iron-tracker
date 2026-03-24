@@ -69,7 +69,7 @@ export function InstallPrompt() {
         left: 16,
         right: 16,
         zIndex: 1300,
-        backgroundColor: '#1A1A2E',
+        backgroundColor: 'surface.container',
         border: '1px solid rgba(46, 117, 182, 0.4)',
         borderRadius: 2,
         px: 2,

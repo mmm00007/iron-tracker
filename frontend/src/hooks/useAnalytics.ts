@@ -15,7 +15,7 @@ type Period = 'week' | 'month' | '3months' | 'all';
 
 // ─── Helper: fetch all user sets (optionally filtered by date) ─────────────────
 
-async function fetchUserSets(since?: Date): Promise<WorkoutSet[]> {
+async function fetchUserSets(since?: Date, exerciseId?: string): Promise<WorkoutSet[]> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -29,6 +29,10 @@ async function fetchUserSets(since?: Date): Promise<WorkoutSet[]> {
 
   if (since) {
     query = query.gte('logged_at', since.toISOString());
+  }
+
+  if (exerciseId) {
+    query = query.eq('exercise_id', exerciseId);
   }
 
   const { data, error } = await query.limit(5000);
@@ -93,21 +97,29 @@ export interface RecentPR {
 /**
  * Last 5 personal records with exercise names.
  */
-export function useRecentPRs() {
+export function useRecentPRs(period?: Period) {
   return useQuery<RecentPR[]>({
-    queryKey: ['analytics', 'recentPRs'],
+    queryKey: ['analytics', 'recentPRs', period ?? 'all'],
     queryFn: async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return [];
 
-      const { data: prs, error } = await supabase
+      const since = period ? periodCutoff(period) : undefined;
+
+      let prQuery = supabase
         .from('personal_records')
         .select('*, exercises(name)')
         .eq('user_id', user.id)
         .order('achieved_at', { ascending: false })
         .limit(5);
+
+      if (since) {
+        prQuery = prQuery.gte('achieved_at', since.toISOString());
+      }
+
+      const { data: prs, error } = await prQuery;
 
       if (error) throw error;
       if (!prs) return [];
@@ -131,13 +143,16 @@ export function useRecentPRs() {
 /**
  * Per-day training activity for the last 12 weeks (for calendar heatmap).
  */
-export function useTrainingFrequency() {
+export function useTrainingFrequency(period?: Period) {
   return useQuery({
-    queryKey: ['analytics', 'trainingFrequency'],
+    queryKey: ['analytics', 'trainingFrequency', period ?? 'all'],
     queryFn: async () => {
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - 84); // 12 weeks
-      const sets = await fetchUserSets(cutoff);
+      const since = period ? periodCutoff(period) : (() => {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 84); // 12 weeks default
+        return cutoff;
+      })();
+      const sets = await fetchUserSets(since);
       return trainingFrequency(sets, 12);
     },
     staleTime: 5 * 60 * 1000,
@@ -226,14 +241,17 @@ export interface TopExerciseWithName {
 }
 
 /**
- * Top exercises by total volume over the last 6 months, enriched with exercise names.
+ * Top exercises by total volume, enriched with exercise names.
  */
-export function useTopExercises(limit = 5) {
+export function useTopExercises(limit = 5, period?: Period) {
   return useQuery<TopExerciseWithName[]>({
-    queryKey: ['analytics', 'topExercises', limit],
+    queryKey: ['analytics', 'topExercises', limit, period ?? 'all'],
     queryFn: async () => {
-      const since = new Date();
-      since.setMonth(since.getMonth() - 6);
+      const since = period ? periodCutoff(period) : (() => {
+        const d = new Date();
+        d.setMonth(d.getMonth() - 6); // 6 months default
+        return d;
+      })();
       const sets = await fetchUserSets(since);
       if (sets.length === 0) return [];
 
@@ -292,9 +310,8 @@ export function useExerciseVolumeTrend(exerciseId: string) {
   return useQuery({
     queryKey: ['analytics', 'exerciseVolumeTrend', exerciseId],
     queryFn: async () => {
-      const sets = await fetchUserSets();
-      const filtered = sets.filter((s) => s.exercise_id === exerciseId);
-      return weeklyVolume(filtered);
+      const sets = await fetchUserSets(undefined, exerciseId);
+      return weeklyVolume(sets);
     },
     enabled: !!exerciseId,
     staleTime: 5 * 60 * 1000,
@@ -310,7 +327,7 @@ export function useExercisePRs(exerciseId: string) {
   return useQuery({
     queryKey: ['analytics', 'exercisePRs', exerciseId],
     queryFn: async () => {
-      const sets = await fetchUserSets();
+      const sets = await fetchUserSets(undefined, exerciseId);
       return exercisePRs(sets, exerciseId);
     },
     enabled: !!exerciseId,

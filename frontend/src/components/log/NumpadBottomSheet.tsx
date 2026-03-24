@@ -81,7 +81,7 @@ export function NumpadBottomSheet({
         sx: {
           borderTopLeftRadius: 24,
           borderTopRightRadius: 24,
-          backgroundColor: '#1E1E2E',
+          backgroundColor: 'surface.containerHigh',
           pb: 'env(safe-area-inset-bottom)',
           maxWidth: 480,
           mx: 'auto',

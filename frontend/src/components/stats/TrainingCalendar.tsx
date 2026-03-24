@@ -7,11 +7,12 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import { useTrainingFrequency } from '@/hooks/useAnalytics';
 import type { DayActivity } from '@/utils/analytics';
+import { theme } from '@/theme';
 
 // ─── Color scale ───────────────────────────────────────────────────────────────
 
 function volumeToColor(volume: number, maxVolume: number): string {
-  if (volume === 0 || maxVolume === 0) return '#2A2A3E'; // empty cell
+  if (volume === 0 || maxVolume === 0) return theme.palette.surface.containerHigh; // empty cell
   const ratio = Math.min(volume / maxVolume, 1);
 
   if (ratio < 0.25) return '#1A3A5C'; // low — dark blue
@@ -236,7 +237,7 @@ export function TrainingCalendar() {
               <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.6rem' }}>
                 Less
               </Typography>
-              {['#2A2A3E', '#1A3A5C', '#1565C0', '#2E7D32', '#F9A825'].map((color) => (
+              {[theme.palette.surface.containerHigh, '#1A3A5C', '#1565C0', '#2E7D32', '#F9A825'].map((color) => (
                 <Box
                   key={color}
                   sx={{

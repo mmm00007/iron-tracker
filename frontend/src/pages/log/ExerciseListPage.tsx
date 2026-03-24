@@ -139,7 +139,7 @@ function EmptyState({ onSearchFocus }: { onSearchFocus: () => void }) {
   );
 }
 
-function NoSearchResults({ query, onCreateCustom }: { query: string; onCreateCustom?: () => void }) {
+function NoSearchResults({ query }: { query: string }) {
   return (
     <Box
       sx={{
@@ -155,9 +155,6 @@ function NoSearchResults({ query, onCreateCustom }: { query: string; onCreateCus
       <Typography variant="body1" sx={{ color: 'text.secondary' }}>
         No exercises found for <strong style={{ color: '#E6E1E5' }}>"{query}"</strong>
       </Typography>
-      <Button variant="outlined" size="small" onClick={onCreateCustom} sx={{ mt: 0.5 }}>
-        Create custom exercise
-      </Button>
     </Box>
   );
 }
@@ -228,7 +225,7 @@ export function ExerciseListPage() {
         position="sticky"
         elevation={0}
         sx={{
-          backgroundColor: '#1A1A2E',
+          backgroundColor: 'surface.container',
           borderBottom: '1px solid rgba(202, 196, 208, 0.08)',
         }}
       >

@@ -196,6 +196,9 @@ export const sessionDetailRoute = createRoute({
 export const statsRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
   path: '/stats',
+  validateSearch: (search: Record<string, unknown>) => ({
+    period: typeof search.period === 'string' ? search.period : undefined,
+  }),
   component: () => (
     <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
       <StatsPage />
@@ -243,7 +246,7 @@ const routeTree = rootRoute.addChildren([
   ]),
 ]);
 
-export const router = createRouter({ routeTree });
+export const router = createRouter({ routeTree, scrollRestoration: true });
 
 // Register router for type safety
 declare module '@tanstack/react-router' {

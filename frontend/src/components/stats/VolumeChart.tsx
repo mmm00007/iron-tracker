@@ -45,7 +45,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   return (
     <Box
       sx={{
-        backgroundColor: '#2A2A3E',
+        backgroundColor: 'surface.containerHigh',
         border: '1px solid rgba(202, 196, 208, 0.2)',
         borderRadius: '8px',
         p: 1.5,
