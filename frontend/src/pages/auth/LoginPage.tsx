@@ -118,7 +118,7 @@ export function LoginPage() {
           <Box sx={{ textAlign: 'right', mt: 0.5, mb: 2 }}>
             <RouterLink
               to="/forgot-password"
-              style={{ color: 'inherit', fontSize: '0.875rem' }}
+              style={{ color: 'inherit', fontSize: '0.875rem', textDecoration: 'underline' }}
             >
               Forgot password?
             </RouterLink>

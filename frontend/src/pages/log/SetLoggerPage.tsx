@@ -63,13 +63,15 @@ interface StepperBtnProps {
   label: string;
   onClick: () => void;
   secondary?: boolean;
+  disabled?: boolean;
 }
 
-function StepperBtn({ label, onClick, secondary = false }: StepperBtnProps) {
+function StepperBtn({ label, onClick, secondary = false, disabled = false }: StepperBtnProps) {
   return (
     <Button
       variant="outlined"
       onClick={onClick}
+      disabled={disabled}
       sx={{
         minWidth: 52,
         height: 44,
@@ -81,11 +83,19 @@ function StepperBtn({ label, onClick, secondary = false }: StepperBtnProps) {
           ? 'rgba(202, 196, 208, 0.2)'
           : 'rgba(168, 199, 250, 0.3)',
         color: secondary ? 'text.secondary' : 'primary.main',
+        transition: 'transform 0.1s ease',
         '&:hover': {
           borderColor: secondary ? 'rgba(202, 196, 208, 0.4)' : 'primary.main',
           backgroundColor: secondary
             ? 'rgba(202, 196, 208, 0.06)'
             : 'rgba(168, 199, 250, 0.08)',
+        },
+        '&:active': {
+          transform: 'scale(0.95)',
+          backgroundColor: 'rgba(168, 199, 250, 0.15)',
+        },
+        '&.Mui-disabled': {
+          opacity: 0.3,
         },
       }}
     >
@@ -462,8 +472,8 @@ export function SetLoggerPage() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {/* Left steppers */}
               <Box sx={{ display: 'flex', gap: 0.5 }}>
-                <StepperBtn label="-5" onClick={() => setWeight(currentWeight - 5)} secondary />
-                <StepperBtn label="-2.5" onClick={() => setWeight(currentWeight - 2.5)} />
+                <StepperBtn label="-5" onClick={() => setWeight(currentWeight - 5)} secondary disabled={currentWeight < 5} />
+                <StepperBtn label="-2.5" onClick={() => setWeight(currentWeight - 2.5)} disabled={currentWeight <= 0} />
               </Box>
 
               {/* Weight display */}
@@ -537,6 +547,7 @@ export function SetLoggerPage() {
                 <Button
                   variant="outlined"
                   onClick={() => setReps(currentReps - 1)}
+                  disabled={currentReps <= 0}
                   sx={{
                     minWidth: 52,
                     height: 52,
@@ -544,6 +555,9 @@ export function SetLoggerPage() {
                     fontSize: '1.5rem',
                     borderColor: 'rgba(168, 199, 250, 0.3)',
                     color: 'primary.main',
+                    '&.Mui-disabled': {
+                      opacity: 0.3,
+                    },
                   }}
                 >
                   <RemoveIcon />

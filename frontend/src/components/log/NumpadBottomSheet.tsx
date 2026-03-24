@@ -61,7 +61,8 @@ export function NumpadBottomSheet({
   };
 
   const handleQuickSelect = (value: number) => {
-    setDisplay(String(value));
+    onApply(value);
+    onClose();
   };
 
   const numpadRows = [

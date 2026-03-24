@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -87,9 +87,7 @@ function LoadingSkeleton() {
   );
 }
 
-function EmptyState() {
-  const navigate = useNavigate();
-
+function EmptyState({ onSearchFocus }: { onSearchFocus: () => void }) {
   return (
     <Box
       sx={{
@@ -132,10 +130,10 @@ function EmptyState() {
 
       <Button
         variant="contained"
-        onClick={() => void navigate({ to: '/log' })}
+        onClick={onSearchFocus}
         sx={{ mt: 1 }}
       >
-        Browse All Exercises
+        Search Exercises
       </Button>
     </Box>
   );
@@ -166,6 +164,7 @@ function NoSearchResults({ query, onCreateCustom }: { query: string; onCreateCus
 
 export function ExerciseListPage() {
   const navigate = useNavigate();
+  const searchRef = useRef<HTMLInputElement>(null);
   const [searchInput, setSearchInput] = useState('');
   const debouncedSearch = useDebounce(searchInput, 200);
   const isSearching = debouncedSearch.trim().length > 0;
@@ -177,6 +176,19 @@ export function ExerciseListPage() {
 
   const isLoading =
     exercisesQuery.isLoading || recentQuery.isLoading || muscleGroupsQuery.isLoading;
+
+  // Build a lookup map from recentQuery data: exercise ID → formatted last logged label
+  const lastLoggedMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const exercise of recentQuery.data ?? []) {
+      if (exercise.lastLoggedAt) {
+        const date = new Date(exercise.lastLoggedAt);
+        const label = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        map.set(exercise.id, `Last logged ${label}`);
+      }
+    }
+    return map;
+  }, [recentQuery.data]);
 
   // Group exercises by muscle group
   // Since we don't have per-exercise muscle group in the base exercise, we group by category
@@ -248,14 +260,14 @@ export function ExerciseListPage() {
 
       {/* Search Bar */}
       <Box sx={{ px: 2, pt: 2, pb: 1 }}>
-        <ExerciseSearch value={searchInput} onChange={setSearchInput} />
+        <ExerciseSearch value={searchInput} onChange={setSearchInput} inputRef={searchRef} />
       </Box>
 
       {/* Content */}
       {isLoading ? (
         <LoadingSkeleton />
       ) : isFirstTimeUser ? (
-        <EmptyState />
+        <EmptyState onSearchFocus={() => searchRef.current?.focus()} />
       ) : isSearching ? (
         /* Search Results */
         <Box sx={{ px: 1 }}>
@@ -281,7 +293,7 @@ export function ExerciseListPage() {
                     ...exercise,
                     name: exercise.name,
                   }}
-                  lastLoggedInfo={undefined}
+                  lastLoggedInfo={lastLoggedMap.get(exercise.id)}
                 />
               ))}
             </List>
@@ -392,7 +404,11 @@ export function ExerciseListPage() {
               <Box sx={{ px: 1 }}>
                 <List dense disablePadding>
                   {exercisesQuery.data?.map((exercise) => (
-                    <ExerciseListItem key={exercise.id} exercise={exercise} />
+                    <ExerciseListItem
+                      key={exercise.id}
+                      exercise={exercise}
+                      lastLoggedInfo={lastLoggedMap.get(exercise.id)}
+                    />
                   ))}
                 </List>
               </Box>

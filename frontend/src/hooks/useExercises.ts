@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { Exercise, MuscleGroup } from '@/types/database';
-import { useDebounce } from './useDebounce';
 
 export interface ExerciseWithLastSet extends Exercise {
   lastWeight?: number;
@@ -44,24 +43,22 @@ export function useExercisesByMuscle(muscleGroupId: number) {
 }
 
 export function useExerciseSearch(query: string) {
-  const debouncedQuery = useDebounce(query, 200);
-
   return useQuery<Exercise[]>({
-    queryKey: ['exercises', 'search', debouncedQuery],
+    queryKey: ['exercises', 'search', query],
     queryFn: async () => {
-      if (!debouncedQuery.trim()) return [];
+      if (!query.trim()) return [];
 
       const { data, error } = await supabase
         .from('exercises')
         .select('*')
-        .ilike('name', `%${debouncedQuery.trim()}%`)
+        .ilike('name', `%${query.trim()}%`)
         .order('name', { ascending: true })
         .limit(50);
 
       if (error) throw error;
       return data ?? [];
     },
-    enabled: debouncedQuery.trim().length > 0,
+    enabled: query.trim().length > 0,
     staleTime: 2 * 60 * 1000,
   });
 }
