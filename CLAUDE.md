@@ -122,6 +122,8 @@ All agents live in `.claude/agents/`. Use the right specialist for the task at h
 | `frontend-specialist` | sonnet | React components, state management, Supabase client |
 | `ux-ui-specialist` | opus | User flows, interaction design, accessibility, visual consistency |
 | `fitness-domain-expert` | opus | Exercise science, anatomy, nutrition, training algorithms |
+| `sports-medicine-expert` | opus | Injury prevention, recovery protocols, contraindications, safety guardrails |
+| `data-science-expert` | opus | Metrics design, trend detection, statistical models, visualization strategy |
 | `qa-reviewer` | opus | Code review, bug detection, test coverage, conventions |
 | `security-specialist` | opus | Auth audit, RLS review, threat modeling, OWASP compliance |
 | `deployment-specialist` | sonnet | CI/CD, cloud services, env vars, production ops |
@@ -131,6 +133,8 @@ All agents live in `.claude/agents/`. Use the right specialist for the task at h
 - **Architecture decisions** → `software-architect` first, then specialists implement
 - **New feature** → `software-architect` for design, then `frontend-specialist` / `backend-specialist` / `database-specialist` for implementation
 - **Domain logic** (exercises, 1RM, deload, volume) → `fitness-domain-expert` before implementing
+- **Safety & recovery** (soreness thresholds, injury flags, contraindications) → `sports-medicine-expert` before implementing
+- **Analytics & metrics** (trend algorithms, normalization, chart design, statistical validity) → `data-science-expert` before implementing
 - **UI changes** → `ux-ui-specialist` for design review
 - **Before merging** → `qa-reviewer` for code review
 - **Security concerns** → `security-specialist` for audit
