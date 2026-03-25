@@ -217,6 +217,10 @@ class AdvancedAnalyticsDashboard(BaseModel):
     exercise_variety: "ExerciseVarietyResponse | None" = None
     performance_forecast: "PerformanceForecastResponse | None" = None
     fitness_fatigue: "FitnessFatigueResponse | None" = None
+    composite_score: "CompositeScoreResponse | None" = None
+    muscle_frequency: "MuscleFrequencyResponse | None" = None
+    staleness: "StalenessResponse | None" = None
+    load_distribution: "LoadDistributionResponse | None" = None
 
 
 # ─── ACWR Models ─────────────────────────────────────────────────────────────
@@ -378,3 +382,114 @@ class FitnessFatigueResponse(BaseModel):
     timeline: list[FitnessFatigueTimePoint]
     peak_preparedness_date: str | None
     disclaimer: str = ""
+
+
+# ─── Composite Training Score ────────────────────────────────────────────────
+
+
+class ScoreDimension(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    name: str
+    score: int
+    label: str
+    weight: float
+    detail: str
+
+
+class CompositeScoreResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    score: int
+    label: str
+    dimensions: list[ScoreDimension]
+    available_dimensions: int
+    period_days: int
+
+
+# ─── Muscle Frequency Optimization ──────────────────────────────────────────
+
+
+class MuscleFrequencyEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    muscle_group: str
+    actual_frequency: float
+    min_optimal: float
+    max_optimal: float
+    status: str
+    recommendation: str
+    sessions_in_period: int
+
+
+class MuscleFrequencyResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    muscles: list[MuscleFrequencyEntry]
+    undertrained_count: int
+    overtrained_count: int
+    optimal_count: int
+    overall_status: str
+    period_weeks: int
+
+
+# ─── Workout Staleness Detection ────────────────────────────────────────────
+
+
+class WorkoutSimilarityEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    date_a: str
+    date_b: str
+    similarity: float
+    shared_exercises: list[str]
+    exercises_a: int
+    exercises_b: int
+
+
+class StalenessResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    staleness_index: float
+    staleness_label: str
+    avg_similarity: float
+    workout_comparisons: list[WorkoutSimilarityEntry]
+    unique_exercises: int
+    total_workouts: int
+    recommendation: str
+    period_weeks: int
+
+
+# ─── Training Load Distribution ─────────────────────────────────────────────
+
+
+class DayLoadEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    day_of_week: int
+    day_name: str
+    avg_volume: float
+    session_count: int
+
+
+class WeekDistributionEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    week_start: str
+    total_volume: float
+    training_days: int
+    cv: float
+    max_day_percentage: float
+
+
+class LoadDistributionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    day_averages: list[DayLoadEntry]
+    week_breakdown: list[WeekDistributionEntry]
+    distribution_cv: float | None
+    distribution_label: str
+    flags: list[str]
+    busiest_day: str | None
+    lightest_day: str | None
+    period_weeks: int

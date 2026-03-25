@@ -48,6 +48,7 @@ TODAY = date.today()
 def mock_db_pool() -> MagicMock:
     pool = MagicMock()
     conn = AsyncMock()
+    conn.fetchrow.return_value = None  # Default: no profile data
     ctx = AsyncMock()
     ctx.__aenter__ = AsyncMock(return_value=conn)
     ctx.__aexit__ = AsyncMock(return_value=False)
