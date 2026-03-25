@@ -390,7 +390,7 @@ async def test_session_quality_with_data(mock_db_pool: MagicMock) -> None:
             "reps": 5,
             "estimated_1rm": 100,
         },
-        {"set_type": "top", "rpe": 9.0, "rir": 1.0, "weight": 90, "reps": 3, "estimated_1rm": 100},
+        {"set_type": "amrap", "rpe": 9.0, "rir": 1.0, "weight": 90, "reps": 3, "estimated_1rm": 100},
         {
             "set_type": "working",
             "rpe": 4.0,
@@ -404,8 +404,8 @@ async def test_session_quality_with_data(mock_db_pool: MagicMock) -> None:
     result = await compute_session_quality(FAKE_USER_ID, mock_db_pool, period_days=7)
 
     assert result.avg_rpe is not None
-    assert result.effective_sets == 3  # RPE >= 7: working 7.5, working 8, top 9
-    assert result.total_working_sets == 4  # 3 working + 1 top
+    assert result.effective_sets == 3  # RPE >= 7: working 7.5, working 8, amrap 9
+    assert result.total_working_sets == 4  # 3 working + 1 amrap
     assert result.low_stimulus_sets == 0  # RPE 4 is above the <4 threshold
     assert result.relative_intensity is not None
     assert len(result.set_distribution) > 0

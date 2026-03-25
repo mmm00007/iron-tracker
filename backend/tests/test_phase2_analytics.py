@@ -122,6 +122,7 @@ async def test_strength_standards_no_profile(mock_db_pool: MagicMock) -> None:
 
 async def test_composite_score_empty(mock_db_pool: MagicMock) -> None:
     mock_db_pool._conn.fetch.return_value = []
+    mock_db_pool._conn.fetchrow.return_value = None
     result = await compute_composite_score(FAKE_USER_ID, mock_db_pool)
 
     assert result.score == 0
@@ -160,7 +161,7 @@ async def test_composite_score_with_data(mock_db_pool: MagicMock) -> None:
     quality_data = [
         {"rpe": 7.5, "set_type": "working"},
         {"rpe": 8.0, "set_type": "working"},
-        {"rpe": 8.5, "set_type": "top"},
+        {"rpe": 8.5, "set_type": "amrap"},
     ]
 
     mock_db_pool._conn.fetch.side_effect = [

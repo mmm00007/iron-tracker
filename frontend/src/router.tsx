@@ -1,5 +1,6 @@
+import { lazy, Suspense } from 'react';
 import { createRootRoute, createRoute, createRouter, Outlet, useNavigate } from '@tanstack/react-router';
-import { Box, Button, Typography } from '@mui/material';
+import { Box, Button, CircularProgress, Typography } from '@mui/material';
 import * as Sentry from '@sentry/react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { AuthGuard } from '@/pages/auth/AuthGuard';
@@ -14,14 +15,24 @@ import { HistoryPage } from '@/pages/history/HistoryPage';
 import { SessionDetailPage } from '@/pages/history/SessionDetailPage';
 import { StatsPage } from '@/pages/stats/StatsPage';
 import { ExerciseStatsPage } from '@/pages/stats/ExerciseStatsPage';
-import { MachineIdentifyPage } from '@/pages/log/MachineIdentifyPage';
-import { OnboardingPage } from '@/pages/onboarding/OnboardingPage';
 import { HomePage } from '@/pages/home/HomePage';
-import { PlansPage } from '@/pages/plans/PlansPage';
-import { AnalysisPage } from '@/pages/analysis/AnalysisPage';
-import { PRBoardPage } from '@/pages/stats/PRBoardPage';
-import { DiagnosticsPage } from '@/pages/diagnostics/DiagnosticsPage';
-import { LibraryPage } from '@/pages/library/LibraryPage';
+
+// Lazy-loaded pages — infrequently visited, heavy, or behind specific user flows
+const MachineIdentifyPage = lazy(() => import('@/pages/log/MachineIdentifyPage').then(m => ({ default: m.MachineIdentifyPage })));
+const OnboardingPage = lazy(() => import('@/pages/onboarding/OnboardingPage').then(m => ({ default: m.OnboardingPage })));
+const PlansPage = lazy(() => import('@/pages/plans/PlansPage').then(m => ({ default: m.PlansPage })));
+const AnalysisPage = lazy(() => import('@/pages/analysis/AnalysisPage').then(m => ({ default: m.AnalysisPage })));
+const PRBoardPage = lazy(() => import('@/pages/stats/PRBoardPage').then(m => ({ default: m.PRBoardPage })));
+const DiagnosticsPage = lazy(() => import('@/pages/diagnostics/DiagnosticsPage').then(m => ({ default: m.DiagnosticsPage })));
+const LibraryPage = lazy(() => import('@/pages/library/LibraryPage').then(m => ({ default: m.LibraryPage })));
+
+function LazyFallback() {
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '40vh' }}>
+      <CircularProgress size={32} />
+    </Box>
+  );
+}
 
 function PageErrorFallback() {
   const navigate = useNavigate();
@@ -122,7 +133,11 @@ export const forgotPasswordRoute = createRoute({
 export const onboardingRoute = createRoute({
   getParentRoute: () => authLayoutRoute,
   path: '/onboarding',
-  component: OnboardingPage,
+  component: () => (
+    <Suspense fallback={<LazyFallback />}>
+      <OnboardingPage />
+    </Suspense>
+  ),
 });
 
 // --- Protected app routes ---
@@ -168,7 +183,11 @@ export const setLoggerRoute = createRoute({
 export const machineIdentifyRoute = createRoute({
   getParentRoute: () => protectedLayoutRoute,
   path: '/log/identify',
-  component: MachineIdentifyPage,
+  component: () => (
+    <Suspense fallback={<LazyFallback />}>
+      <MachineIdentifyPage />
+    </Suspense>
+  ),
 });
 
 // /log/:exerciseId/variants — variant manager
@@ -184,7 +203,9 @@ export const libraryRoute = createRoute({
   path: '/library',
   component: () => (
     <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
-      <LibraryPage />
+      <Suspense fallback={<LazyFallback />}>
+        <LibraryPage />
+      </Suspense>
     </Sentry.ErrorBoundary>
   ),
 });
@@ -231,7 +252,9 @@ export const prBoardRoute = createRoute({
   path: '/stats/prs',
   component: () => (
     <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
-      <PRBoardPage />
+      <Suspense fallback={<LazyFallback />}>
+        <PRBoardPage />
+      </Suspense>
     </Sentry.ErrorBoundary>
   ),
 });
@@ -253,7 +276,9 @@ export const analysisRoute = createRoute({
   path: '/analysis',
   component: () => (
     <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
-      <AnalysisPage />
+      <Suspense fallback={<LazyFallback />}>
+        <AnalysisPage />
+      </Suspense>
     </Sentry.ErrorBoundary>
   ),
 });
@@ -264,7 +289,9 @@ export const plansRoute = createRoute({
   path: '/plans',
   component: () => (
     <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
-      <PlansPage />
+      <Suspense fallback={<LazyFallback />}>
+        <PlansPage />
+      </Suspense>
     </Sentry.ErrorBoundary>
   ),
 });
@@ -275,7 +302,9 @@ export const diagnosticsRoute = createRoute({
   path: '/diagnostics',
   component: () => (
     <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
-      <DiagnosticsPage />
+      <Suspense fallback={<LazyFallback />}>
+        <DiagnosticsPage />
+      </Suspense>
     </Sentry.ErrorBoundary>
   ),
 });

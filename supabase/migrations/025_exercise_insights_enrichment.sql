@@ -70,42 +70,56 @@ ALTER TABLE profiles
 COMMENT ON COLUMN profiles.current_body_weight_kg IS
   'Denormalized from latest body_weight_log entry (in kg). Auto-synced via trigger.';
 
--- Trigger function to sync current_body_weight_kg from body_weight_log
+-- Trigger function to sync current_body_weight_kg from body_weight_log.
+-- Handles INSERT, UPDATE, and DELETE to keep the cache consistent.
 CREATE OR REPLACE FUNCTION sync_profile_body_weight()
 RETURNS TRIGGER AS $$
 DECLARE
-  v_weight_kg numeric;
+  v_target_user_id uuid;
+  v_latest record;
 BEGIN
-  -- Convert to kg if stored in lb
-  IF NEW.weight_unit = 'lb' THEN
-    v_weight_kg := NEW.weight * 0.453592;
+  -- Determine which user to update
+  IF TG_OP = 'DELETE' THEN
+    v_target_user_id := OLD.user_id;
   ELSE
-    v_weight_kg := NEW.weight;
+    v_target_user_id := NEW.user_id;
   END IF;
 
-  -- Only update if this is the latest entry for the user
-  IF NOT EXISTS (
-    SELECT 1 FROM body_weight_log
-    WHERE user_id = NEW.user_id
-      AND logged_at > NEW.logged_at
-      AND id != NEW.id
-  ) THEN
+  -- Find the latest body_weight_log entry for this user
+  SELECT weight, weight_unit INTO v_latest
+  FROM body_weight_log
+  WHERE user_id = v_target_user_id
+  ORDER BY logged_at DESC
+  LIMIT 1;
+
+  IF v_latest IS NOT NULL THEN
     UPDATE profiles
-    SET current_body_weight_kg = v_weight_kg
-    WHERE id = NEW.user_id;
+    SET current_body_weight_kg = CASE
+      WHEN v_latest.weight_unit = 'lb' THEN v_latest.weight * 0.453592
+      ELSE v_latest.weight
+    END
+    WHERE id = v_target_user_id;
+  ELSE
+    -- No weight entries remain; clear the cache
+    UPDATE profiles
+    SET current_body_weight_kg = NULL
+    WHERE id = v_target_user_id;
   END IF;
 
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE TRIGGER body_weight_log_sync_profile
-  AFTER INSERT ON body_weight_log
+  AFTER INSERT OR UPDATE OR DELETE ON body_weight_log
   FOR EACH ROW
   EXECUTE FUNCTION sync_profile_body_weight();
 
 COMMENT ON FUNCTION sync_profile_body_weight IS
-  'Syncs profiles.current_body_weight_kg from the latest body_weight_log entry. Converts lb→kg.';
+  'Syncs profiles.current_body_weight_kg from the latest body_weight_log entry. Handles INSERT/UPDATE/DELETE.';
 
 
 -- =============================================================================
@@ -210,7 +224,7 @@ CREATE POLICY body_measurements_delete ON body_measurements
 -- Values are absolute 1RM in kg, calibrated for reference body weights
 -- (80kg male / 60kg female). The application layer scales by user BW ratio.
 CREATE TABLE IF NOT EXISTS strength_standards (
-  id              serial      PRIMARY KEY,
+  id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   exercise_name   text        NOT NULL,
   sex             text        NOT NULL CHECK (sex IN ('male', 'female')),
   reference_bw_kg numeric     NOT NULL CHECK (reference_bw_kg > 0),
@@ -259,8 +273,20 @@ CREATE POLICY strength_standards_select ON strength_standards
 -- =============================================================================
 
 -- Add 'mesocycle' and 'custom' grouping options for richer AI analysis scoping.
-ALTER TABLE recommendation_scopes
-  DROP CONSTRAINT IF EXISTS recommendation_scopes_grouping_check;
+-- Must dynamically find the auto-generated constraint name since migration 019
+-- used an inline CHECK (no explicit name).
+DO $$ DECLARE v_conname text;
+BEGIN
+  SELECT conname INTO v_conname FROM pg_constraint
+  WHERE conrelid = 'recommendation_scopes'::regclass
+    AND contype = 'c'
+    AND pg_get_constraintdef(oid) LIKE '%training_day%'
+    AND pg_get_constraintdef(oid) LIKE '%grouping%';
+  IF v_conname IS NOT NULL THEN
+    EXECUTE 'ALTER TABLE recommendation_scopes DROP CONSTRAINT ' || quote_ident(v_conname);
+  END IF;
+END $$;
+
 ALTER TABLE recommendation_scopes
   ADD CONSTRAINT recommendation_scopes_grouping_check CHECK (
     grouping IN ('training_day', 'session', 'week', 'cluster', 'mesocycle', 'custom')

@@ -73,7 +73,7 @@ async def compute_session_quality(
     ]
 
     # RPE/RIR averages (working sets only)
-    working_types = {"working", "top", "drop", "backoff", "failure"}
+    working_types = {"working", "amrap", "dropset", "backoff", "failure"}
     working_rpes: list[float] = []
     working_rirs: list[float] = []
     for row in rows:

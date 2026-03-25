@@ -58,7 +58,9 @@ function AppProviders() {
         buster: '', // bump this string to invalidate the persisted cache on deploys
       }}
       onSuccess={() => {
-        console.log('[iron-tracker] Query cache restored from IndexedDB');
+        if (import.meta.env.DEV) {
+          console.log('[iron-tracker] Query cache restored from IndexedDB');
+        }
       }}
     >
       <RouterProvider router={router} />

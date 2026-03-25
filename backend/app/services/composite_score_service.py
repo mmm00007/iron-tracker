@@ -5,18 +5,22 @@ similar to a credit score for training. Helps users quickly assess whether
 their overall training program is on track.
 
 Dimensions (weighted):
-  Consistency (20%) — Are you showing up regularly?
-  Progressive Overload (20%) — Are you getting stronger?
-  Volume Adequacy (15%) — Are you doing enough work per muscle?
-  Recovery Management (15%) — Are you recovering between sessions?
-  Training Balance (15%) — Is your program well-rounded?
-  Session Quality (15%) — Is your effort level appropriate?
+  Consistency (15%) — Are you showing up regularly?
+  Progressive Overload (15%) — Are you getting stronger?
+  Volume Adequacy (12%) — Are you doing enough work per muscle?
+  Recovery Management (12%) — Are you recovering between sessions?
+  Training Balance (10%) — Is your program well-rounded?
+  Session Quality (10%) — Is your effort level appropriate?
+  Nutrition Compliance (10%) — Are you hitting protein targets?
+  Training Readiness (8%) — Are you well-rested before sessions?
+  Plan Adherence (8%) — Are you following the prescribed program?
 
 Each dimension scores 0-100, then the weighted average produces the composite.
 Cold-start: dimensions with insufficient data are excluded from the average
 (their weight is redistributed proportionally to available dimensions).
 """
 
+import math
 from datetime import UTC, datetime, timedelta
 
 import asyncpg
@@ -28,12 +32,15 @@ from app.models.schemas import (
 
 # Dimension weights (must sum to 1.0)
 _WEIGHTS = {
-    "consistency": 0.20,
-    "progressive_overload": 0.20,
-    "volume_adequacy": 0.15,
-    "recovery": 0.15,
-    "balance": 0.15,
-    "session_quality": 0.15,
+    "consistency": 0.15,
+    "progressive_overload": 0.15,
+    "volume_adequacy": 0.12,
+    "recovery": 0.12,
+    "balance": 0.10,
+    "session_quality": 0.10,
+    "nutrition_compliance": 0.10,
+    "training_readiness": 0.08,
+    "plan_adherence": 0.08,
 }
 
 
@@ -134,7 +141,50 @@ async def compute_composite_score(
             FROM sets
             WHERE user_id = $1
               AND logged_at >= $2
-              AND set_type IN ('working', 'top')
+              AND set_type IN ('working', 'amrap', 'failure')
+            """,
+            user_id,
+            since,
+        )
+
+        # 6. Nutrition compliance: protein adequacy
+        bw_row = await conn.fetchrow(
+            "SELECT current_body_weight_kg FROM profiles WHERE id = $1",
+            user_id,
+        )
+        bw_kg = float(bw_row["current_body_weight_kg"]) if bw_row and bw_row["current_body_weight_kg"] else None
+
+        nutrition_row = await conn.fetchrow(
+            """
+            SELECT COUNT(*) FILTER (WHERE protein_g / NULLIF($3::numeric, 0) >= 1.6) AS adequate_days,
+                   COUNT(*) AS total_days
+            FROM nutrition_logs
+            WHERE user_id = $1 AND logged_date >= $2
+            """,
+            user_id,
+            since,
+            bw_kg,
+        ) if bw_kg else None
+
+        # 7. Training readiness: sleep quality from latest workout feedback
+        readiness_row = await conn.fetchrow(
+            """
+            SELECT prior_sleep_quality, sleep_hours
+            FROM workout_feedback
+            WHERE user_id = $1
+            ORDER BY training_date DESC
+            LIMIT 1
+            """,
+            user_id,
+        )
+
+        # 8. Plan adherence: average adherence ratio
+        adherence_row = await conn.fetchrow(
+            """
+            SELECT AVG(adherence_ratio)::float AS avg_adherence,
+                   COUNT(*) AS total_records
+            FROM plan_adherence_log
+            WHERE user_id = $1 AND training_date >= $2
             """,
             user_id,
             since,
@@ -240,7 +290,6 @@ async def compute_composite_score(
 
     # ── Balance (0-100) ──────────────────────────────────────────────────
     if muscle_rows and len(set(r["muscle_group"] for r in muscle_rows)) >= 3:
-        import math
         volumes = list(muscle_sets.values())
         total_vol = sum(volumes)
         if total_vol > 0:
@@ -279,6 +328,46 @@ async def compute_composite_score(
                 weight=_WEIGHTS["session_quality"],
                 detail=f"Avg working RPE: {avg_rpe:.1f}",
             ))
+
+    # ── Nutrition Compliance (0-100) ───────────────────────────────────
+    if nutrition_row and int(nutrition_row["total_days"]) >= 7:
+        adequate = int(nutrition_row["adequate_days"])
+        total = int(nutrition_row["total_days"])
+        nutrition_score = round(adequate / total * 100)
+        dimensions.append(ScoreDimension(
+            name="nutrition_compliance",
+            score=nutrition_score,
+            label=_label(nutrition_score),
+            weight=_WEIGHTS["nutrition_compliance"],
+            detail=f"{adequate}/{total} days protein >= 1.6g/kg",
+        ))
+
+    # ── Training Readiness (0-100) ─────────────────────────────────────
+    if readiness_row and readiness_row["prior_sleep_quality"] is not None:
+        quality = float(readiness_row["prior_sleep_quality"])
+        hours = float(readiness_row["sleep_hours"]) if readiness_row["sleep_hours"] else 0.0
+        readiness_score = round((quality / 5 * 0.5 + min(hours, 9) / 9 * 0.5) * 100)
+        readiness_score = min(100, max(0, readiness_score))
+        dimensions.append(ScoreDimension(
+            name="training_readiness",
+            score=readiness_score,
+            label=_label(readiness_score),
+            weight=_WEIGHTS["training_readiness"],
+            detail=f"Sleep: {hours:.1f}h, quality {quality:.0f}/5",
+        ))
+
+    # ── Plan Adherence (0-100) ─────────────────────────────────────────
+    if adherence_row and adherence_row["avg_adherence"] is not None and int(adherence_row["total_records"]) >= 5:
+        avg_adherence = float(adherence_row["avg_adherence"])
+        adherence_score = round(avg_adherence * 100)
+        adherence_score = min(100, max(0, adherence_score))
+        dimensions.append(ScoreDimension(
+            name="plan_adherence",
+            score=adherence_score,
+            label=_label(adherence_score),
+            weight=_WEIGHTS["plan_adherence"],
+            detail=f"Avg adherence: {avg_adherence:.0%}",
+        ))
 
     # ── Compute Weighted Composite ──────────────────────────────────────
     if not dimensions:

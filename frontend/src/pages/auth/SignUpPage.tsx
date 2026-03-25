@@ -198,7 +198,7 @@ export function SignUpPage() {
         <Box sx={{ textAlign: 'center', mt: 3 }}>
           <Typography variant="body2" color="text.secondary">
             Already have an account?{' '}
-            <RouterLink to="/login" style={{ color: '#A8C7FA' }}>
+            <RouterLink to="/login" style={{ color: 'var(--mui-palette-primary-light, #A8C7FA)' }}>
               Sign in
             </RouterLink>
           </Typography>

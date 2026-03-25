@@ -159,10 +159,10 @@ export function SetLoggerPage() {
     staleTime: 10 * 60 * 1000,
   });
 
-  const variantsQuery = useVariants(exerciseId);
-  const todaySetsQuery = useTodaySets(exerciseId);
-  const lastSetQuery = useLastSet(exerciseId, selectedVariantId);
   const profileQuery = useProfile();
+  const variantsQuery = useVariants(exerciseId);
+  const todaySetsQuery = useTodaySets(exerciseId, profileQuery.data?.day_start_hour);
+  const lastSetQuery = useLastSet(exerciseId, selectedVariantId);
 
   const logSetMutation = useLogSet();
   const deleteSetMutation = useDeleteSet();

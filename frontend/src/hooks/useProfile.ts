@@ -21,6 +21,10 @@ const DEFAULT_PROFILE: Omit<Profile, 'id' | 'created_at' | 'updated_at'> = {
   sleep_window_end: null,
   workout_window_start: null,
   workout_window_end: null,
+  current_body_weight_kg: null,
+  calorie_target: null,
+  protein_target_g: null,
+  protein_target_g_per_kg: null,
 };
 
 export function useProfile() {

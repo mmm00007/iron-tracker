@@ -137,7 +137,7 @@ function NoSearchResults({ query }: { query: string }) {
       }}
     >
       <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-        No exercises found for <strong style={{ color: '#E6E1E5' }}>"{query}"</strong>
+        No exercises found for <strong>"{query}"</strong>
       </Typography>
     </Box>
   );

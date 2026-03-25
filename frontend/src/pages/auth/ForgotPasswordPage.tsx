@@ -118,7 +118,7 @@ export function ForgotPasswordPage() {
               <RouterLink
                 to="/login"
                 style={{
-                  color: '#A8C7FA',
+                  color: 'var(--mui-palette-primary-light, #A8C7FA)',
                   fontSize: '0.875rem',
                   display: 'inline-flex',
                   alignItems: 'center',

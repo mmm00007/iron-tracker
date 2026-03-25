@@ -155,16 +155,17 @@ def test_compute_1rm_endpoint(
         {"day": today, "weight": 90.0, "reps": 8},
     ]
 
+    exercise_uuid = "00000000-0000-4000-8000-000000000001"
     response = analytics_client.post(
         "/api/analytics/compute-1rm",
-        params={"exercise_id": "ex-bench-press"},
+        params={"exercise_id": exercise_uuid},
     )
 
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
     assert len(data) == 1  # Both on same day, only best kept
-    assert data[0]["exercise_id"] == "ex-bench-press"
+    assert data[0]["exercise_id"] == exercise_uuid
     assert data[0]["date"] == str(today)
     assert data[0]["estimated_1rm"] > 0
 

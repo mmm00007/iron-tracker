@@ -212,7 +212,7 @@ async def compute_strength_standards(
         # Try to get user profile for sex and bodyweight
         profile = await conn.fetchrow(
             """
-            SELECT sex, bodyweight
+            SELECT sex, current_body_weight_kg
             FROM profiles
             WHERE id = $1
             """,
@@ -224,7 +224,7 @@ async def compute_strength_standards(
     if profile:
         if profile.get("sex") in ("female", "f"):
             sex = "female"
-        bw = profile.get("bodyweight")
+        bw = profile.get("current_body_weight_kg")
         if bw and float(bw) > 0:
             bodyweight = float(bw)
 

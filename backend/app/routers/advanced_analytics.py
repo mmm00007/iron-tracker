@@ -5,6 +5,8 @@ computed server-side from the user's training history.
 """
 
 import asyncio
+import logging
+import time
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -13,38 +15,54 @@ from app.auth import get_current_user
 from app.models.schemas import (
     ACWRResponse,
     AdvancedAnalyticsDashboard,
+    AntagonistBalanceResponse,
     BilateralAsymmetryResponse,
     BodyCompositionResponse,
+    BodyMeasurementsResponse,
     BodyPartBalanceResponse,
     CompositeScoreResponse,
     ConsistencyResponse,
+    EquipmentEfficiencyResponse,
+    ExerciseProfileResponse,
     ExerciseVarietyResponse,
     FitnessFatigueResponse,
+    InjuryAwarenessResponse,
     LoadDistributionResponse,
+    MesocycleEffectivenessResponse,
+    MilestoneVelocityResponse,
     MuscleFrequencyResponse,
     MuscleWorkloadResponse,
+    NutritionPerformanceResponse,
     PerformanceForecastResponse,
     PeriodizationResponse,
+    PlanAdherenceResponse,
     ProgressiveOverloadResponse,
     RecoveryResponse,
     RelativeStrengthResponse,
     RestAnalysisResponse,
     SessionQualityResponse,
     SleepPerformanceResponse,
+    SorenessPatternsResponse,
     StalenessResponse,
     StrengthStandardsResponse,
+    SubstitutionPatternsResponse,
+    TempoAnalysisResponse,
     TimePerformanceResponse,
     TrainingDensityResponse,
+    TrainingReadinessResponse,
     VolumeLandmarksResponse,
 )
 from app.services.acwr_service import compute_acwr
+from app.services.antagonist_balance_service import compute_antagonist_balance
 from app.services.bilateral_asymmetry_service import compute_bilateral_asymmetry
 from app.services.body_composition_service import compute_body_composition
 from app.services.composite_score_service import compute_composite_score
 from app.services.consistency_service import compute_consistency
+from app.services.equipment_efficiency_service import compute_equipment_efficiency
 from app.services.exercise_variety_service import compute_exercise_variety
 from app.services.fitness_fatigue_service import compute_fitness_fatigue
 from app.services.load_distribution_service import compute_load_distribution
+from app.services.milestone_velocity_service import compute_milestone_velocity
 from app.services.muscle_frequency_service import compute_muscle_frequency
 from app.services.muscle_workload_service import compute_muscle_workload
 from app.services.performance_forecast_service import compute_performance_forecast
@@ -52,19 +70,50 @@ from app.services.periodization_service import (
     compute_body_part_balance,
     compute_periodization,
 )
+from app.services.plan_adherence_service import compute_plan_adherence
 from app.services.progressive_overload_service import compute_progressive_overload
 from app.services.recovery_service import compute_recovery
 from app.services.relative_strength_service import compute_relative_strength
 from app.services.rest_analysis_service import compute_rest_analysis
 from app.services.session_quality_service import compute_session_quality
 from app.services.sleep_performance_service import compute_sleep_performance
+from app.services.soreness_patterns_service import compute_soreness_patterns
 from app.services.staleness_service import compute_staleness
 from app.services.strength_standards_service import compute_strength_standards
+from app.services.tempo_analysis_service import compute_tempo_analysis
 from app.services.time_performance_service import compute_time_performance
 from app.services.training_density_service import compute_training_density
+from app.services.training_readiness_service import compute_training_readiness
 from app.services.volume_landmarks_service import compute_volume_landmarks
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/analytics/advanced", tags=["advanced-analytics"])
+
+# ─── Dashboard cache ─────────────────────────────────────────────────────────
+# In-memory TTL cache keyed by (user_id, period). Prevents pool exhaustion
+# when multiple requests hit the 31-query dashboard endpoint simultaneously.
+_DASHBOARD_CACHE_TTL = 300  # 5 minutes
+_dashboard_cache: dict[str, tuple[float, AdvancedAnalyticsDashboard]] = {}
+_dashboard_semaphore = asyncio.Semaphore(2)  # max 2 concurrent dashboard computations
+
+
+def _get_cached_dashboard(user_id: str, period: int) -> AdvancedAnalyticsDashboard | None:
+    key = f"{user_id}:{period}"
+    entry = _dashboard_cache.get(key)
+    if entry and (time.monotonic() - entry[0]) < _DASHBOARD_CACHE_TTL:
+        return entry[1]
+    return None
+
+
+def _set_cached_dashboard(user_id: str, period: int, data: AdvancedAnalyticsDashboard) -> None:
+    key = f"{user_id}:{period}"
+    _dashboard_cache[key] = (time.monotonic(), data)
+    # Evict stale entries to prevent unbounded growth
+    now = time.monotonic()
+    stale = [k for k, (t, _) in _dashboard_cache.items() if now - t > _DASHBOARD_CACHE_TTL * 2]
+    for k in stale:
+        del _dashboard_cache[k]
 
 
 def _get_db_pool(request: Request) -> asyncpg.Pool:
@@ -431,6 +480,113 @@ async def get_relative_strength(
     return await compute_relative_strength(user_id, db_pool, period_days=period)
 
 
+# ─── Wave 2: Untapped data analytics ────────────────────────────────────────
+
+
+@router.get("/plan-adherence", response_model=PlanAdherenceResponse)
+async def get_plan_adherence(
+    weeks: int = Query(default=12, ge=4, le=52, description="Lookback weeks"),
+    user_id: str = Depends(get_current_user),
+    db_pool: asyncpg.Pool = Depends(_get_db_pool),
+) -> PlanAdherenceResponse:
+    """Training plan adherence trend analysis.
+
+    Tracks planned vs completed sets over time, detects declining
+    adherence patterns, and flags burnout risk when combined with
+    high RPE (Steele et al. 2017, Meeusen et al. 2013).
+    """
+    return await compute_plan_adherence(user_id, db_pool, weeks=weeks)
+
+
+@router.get("/antagonist-balance", response_model=AntagonistBalanceResponse)
+async def get_antagonist_balance(
+    period: int = Query(default=28, ge=7, le=365, description="Period in days"),
+    user_id: str = Depends(get_current_user),
+    db_pool: asyncpg.Pool = Depends(_get_db_pool),
+) -> AntagonistBalanceResponse:
+    """Antagonist muscle pair volume balance analysis.
+
+    Computes activation-weighted volume ratios for antagonist pairs
+    (e.g., chest:lats, hamstrings:quads). Flags imbalances using
+    pair-specific thresholds (Kolber 2009, Hewett 2005).
+    """
+    return await compute_antagonist_balance(user_id, db_pool, period_days=period)
+
+
+@router.get("/tempo-analysis", response_model=TempoAnalysisResponse)
+async def get_tempo_analysis(
+    period: int = Query(default=28, ge=7, le=365, description="Period in days"),
+    user_id: str = Depends(get_current_user),
+    db_pool: asyncpg.Pool = Depends(_get_db_pool),
+) -> TempoAnalysisResponse:
+    """Tempo prescription and time-under-tension analysis.
+
+    Parses tempo strings (e.g., '3010') to compute TUT per set,
+    classifies into training zones (strength/hypertrophy/endurance),
+    and reports tempo logging coverage.
+    """
+    return await compute_tempo_analysis(user_id, db_pool, period_days=period)
+
+
+@router.get("/soreness-patterns", response_model=SorenessPatternsResponse)
+async def get_soreness_patterns(
+    period: int = Query(default=90, ge=7, le=365, description="Period in days"),
+    user_id: str = Depends(get_current_user),
+    db_pool: asyncpg.Pool = Depends(_get_db_pool),
+) -> SorenessPatternsResponse:
+    """Muscle soreness pattern analysis with red flag detection.
+
+    Tracks per-muscle soreness trends, lag analysis (DOMS timing),
+    volume-soreness correlation, and flags persistent severe soreness
+    (Cheung et al. 2003).
+    """
+    return await compute_soreness_patterns(user_id, db_pool, period_days=period)
+
+
+@router.get("/equipment-efficiency", response_model=EquipmentEfficiencyResponse)
+async def get_equipment_efficiency(
+    period: int = Query(default=90, ge=7, le=365, description="Period in days"),
+    user_id: str = Depends(get_current_user),
+    db_pool: asyncpg.Pool = Depends(_get_db_pool),
+) -> EquipmentEfficiencyResponse:
+    """Equipment variant performance comparison.
+
+    Compares e1RM progression rates across equipment variants for the
+    same exercises. Identifies which equipment produces the best results
+    for the individual user.
+    """
+    return await compute_equipment_efficiency(user_id, db_pool, period_days=period)
+
+
+@router.get("/milestone-velocity", response_model=MilestoneVelocityResponse)
+async def get_milestone_velocity(
+    period: int = Query(default=180, ge=30, le=730, description="Period in days"),
+    user_id: str = Depends(get_current_user),
+    db_pool: asyncpg.Pool = Depends(_get_db_pool),
+) -> MilestoneVelocityResponse:
+    """Training milestone frequency and velocity tracking.
+
+    Tracks how often milestones (PRs, achievements) are being hit,
+    average time between milestones, and whether milestone frequency
+    is accelerating or decelerating.
+    """
+    return await compute_milestone_velocity(user_id, db_pool, period_days=period)
+
+
+@router.get("/training-readiness", response_model=TrainingReadinessResponse)
+async def get_training_readiness(
+    user_id: str = Depends(get_current_user),
+    db_pool: asyncpg.Pool = Depends(_get_db_pool),
+) -> TrainingReadinessResponse:
+    """Composite pre-workout readiness score (0-100).
+
+    Combines sleep quality, soreness, recovery status, ACWR, and
+    fitness-fatigue preparedness into a single actionable readiness
+    score. Analogous to the Hooper Index (Hooper & Mackinnon 1995).
+    """
+    return await compute_training_readiness(user_id, db_pool)
+
+
 # ─── Aggregated dashboard ──────────���─────────────────────────────────────��──
 
 
@@ -440,102 +596,128 @@ async def get_dashboard(
     user_id: str = Depends(get_current_user),
     db_pool: asyncpg.Pool = Depends(_get_db_pool),
 ) -> AdvancedAnalyticsDashboard:
-    """Comprehensive analytics dashboard aggregating all 24 advanced metrics.
+    """Comprehensive analytics dashboard aggregating all 31 advanced metrics.
 
     Runs all analytics queries in parallel for optimal performance.
     Uses return_exceptions=True so one failing metric doesn't break the
     entire dashboard — failed metrics get empty defaults.
+    Results are cached for 5 minutes per user+period to prevent pool exhaustion.
     """
-    results = await asyncio.gather(
-        compute_muscle_workload(user_id, db_pool, period_days=period),
-        compute_progressive_overload(user_id, db_pool, weeks=max(period // 7, 3)),
-        compute_volume_landmarks(user_id, db_pool),
-        compute_recovery(user_id, db_pool),
-        compute_session_quality(user_id, db_pool, period_days=period),
-        compute_periodization(user_id, db_pool, weeks=max(period // 7, 4)),
-        compute_body_part_balance(user_id, db_pool, period_days=period),
-        compute_acwr(user_id, db_pool),
-        compute_consistency(user_id, db_pool, weeks=max(period // 7, 4)),
-        compute_strength_standards(user_id, db_pool, weeks=max(period // 7, 4)),
-        compute_exercise_variety(user_id, db_pool, period_days=max(period, 28)),
-        compute_performance_forecast(user_id, db_pool, weeks=max(period // 7, 4)),
-        compute_fitness_fatigue(user_id, db_pool),
-        compute_composite_score(user_id, db_pool, period_days=max(period, 28)),
-        compute_muscle_frequency(user_id, db_pool, weeks=max(period // 7, 2)),
-        compute_staleness(user_id, db_pool, weeks=max(period // 7, 2)),
-        compute_load_distribution(user_id, db_pool, weeks=max(period // 7, 2)),
-        # Deep insight analytics
-        compute_bilateral_asymmetry(user_id, db_pool, period_days=max(period, 90)),
-        compute_body_composition(user_id, db_pool, period_days=max(period, 90)),
-        compute_training_density(user_id, db_pool, period_days=max(period, 28)),
-        compute_sleep_performance(user_id, db_pool, period_days=max(period, 90)),
-        compute_time_performance(user_id, db_pool, period_days=max(period, 90)),
-        compute_rest_analysis(user_id, db_pool, period_days=max(period, 28)),
-        compute_relative_strength(user_id, db_pool, period_days=max(period, 90)),
-        return_exceptions=True,
-    )
+    cached = _get_cached_dashboard(user_id, period)
+    if cached is not None:
+        return cached
 
-    defaults = [
-        MuscleWorkloadResponse(
-            muscles=[], balance_index=0, balance_label="error", period_days=period,
-        ),
-        ProgressiveOverloadResponse(
-            exercises=[], overall_status="error",
-            progressing_count=0, plateau_count=0, regressing_count=0,
-        ),
-        VolumeLandmarksResponse(
-            muscles=[], total_weekly_sets=0, muscles_over_mrv=0, muscles_below_mev=0,
-        ),
-        RecoveryResponse(
-            readiness_score=0, readiness_label="error", muscles=[], disclaimer="",
-        ),
-        SessionQualityResponse(
-            avg_rpe=None, avg_rir=None, relative_intensity=None,
-            effective_sets=0, total_working_sets=0, effective_ratio=None,
-            low_stimulus_sets=0, set_distribution=[], period_days=period,
-        ),
-        PeriodizationResponse(
-            weekly_volumes=[], monotony=None, strain=None,
-            monotony_status="error", current_phase="unknown", volume_trend_pct=None,
-        ),
-        BodyPartBalanceResponse(
-            push_pull_ratio=None, push_pull_status="error",
-            upper_lower_ratio=None, upper_lower_status="error",
-            muscle_frequencies=[], imbalances=[],
-        ),
-        None, None, None, None, None, None,  # acwr..fitness_fatigue
-        None, None, None, None,  # composite..load_distribution
-        None, None, None, None, None, None, None,  # 7 deep insight analytics
-    ]
+    async with _dashboard_semaphore:
+        # Double-check after acquiring semaphore (another request may have populated)
+        cached = _get_cached_dashboard(user_id, period)
+        if cached is not None:
+            return cached
 
-    resolved = [
-        default if isinstance(result, BaseException) else result
-        for result, default in zip(results, defaults)
-    ]
+        results = await asyncio.gather(
+            compute_muscle_workload(user_id, db_pool, period_days=period),
+            compute_progressive_overload(user_id, db_pool, weeks=max(period // 7, 3)),
+            compute_volume_landmarks(user_id, db_pool),
+            compute_recovery(user_id, db_pool),
+            compute_session_quality(user_id, db_pool, period_days=period),
+            compute_periodization(user_id, db_pool, weeks=max(period // 7, 4)),
+            compute_body_part_balance(user_id, db_pool, period_days=period),
+            compute_acwr(user_id, db_pool),
+            compute_consistency(user_id, db_pool, weeks=max(period // 7, 4)),
+            compute_strength_standards(user_id, db_pool, weeks=max(period // 7, 4)),
+            compute_exercise_variety(user_id, db_pool, period_days=max(period, 28)),
+            compute_performance_forecast(user_id, db_pool, weeks=max(period // 7, 4)),
+            compute_fitness_fatigue(user_id, db_pool),
+            compute_composite_score(user_id, db_pool, period_days=max(period, 28)),
+            compute_muscle_frequency(user_id, db_pool, weeks=max(period // 7, 2)),
+            compute_staleness(user_id, db_pool, weeks=max(period // 7, 2)),
+            compute_load_distribution(user_id, db_pool, weeks=max(period // 7, 2)),
+            # Wave 1: deep insight analytics
+            compute_bilateral_asymmetry(user_id, db_pool, period_days=max(period, 90)),
+            compute_body_composition(user_id, db_pool, period_days=max(period, 90)),
+            compute_training_density(user_id, db_pool, period_days=max(period, 28)),
+            compute_sleep_performance(user_id, db_pool, period_days=max(period, 90)),
+            compute_time_performance(user_id, db_pool, period_days=max(period, 90)),
+            compute_rest_analysis(user_id, db_pool, period_days=max(period, 28)),
+            compute_relative_strength(user_id, db_pool, period_days=max(period, 90)),
+            # Wave 2: untapped data analytics
+            compute_plan_adherence(user_id, db_pool, weeks=max(period // 7, 4)),
+            compute_antagonist_balance(user_id, db_pool, period_days=max(period, 28)),
+            compute_tempo_analysis(user_id, db_pool, period_days=max(period, 28)),
+            compute_soreness_patterns(user_id, db_pool, period_days=max(period, 90)),
+            compute_equipment_efficiency(user_id, db_pool, period_days=max(period, 90)),
+            compute_milestone_velocity(user_id, db_pool, period_days=max(period, 180)),
+            compute_training_readiness(user_id, db_pool),
+            return_exceptions=True,
+        )
 
-    return AdvancedAnalyticsDashboard(
-        muscle_workload=resolved[0],
-        progressive_overload=resolved[1],
-        volume_landmarks=resolved[2],
-        recovery=resolved[3],
-        session_quality=resolved[4],
-        periodization=resolved[5],
-        body_part_balance=resolved[6],
-        acwr=resolved[7],
-        consistency=resolved[8],
-        strength_standards=resolved[9],
-        exercise_variety=resolved[10],
-        performance_forecast=resolved[11],
-        fitness_fatigue=resolved[12],
-        composite_score=resolved[13],
-        muscle_frequency=resolved[14],
-        staleness=resolved[15],
-        load_distribution=resolved[16],
-        bilateral_asymmetry=resolved[17],
-        body_composition=resolved[18],
-        training_density=resolved[19],
-        sleep_performance=resolved[20],
-        time_performance=resolved[21],
-        rest_analysis=resolved[22],
-        relative_strength=resolved[23],
-    )
+        defaults: list = [
+            MuscleWorkloadResponse(
+                muscles=[], balance_index=0, balance_label="error", period_days=period,
+            ),
+            ProgressiveOverloadResponse(
+                exercises=[], overall_status="error",
+                progressing_count=0, plateau_count=0, regressing_count=0,
+            ),
+            VolumeLandmarksResponse(
+                muscles=[], total_weekly_sets=0, muscles_over_mrv=0, muscles_below_mev=0,
+            ),
+            RecoveryResponse(
+                readiness_score=0, readiness_label="error", muscles=[], disclaimer="",
+            ),
+            SessionQualityResponse(
+                avg_rpe=None, avg_rir=None, relative_intensity=None,
+                effective_sets=0, total_working_sets=0, effective_ratio=None,
+                low_stimulus_sets=0, set_distribution=[], period_days=period,
+            ),
+            PeriodizationResponse(
+                weekly_volumes=[], monotony=None, strain=None,
+                monotony_status="error", current_phase="unknown", volume_trend_pct=None,
+            ),
+            BodyPartBalanceResponse(
+                push_pull_ratio=None, push_pull_status="error",
+                upper_lower_ratio=None, upper_lower_status="error",
+                muscle_frequencies=[], imbalances=[],
+            ),
+        ] + [None] * 24  # remaining metrics default to None
+
+        resolved = [
+            default if isinstance(result, BaseException) else result
+            for result, default in zip(results, defaults)
+        ]
+
+        dashboard = AdvancedAnalyticsDashboard(
+            muscle_workload=resolved[0],
+            progressive_overload=resolved[1],
+            volume_landmarks=resolved[2],
+            recovery=resolved[3],
+            session_quality=resolved[4],
+            periodization=resolved[5],
+            body_part_balance=resolved[6],
+            acwr=resolved[7],
+            consistency=resolved[8],
+            strength_standards=resolved[9],
+            exercise_variety=resolved[10],
+            performance_forecast=resolved[11],
+            fitness_fatigue=resolved[12],
+            composite_score=resolved[13],
+            muscle_frequency=resolved[14],
+            staleness=resolved[15],
+            load_distribution=resolved[16],
+            bilateral_asymmetry=resolved[17],
+            body_composition=resolved[18],
+            training_density=resolved[19],
+            sleep_performance=resolved[20],
+            time_performance=resolved[21],
+            rest_analysis=resolved[22],
+            relative_strength=resolved[23],
+            plan_adherence=resolved[24],
+            antagonist_balance=resolved[25],
+            tempo_analysis=resolved[26],
+            soreness_patterns=resolved[27],
+            equipment_efficiency=resolved[28],
+            milestone_velocity=resolved[29],
+            training_readiness=resolved[30],
+        )
+
+        _set_cached_dashboard(user_id, period, dashboard)
+        return dashboard

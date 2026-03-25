@@ -28,8 +28,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         # Initialize asyncpg connection pool (direct Postgres)
         app.state.db_pool = await asyncpg.create_pool(
             dsn=settings.SUPABASE_DB_URL,
-            min_size=1,
-            max_size=10,
+            min_size=2,
+            max_size=20,
             ssl=ctx,
         )
         logger.info("Database pool initialized")
@@ -53,6 +53,9 @@ def create_app() -> FastAPI:
         description="Backend API for the Iron Tracker gym tracking PWA",
         version="0.1.0",
         lifespan=lifespan,
+        docs_url="/docs" if settings.DEBUG else None,
+        redoc_url="/redoc" if settings.DEBUG else None,
+        openapi_url="/openapi.json" if settings.DEBUG else None,
     )
 
     app.add_middleware(

@@ -1,3 +1,6 @@
+import hmac
+import uuid as _uuid
+
 import asyncpg
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 
@@ -33,7 +36,7 @@ async def get_weekly_summary(
 
 @router.post("/compute-1rm", response_model=list[ExerciseE1RM])
 async def compute_1rm(
-    exercise_id: str,
+    exercise_id: _uuid.UUID,
     user_id: str = Depends(get_current_user),
     db_pool: asyncpg.Pool = Depends(get_db_pool),
 ) -> list[ExerciseE1RM]:
@@ -42,7 +45,7 @@ async def compute_1rm(
     Returns one data point per calendar day (best e1RM across all sets that day),
     sorted oldest to newest.
     """
-    return await analytics_service.compute_1rm_trend(user_id, exercise_id, db_pool)
+    return await analytics_service.compute_1rm_trend(user_id, str(exercise_id), db_pool)
 
 
 @router.post("/jobs/generate-weekly-trends")
@@ -56,7 +59,7 @@ async def generate_weekly_trends(
     Designed to be called by a cron job (e.g., Monday 6 AM UTC).
     Protected by a shared secret passed via the X-Cron-Secret header.
     """
-    if not settings.CRON_SECRET or x_cron_secret != settings.CRON_SECRET:
+    if not settings.CRON_SECRET or not hmac.compare_digest(x_cron_secret, settings.CRON_SECRET):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     count = await generate_weekly_summaries(db_pool)

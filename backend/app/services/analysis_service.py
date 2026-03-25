@@ -60,7 +60,7 @@ async def analyze_training(
     training_days = len(set(r["logged_at"].strftime("%Y-%m-%d") for r in rows))
 
     # Compute RPE stats
-    working_types = {"working", "top", "drop", "backoff", "failure"}
+    working_types = {"working", "amrap", "dropset", "backoff", "failure"}
     rpe_values = [
         float(r["rpe"])
         for r in rows

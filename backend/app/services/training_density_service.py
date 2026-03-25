@@ -56,7 +56,7 @@ async def compute_training_density(
                          ELSE s.weight
                     END * s.reps
                 ) AS volume_kg,
-                COUNT(*) FILTER (WHERE s.set_type = 'working') AS working_sets,
+                COUNT(*) FILTER (WHERE s.set_type != 'warmup') AS working_sets,
                 COUNT(DISTINCT s.exercise_id) AS exercise_count
             FROM sets s
             WHERE s.user_id = $1

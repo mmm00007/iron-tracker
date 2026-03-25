@@ -77,7 +77,7 @@ async def _generate_user_summary(
         top_exercises = sorted(exercises.items(), key=lambda x: -x[1]["volume"])[:5]
 
         # ── Compute advanced metrics for richer insights ──
-        working_types = {"working", "top", "drop", "backoff", "failure"}
+        working_types = {"working", "amrap", "dropset", "backoff", "failure"}
         rpe_values = [
             float(r["rpe"])
             for r in rows
@@ -91,7 +91,8 @@ async def _generate_user_summary(
             workload = await compute_muscle_workload(user_id, db_pool, period_days=7)
             balance_index = workload.balance_index
             balance_label = workload.balance_label
-        except Exception:
+        except Exception as exc:
+            logger.warning("Muscle workload failed for user %s: %s", user_id, exc)
             balance_index = None
             balance_label = None
 
@@ -99,7 +100,8 @@ async def _generate_user_summary(
             landmarks = await compute_volume_landmarks(user_id, db_pool)
             muscles_over_mrv = landmarks.muscles_over_mrv
             muscles_below_mev = landmarks.muscles_below_mev
-        except Exception:
+        except Exception as exc:
+            logger.warning("Volume landmarks failed for user %s: %s", user_id, exc)
             muscles_over_mrv = 0
             muscles_below_mev = 0
 
@@ -107,7 +109,8 @@ async def _generate_user_summary(
             balance = await compute_body_part_balance(user_id, db_pool, period_days=7)
             push_pull_ratio = balance.push_pull_ratio
             push_pull_status = balance.push_pull_status
-        except Exception:
+        except Exception as exc:
+            logger.warning("Body part balance failed for user %s: %s", user_id, exc)
             push_pull_ratio = None
             push_pull_status = None
 

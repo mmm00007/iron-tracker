@@ -18,6 +18,10 @@ export interface Profile {
   workout_window_end: string | null;
   // Fields from migration 025
   current_body_weight_kg: number | null;
+  // Fields from migration 032
+  calorie_target: number | null;
+  protein_target_g: number | null;
+  protein_target_g_per_kg: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -428,10 +432,12 @@ export interface EquipmentUsageStats {
   user_id: string;
   equipment_variant_id: string;
   exercise_id: string;
+  sets_7d: number;
   sets_30d: number;
   sets_90d: number;
   sets_all_time: number;
   last_used_at: string | null;
+  rank_7d: number;
   rank_30d: number;
   rank_90d: number;
 }
@@ -535,4 +541,244 @@ export interface MovementPatternBalance {
   knee_hip_ratio: number | null;
   total_upper_sets: number;
   total_lower_sets: number;
+}
+
+// ─── New types from migration 027 ───────────────────────────────────────────
+
+export interface UserExercisePreference {
+  id: string;
+  user_id: string;
+  exercise_id: string;
+  rating: 1 | 2 | 3 | 4 | 5 | null;
+  is_favorite: boolean;
+  default_weight: number | null;
+  default_reps: number | null;
+  default_rest_seconds: number | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type BalancePeriodType = 'week' | 'month';
+
+export interface WorkloadBalanceScore {
+  id: string;
+  user_id: string;
+  period_type: BalancePeriodType;
+  period_start: string;
+  period_end: string;
+  shannon_entropy: number | null;
+  normalized_entropy: number | null;
+  push_pull_ratio: number | null;
+  upper_lower_ratio: number | null;
+  h_push_pull_ratio: number | null;
+  trained_muscle_count: number | null;
+  total_weighted_sets: number | null;
+  dominant_muscle_id: number | null;
+  muscle_distribution: Record<string, number>;
+  computed_at: string;
+}
+
+// ─── View types from migration 027 ──────────────────────────────────────────
+
+export interface MuscleActivationWeight {
+  exercise_id: string;
+  muscle_group_id: number;
+  is_primary: boolean;
+  function_type: MuscleFunction | null;
+  effective_activation_pct: number;
+  volume_weight_factor: number;
+  muscle_group_name: string;
+  muscle_is_front: boolean;
+}
+
+// ─── New types from migration 031 ───────────────────────────────────────────
+
+export type TemplateSourceType = 'manual' | 'from_session' | 'from_plan_day';
+
+export interface WorkoutTemplate {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  source_type: TemplateSourceType;
+  source_date: string | null;
+  source_plan_day_id: string | null;
+  is_pinned: boolean;
+  use_count: number;
+  last_used_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkoutTemplateItem {
+  id: string;
+  template_id: string;
+  exercise_id: string;
+  variant_id: string | null;
+  sort_order: number;
+  target_sets: number | null;
+  target_reps_min: number | null;
+  target_reps_max: number | null;
+  target_weight: number | null;
+  target_rpe: number | null;
+  target_rir: number | null;
+  rest_seconds: number | null;
+  superset_group: number | null;
+  notes: string | null;
+}
+
+// ─── New types from migration 032 ───────────────────────────────────────────
+
+export type NutritionSource = 'manual' | 'myfitnesspal' | 'cronometer' | 'apple_health' | 'other';
+
+export interface NutritionLog {
+  id: string;
+  user_id: string;
+  logged_date: string;
+  calories_kcal: number | null;
+  protein_g: number | null;
+  carbs_g: number | null;
+  fat_g: number | null;
+  fiber_g: number | null;
+  water_ml: number | null;
+  source: NutritionSource;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NutritionTrainingCorrelation {
+  user_id: string;
+  logged_date: string;
+  calories_kcal: number | null;
+  protein_g: number | null;
+  carbs_g: number | null;
+  fat_g: number | null;
+  fiber_g: number | null;
+  protein_per_kg: number | null;
+  total_sets: number;
+  working_sets: number;
+  total_volume_kg: number;
+  avg_rpe: number | null;
+  duration_minutes: number;
+  best_estimated_1rm: number | null;
+}
+
+// ─── New types from migration 033 ───────────────────────────────────────────
+
+export type SnapshotPeriodType = 'week' | 'month';
+
+export interface ExerciseProgressSnapshot {
+  id: string;
+  user_id: string;
+  exercise_id: string;
+  period_type: SnapshotPeriodType;
+  period_start: string;
+  period_end: string;
+  best_e1rm: number | null;
+  best_e1rm_reps: number | null;
+  best_weight: number | null;
+  best_reps: number | null;
+  total_sets: number;
+  working_sets: number;
+  total_volume_kg: number | null;
+  avg_rpe: number | null;
+  avg_rest_seconds: number | null;
+  training_days: number;
+  computed_at: string;
+}
+
+// ─── New types from migration 036 ───────────────────────────────────────────
+
+export type WarmupContext = 'mobility' | 'activation' | 'pattern_rehearsal' | 'corrective';
+
+export interface ExerciseWarmupPrerequisite {
+  id: string;
+  exercise_id: string;
+  warmup_exercise_id: string | null;
+  warmup_name: string;
+  sort_order: number;
+  duration_seconds: number | null;
+  reps: number | null;
+  context: WarmupContext;
+  notes: string | null;
+  created_at: string;
+}
+
+export type DataQuality = 'insufficient' | 'preliminary' | 'reliable';
+
+export type EffectivenessRecommendation =
+  | 'keep'
+  | 'increase_volume'
+  | 'decrease_volume'
+  | 'consider_substitution'
+  | 'new_exercise'
+  | 'insufficient_data';
+
+export interface ExerciseEffectivenessScore {
+  id: string;
+  user_id: string;
+  exercise_id: string;
+  window_weeks: number;
+  period_start: string;
+  period_end: string;
+  e1rm_slope: number | null;
+  e1rm_ci_lower: number | null;
+  e1rm_ci_upper: number | null;
+  volume_efficiency: number | null;
+  perceived_recovery_cost: number | null;
+  performance_recovery_cost: number | null;
+  consistency_score: number | null;
+  movement_category: string | null;
+  effectiveness_rank: number | null;
+  data_points: number;
+  data_quality: DataQuality;
+  recommendation: EffectivenessRecommendation | null;
+  computed_at: string;
+}
+
+export type TrainingGoal = 'strength' | 'hypertrophy' | 'endurance' | 'general';
+
+export interface UserRestRecommendation {
+  id: string;
+  user_id: string;
+  exercise_id: string;
+  training_goal: TrainingGoal;
+  optimal_rest_seconds: number | null;
+  min_effective_rest: number | null;
+  max_useful_rest: number | null;
+  spearman_rho: number | null;
+  p_value: number | null;
+  set_position_controlled: boolean;
+  sessions_sampled: number;
+  set_pairs_sampled: number;
+  confidence: number | null;
+  data_quality: DataQuality;
+  computed_at: string;
+}
+
+export interface SessionQualityScore {
+  id: string;
+  user_id: string;
+  training_date: string;
+  workout_cluster_id: string | null;
+  quality_score: number;
+  volume_score: number | null;
+  intensity_score: number | null;
+  completion_score: number | null;
+  density_score: number | null;
+  progression_score: number | null;
+  rest_score: number | null;
+  exercises_progressed: number;
+  exercises_regressed: number;
+  exercises_maintained: number;
+  exercises_total: number;
+  total_working_sets: number | null;
+  total_volume_kg: number | null;
+  session_duration_min: number | null;
+  avg_rpe: number | null;
+  session_rpe: number | null;
+  scoring_version: number;
+  computed_at: string;
 }

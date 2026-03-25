@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -51,7 +51,7 @@ class AnalysisInsight(BaseModel):
 class AnalysisRequest(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    scope_type: str  # 'day', 'week', 'month'
+    scope_type: Literal["day", "week", "month"]
     scope_start: str  # ISO date
     scope_end: str  # ISO date
     goals: list[Annotated[str, Field(max_length=200)]] = Field(default=[], max_length=10)
@@ -221,7 +221,7 @@ class AdvancedAnalyticsDashboard(BaseModel):
     muscle_frequency: "MuscleFrequencyResponse | None" = None
     staleness: "StalenessResponse | None" = None
     load_distribution: "LoadDistributionResponse | None" = None
-    # Deep insight analytics
+    # Deep insight analytics (wave 1)
     bilateral_asymmetry: "BilateralAsymmetryResponse | None" = None
     body_composition: "BodyCompositionResponse | None" = None
     training_density: "TrainingDensityResponse | None" = None
@@ -229,6 +229,21 @@ class AdvancedAnalyticsDashboard(BaseModel):
     time_performance: "TimePerformanceResponse | None" = None
     rest_analysis: "RestAnalysisResponse | None" = None
     relative_strength: "RelativeStrengthResponse | None" = None
+    # Deep insight analytics (wave 2)
+    plan_adherence: "PlanAdherenceResponse | None" = None
+    antagonist_balance: "AntagonistBalanceResponse | None" = None
+    tempo_analysis: "TempoAnalysisResponse | None" = None
+    soreness_patterns: "SorenessPatternsResponse | None" = None
+    equipment_efficiency: "EquipmentEfficiencyResponse | None" = None
+    milestone_velocity: "MilestoneVelocityResponse | None" = None
+    training_readiness: "TrainingReadinessResponse | None" = None
+    # Deep insight analytics (wave 3)
+    nutrition_performance: "NutritionPerformanceResponse | None" = None
+    mesocycle_effectiveness: "MesocycleEffectivenessResponse | None" = None
+    injury_awareness: "InjuryAwarenessResponse | None" = None
+    body_measurements: "BodyMeasurementsResponse | None" = None
+    substitution_patterns: "SubstitutionPatternsResponse | None" = None
+    exercise_profile: "ExerciseProfileResponse | None" = None
 
 
 # ─── ACWR Models ─────────────────────────────────────────────────────────────
@@ -720,4 +735,364 @@ class RelativeStrengthResponse(BaseModel):
     bw_data_age_days: int | None
     trend: list[RelativeStrengthTrendEntry]
     period_days: int
+    disclaimer: str
+
+
+# ─── Plan Adherence Trend ─────────────────────────────────────────────────────
+
+
+class AdherenceWeekEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    week_start: str
+    avg_adherence: float
+    planned_sets: int
+    completed_sets: int
+    surplus_sets: int
+    items_skipped: int
+
+
+class PlanAdherenceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    weeks: list[AdherenceWeekEntry]
+    current_adherence: float | None
+    trend_direction: str
+    trend_slope: float | None
+    burnout_risk: bool
+    exceedance_weeks: int
+    period_weeks: int
+    disclaimer: str
+
+
+# ─── Antagonist Pair Balance ──────────────────────────────────────────────────
+
+
+class AntagonistPairEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    pair_name: str
+    muscle_a: str
+    muscle_b: str
+    volume_a: float
+    volume_b: float
+    ratio: float | None
+    status: str
+    recommendation: str
+
+
+class AntagonistBalanceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    pairs: list[AntagonistPairEntry]
+    imbalanced_count: int
+    balanced_count: int
+    period_days: int
+    disclaimer: str
+
+
+# ─── Tempo & Time-Under-Tension Analysis ─────────────────────────────────────
+
+
+class TempoDistributionEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    category: str
+    tut_range: str
+    set_count: int
+    percentage: float
+
+
+class TempoAnalysisResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    avg_tut_seconds: float | None
+    distribution: list[TempoDistributionEntry]
+    tempo_coverage_pct: float
+    sets_with_tempo: int
+    total_sets: int
+    period_days: int
+    disclaimer: str
+
+
+# ─── Soreness Patterns ───────────────────────────────────────────────────────
+
+
+class MuscleSorenessEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    muscle_group: str
+    avg_level: float
+    max_level: int
+    report_count: int
+    avg_lag_hours: float | None
+    trend: str
+
+
+class SorenessPatternsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    muscles: list[MuscleSorenessEntry]
+    overall_avg_level: float | None
+    most_sore_muscle: str | None
+    red_flags: list[str]
+    correlation_volume_soreness: float | None
+    data_points: int
+    period_days: int
+    disclaimer: str
+
+
+# ─── Equipment Efficiency ────────────────────────────────────────────────────
+
+
+class EquipmentEfficiencyEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    variant_id: str
+    variant_name: str
+    equipment_type: str | None
+    rating: int | None
+    sets_30d: int
+    best_e1rm: float
+    e1rm_trend_slope: float | None
+    sessions_used: int
+
+
+class EquipmentEfficiencyResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    equipment: list[EquipmentEfficiencyEntry]
+    total_variants_used: int
+    top_performer: str | None
+    period_days: int
+    disclaimer: str
+
+
+# ─── Milestone Velocity ──────────────────────────────────────────────────────
+
+
+class MilestoneEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    milestone_type: str
+    exercise_name: str | None
+    value: float | None
+    unit: str | None
+    achieved_at: str
+    body_weight_at: float | None
+    days_since_previous: int | None
+
+
+class MilestoneVelocityResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    milestones: list[MilestoneEntry]
+    total_count: int
+    milestones_30d: int
+    milestones_90d: int
+    avg_interval_days: float | None
+    velocity_trend: str
+    period_days: int
+    disclaimer: str
+
+
+# ─── Training Readiness Score ────────────────────────────────────────────────
+
+
+class ReadinessDimension(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    name: str
+    score: int
+    weight: float
+    available: bool
+    detail: str
+
+
+class TrainingReadinessResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    readiness_score: int
+    readiness_label: str
+    dimensions: list[ReadinessDimension]
+    available_dimensions: int
+    recommendation: str
+    disclaimer: str
+
+
+# ─── Nutrition-Performance Correlation ────────────────────────────────────────
+
+
+class NutritionBucketEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    bucket: str
+    range_label: str
+    days: int
+    avg_volume_kg: float | None
+    avg_e1rm: float | None
+    avg_rpe: float | None
+
+
+class NutritionPerformanceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    correlation_protein_volume: float | None
+    correlation_calories_volume: float | None
+    correlation_carbs_rpe: float | None
+    protein_buckets: list[NutritionBucketEntry]
+    avg_protein_per_kg: float | None
+    avg_calories: float | None
+    paired_days: int
+    period_days: int
+    disclaimer: str
+
+
+# ─── Mesocycle Effectiveness ──────────────────────────────────────────────────
+
+
+class MesocycleEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    mesocycle_id: str
+    name: str
+    phase: str
+    start_date: str
+    end_date: str | None
+    weeks_completed: int
+    alignment_score: float | None
+    avg_rpe: float | None
+    total_volume_kg: float
+    e1rm_change_pct: float | None
+
+
+class MesocycleEffectivenessResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    mesocycles: list[MesocycleEntry]
+    total_mesocycles: int
+    current_phase: str | None
+    best_phase_for_strength: str | None
+    period_days: int
+    disclaimer: str
+
+
+# ─── Injury Awareness ────────────────────────────────────────────────────────
+
+
+class InjuryEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    injury_id: str
+    body_area: str
+    location_type: str
+    pain_level: int
+    status: str
+    reported_at: str
+    resolved_at: str | None
+    days_active: int | None
+    sets_while_injured: int
+    onset_type: str | None
+
+
+class InjuryAwarenessResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    injuries: list[InjuryEntry]
+    active_count: int
+    resolved_count: int
+    avg_recovery_days: float | None
+    red_flags: list[str]
+    training_through_injury: bool
+    disclaimer: str
+
+
+# ─── Body Measurements Tracking ──────────────────────────────────────────────
+
+
+class MeasurementSiteEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    site: str
+    measurement_type: str
+    latest_value: float
+    unit: str
+    trend_slope: float | None
+    data_points: int
+
+
+class BilateralMeasurementEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    site: str
+    left_value: float
+    right_value: float
+    unit: str
+    asymmetry_pct: float
+
+
+class BodyMeasurementsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    sites: list[MeasurementSiteEntry]
+    bilateral: list[BilateralMeasurementEntry]
+    total_measurements: int
+    sites_tracked: int
+    period_days: int
+    disclaimer: str
+
+
+# ─── Substitution Patterns ───────────────────────────────────────────────────
+
+
+class SubstitutionPairEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    source_name: str
+    target_name: str
+    substitution_type: str
+    similarity_score: int | None
+    source_e1rm: float | None
+    target_e1rm: float | None
+    performance_ratio: float | None
+    readiness_pct: float | None
+
+
+class SubstitutionPatternsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    pairs: list[SubstitutionPairEntry]
+    total_pairs_used: int
+    progressions_ready: int
+    period_days: int
+    disclaimer: str
+
+
+# ─── Exercise Profile Intelligence ───────────────────────────────────────────
+
+
+class ExerciseProfileEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    exercise_id: str
+    exercise_name: str
+    has_form_cues: bool
+    has_injury_notes: bool
+    preferred_grip: str | None
+    preferred_stance: str | None
+    preferred_rep_range: str | None
+    tags: list[str]
+    total_sets: int
+    completeness_pct: float
+
+
+class ExerciseProfileResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    exercises: list[ExerciseProfileEntry]
+    avg_completeness: float
+    exercises_with_notes: int
+    exercises_with_injury_flags: int
+    total_tags: int
+    unique_tags: int
     disclaimer: str

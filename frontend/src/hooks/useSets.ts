@@ -6,6 +6,22 @@ import { useAuthStore } from '@/stores/authStore';
 
 type NewSet = Omit<WorkoutSet, 'id' | 'synced_at' | 'estimated_1rm' | 'tempo' | 'rir' | 'updated_at' | 'duration_seconds' | 'distance_meters' | 'distance_unit' | 'training_date' | 'side' | 'rest_seconds' | 'workout_cluster_id'>;
 
+/**
+ * Compute the start of the "training day" based on the user's day_start_hour.
+ * If current time is before dayStartHour, the training day started yesterday at that hour.
+ * E.g. with dayStartHour=4, at 2:00 AM the training day started yesterday at 4:00 AM.
+ */
+function trainingDayStart(dayStartHour: number): Date {
+  const now = new Date();
+  const start = new Date(now);
+  start.setHours(dayStartHour, 0, 0, 0);
+  if (now < start) {
+    // Before the boundary — training day started yesterday
+    start.setDate(start.getDate() - 1);
+  }
+  return start;
+}
+
 /** Query key helpers */
 const todaySetsKey = (exerciseId: string) => ['sets', 'today', exerciseId];
 const lastSetKey = (exerciseId: string, variantId: string | null) => [
@@ -16,9 +32,11 @@ const lastSetKey = (exerciseId: string, variantId: string | null) => [
 ];
 
 /**
- * Fetch all sets logged today for a given exercise.
+ * Fetch all sets logged in the current training day for a given exercise.
+ * Uses the user's day_start_hour to define when the training day begins
+ * (default 4 AM — so a 1 AM session still shows under "today").
  */
-export function useTodaySets(exerciseId: string) {
+export function useTodaySets(exerciseId: string, dayStartHour = 4) {
   return useQuery<WorkoutSet[]>({
     queryKey: todaySetsKey(exerciseId),
     queryFn: async () => {
@@ -27,16 +45,14 @@ export function useTodaySets(exerciseId: string) {
       } = await supabase.auth.getUser();
       if (!user) return [];
 
-      // Start of today in UTC
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
+      const cutoff = trainingDayStart(dayStartHour);
 
       const { data, error } = await supabase
         .from('sets')
         .select('*')
         .eq('user_id', user.id)
         .eq('exercise_id', exerciseId)
-        .gte('logged_at', todayStart.toISOString())
+        .gte('logged_at', cutoff.toISOString())
         .order('logged_at', { ascending: false });
 
       if (error) throw error;

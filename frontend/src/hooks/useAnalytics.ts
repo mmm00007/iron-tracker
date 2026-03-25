@@ -16,9 +16,12 @@ import type { TrainingStreakResult, WeeklyFrequencyEntry } from '@/utils/analyti
 
 type Period = 'week' | 'month' | '3months' | 'all';
 
-// ─── Helper: fetch all user sets (optionally filtered by date) ─────────────────
+// ─── Helper: fetch user sets (optionally filtered by date/exercise) ──────────
+// Selects only the columns needed for analytics to reduce payload size.
 
-async function fetchUserSets(since?: Date, exerciseId?: string): Promise<WorkoutSet[]> {
+const ANALYTICS_COLUMNS = 'id,user_id,exercise_id,variant_id,weight,weight_unit,reps,rpe,rir,set_type,estimated_1rm,logged_at' as const;
+
+async function fetchUserSets(since?: Date, exerciseId?: string, limit = 2000): Promise<WorkoutSet[]> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -26,7 +29,7 @@ async function fetchUserSets(since?: Date, exerciseId?: string): Promise<Workout
 
   let query = supabase
     .from('sets')
-    .select('*')
+    .select(ANALYTICS_COLUMNS)
     .eq('user_id', user.id)
     .order('logged_at', { ascending: false });
 
@@ -38,7 +41,7 @@ async function fetchUserSets(since?: Date, exerciseId?: string): Promise<Workout
     query = query.eq('exercise_id', exerciseId);
   }
 
-  const { data, error } = await query.limit(5000);
+  const { data, error } = await query.limit(limit);
   if (error) throw error;
   return (data ?? []) as WorkoutSet[];
 }
@@ -471,7 +474,7 @@ export function useExerciseVolumeTrend(exerciseId: string) {
   return useQuery({
     queryKey: ['analytics', 'exerciseVolumeTrend', exerciseId],
     queryFn: async () => {
-      const sets = await fetchUserSets(undefined, exerciseId);
+      const sets = await fetchUserSets(undefined, exerciseId, 1000);
       return weeklyVolume(sets);
     },
     enabled: !!exerciseId,
@@ -488,7 +491,7 @@ export function useExercisePRs(exerciseId: string) {
   return useQuery({
     queryKey: ['analytics', 'exercisePRs', exerciseId],
     queryFn: async () => {
-      const sets = await fetchUserSets(undefined, exerciseId);
+      const sets = await fetchUserSets(undefined, exerciseId, 1000);
       return exercisePRs(sets, exerciseId);
     },
     enabled: !!exerciseId,
