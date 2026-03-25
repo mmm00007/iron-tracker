@@ -91,6 +91,8 @@ describe('VariantChipRow', () => {
         notes: null,
         sort_order: 0,
         is_active: true,
+        equipment_category: null,
+        equipment_class: null,
         updated_at: '2025-01-01T00:00:00Z',
       },
     ];
