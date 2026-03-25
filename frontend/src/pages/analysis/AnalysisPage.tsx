@@ -16,7 +16,7 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import TipsAndUpdatesIcon from '@mui/icons-material/TipsAndUpdates';
 import { useAnalysisReports, useRequestAnalysis } from '@/hooks/useAnalysis';
-import type { AnalysisReport } from '@/hooks/useAnalysis';
+import type { AnalysisReport, AnalysisInsight } from '@/hooks/useAnalysis';
 import { formatRelativeDate } from '@/utils/formatters';
 
 type ScopeType = 'week' | 'month';
@@ -54,11 +54,11 @@ function ReportCard({ report }: { report: AnalysisReport }) {
           {report.summary}
         </Typography>
 
-        {report.insights.length > 0 && (
+        {Array.isArray(report.insights) && report.insights.length > 0 && (
           <>
             <Divider sx={{ mb: 1.5 }} />
             <Stack spacing={1.5}>
-              {report.insights.map((insight, i) => (
+              {(report.insights as unknown as AnalysisInsight[]).map((insight, i) => (
                 <Box key={i} sx={{ display: 'flex', gap: 1 }}>
                   <LightbulbIcon sx={{ fontSize: 18, color: 'warning.main', mt: 0.25, flexShrink: 0 }} />
                   <Box>

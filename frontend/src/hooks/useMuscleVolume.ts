@@ -39,10 +39,10 @@ export function useWeeklyMuscleVolume(period: string) {
 
       const cutoff = getPeriodCutoff(period);
 
-      // Fetch sets with exercise_id, weight, reps, logged_at
+      // Fetch sets with exercise_id, weight, reps, logged_at, weight_unit
       const { data: sets, error: setsError } = await supabase
         .from('sets')
-        .select('exercise_id, weight, reps, logged_at')
+        .select('exercise_id, weight, reps, logged_at, weight_unit')
         .eq('user_id', user.id)
         .gte('logged_at', cutoff.toISOString())
         .order('logged_at', { ascending: true });
@@ -77,7 +77,9 @@ export function useWeeklyMuscleVolume(period: string) {
 
       for (const set of sets) {
         const week = getWeekStart(new Date(set.logged_at));
-        const volume = set.weight * set.reps;
+        // Normalize weight to kg for consistent volume calculation
+        const weightKg = set.weight_unit === 'lb' ? set.weight * 0.453592 : set.weight;
+        const volume = weightKg * set.reps;
         const muscles = muscleMap.get(set.exercise_id) ?? [];
 
         for (const { name, isPrimary } of muscles) {

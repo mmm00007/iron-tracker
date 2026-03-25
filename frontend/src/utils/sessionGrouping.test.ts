@@ -18,6 +18,14 @@ function makeSet(overrides: Partial<WorkoutSet> & { logged_at: string; exerciseN
     notes: null,
     estimated_1rm: null,
     synced_at: null,
+    updated_at: new Date().toISOString(),
+    duration_seconds: null,
+    distance_meters: null,
+    distance_unit: null,
+    training_date: null,
+    side: null,
+    rest_seconds: null,
+    workout_cluster_id: null,
     ...overrides,
   };
 }

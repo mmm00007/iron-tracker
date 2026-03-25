@@ -1,7 +1,6 @@
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
-import { useTheme } from '@mui/material/styles';
 import {
   LineChart,
   Line,
@@ -15,15 +14,7 @@ import {
 } from 'recharts';
 import type { E1RMDataPoint } from '@/utils/analytics';
 import { useProfile } from '@/hooks/useProfile';
-
-// Colors for multiple variants
-const VARIANT_COLORS = [
-  '#A8C7FA', // primary blue
-  '#66BB6A', // green
-  '#F9A825', // amber
-  '#EF5350', // red
-  '#AB47BC', // purple
-];
+import { CHART_COLORS, DATA_FONT } from '@/theme';
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
@@ -42,20 +33,31 @@ function CustomTooltip({ active, payload, label, unit = 'kg' }: CustomTooltipPro
   return (
     <Box
       sx={{
-        backgroundColor: 'surface.containerHigh',
-        border: '1px solid rgba(202, 196, 208, 0.2)',
+        backgroundColor: 'rgba(20, 24, 32, 0.95)',
+        border: '1px solid rgba(160, 170, 184, 0.12)',
         borderRadius: '8px',
         p: 1.5,
+        backdropFilter: 'blur(8px)',
       }}
     >
-      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>
+      <Typography variant="caption" sx={{ color: '#A0AAB8', display: 'block', mb: 0.5 }}>
         {label ? formatDate(label) : ''}
       </Typography>
       {payload.map((p, i) => (
         <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: p.color }} />
-          <Typography variant="caption" sx={{ color: 'text.primary' }}>
-            {p.name}: {p.value.toFixed(1)} {unit}
+          <Typography variant="caption" sx={{ color: '#EAEEF4' }}>
+            {p.name}:{' '}
+          </Typography>
+          <Typography
+            sx={{
+              fontFamily: DATA_FONT,
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              color: p.color,
+            }}
+          >
+            {p.value.toFixed(1)} {unit}
           </Typography>
         </Box>
       ))}
@@ -67,12 +69,10 @@ interface E1RMChartProps {
   data: E1RMDataPoint[];
   isLoading?: boolean;
   isError?: boolean;
-  /** Map from variantId (or 'all') to display name */
   variantNames?: Map<string | null, string>;
 }
 
 export function E1RMChart({ data, isLoading, isError, variantNames }: E1RMChartProps) {
-  const theme = useTheme();
   const { data: profile } = useProfile();
   const unit = profile?.preferred_weight_unit ?? 'kg';
 
@@ -128,20 +128,38 @@ export function E1RMChart({ data, isLoading, isError, variantNames }: E1RMChartP
   };
 
   return (
-    <Box sx={{ width: '100%', height: { xs: 240, md: 320, lg: 400 } }}>
+    <Box sx={{ width: '100%', height: { xs: 260, md: 340, lg: 420 } }}>
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData} margin={{ top: 5, right: 12, left: -10, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(202, 196, 208, 0.1)" />
+        <LineChart data={chartData} margin={{ top: 8, right: 12, left: -8, bottom: 5 }}>
+          <defs>
+            {variantIds.map((variantId, i) => {
+              const color = CHART_COLORS.series[i % CHART_COLORS.series.length];
+              return (
+                <linearGradient
+                  key={variantId ?? 'none'}
+                  id={`line-gradient-${i}`}
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop offset="0%" stopColor={color} stopOpacity={0.2} />
+                  <stop offset="100%" stopColor={color} stopOpacity={0} />
+                </linearGradient>
+              );
+            })}
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(160, 170, 184, 0.06)" />
           <XAxis
             dataKey="date"
             tickFormatter={formatDate}
-            tick={{ fill: '#CAC4D0', fontSize: 10 }}
-            axisLine={{ stroke: 'rgba(202, 196, 208, 0.2)' }}
+            tick={{ fill: '#636D7E', fontSize: 10, fontFamily: DATA_FONT }}
+            axisLine={{ stroke: 'rgba(160, 170, 184, 0.1)' }}
             tickLine={false}
             interval="preserveStartEnd"
           />
           <YAxis
-            tick={{ fill: '#CAC4D0', fontSize: 10 }}
+            tick={{ fill: '#636D7E', fontSize: 10, fontFamily: DATA_FONT }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(v) => `${v}`}
@@ -163,19 +181,24 @@ export function E1RMChart({ data, isLoading, isError, variantNames }: E1RMChartP
               type="monotone"
               dataKey={variantId ?? 'none'}
               name={getVariantName(variantId)}
-              stroke={VARIANT_COLORS[i % VARIANT_COLORS.length]}
-              strokeWidth={2}
-              dot={{ r: 3, fill: VARIANT_COLORS[i % VARIANT_COLORS.length] }}
-              activeDot={{ r: 5 }}
+              stroke={CHART_COLORS.series[i % CHART_COLORS.series.length]}
+              strokeWidth={2.5}
+              dot={{ r: 3, fill: CHART_COLORS.series[i % CHART_COLORS.series.length], strokeWidth: 0 }}
+              activeDot={{
+                r: 6,
+                fill: CHART_COLORS.series[i % CHART_COLORS.series.length],
+                stroke: '#0D0F12',
+                strokeWidth: 2,
+              }}
               connectNulls
             />
           ))}
           {data.length > 20 && (
             <Brush
               dataKey="date"
-              height={20}
-              stroke="rgba(202, 196, 208, 0.2)"
-              fill={theme.palette.surface.containerHighest}
+              height={22}
+              stroke="rgba(160, 170, 184, 0.15)"
+              fill="#141820"
               tickFormatter={formatDate}
             />
           )}

@@ -153,13 +153,23 @@ export function weeklySnapshot(sets: WorkoutSet[]): WeeklySnapshotResult {
 
 // ─── Volume by muscle ──────────────────────────────────────────────────────────
 
+export interface MuscleActivation {
+  muscleGroupId: number;
+  activationPercent: number | null; // null = use even split (legacy)
+}
+
 /**
- * Group volume by muscle group ID.
- * exerciseMuscles maps exerciseId → array of muscle group IDs.
+ * Group volume by muscle group ID, weighted by activation percentage.
+ *
+ * When activation_percent is available (from exercise_muscles junction table),
+ * volume is distributed proportionally. Example: a bench press set distributes
+ * 60% to chest, 25% to front delts, 15% to triceps instead of 33/33/33.
+ *
+ * Falls back to even splitting when activation data is unavailable.
  */
 export function volumeByMuscle(
   sets: WorkoutSet[],
-  exerciseMuscles: Map<string, number[]>,
+  exerciseMuscles: Map<string, MuscleActivation[]>,
 ): Map<number, number> {
   const result = new Map<number, number>();
 
@@ -167,10 +177,32 @@ export function volumeByMuscle(
     const muscles = exerciseMuscles.get(set.exercise_id) ?? [];
     if (muscles.length === 0) continue;
     const vol = set.weight * set.reps;
-    const share = vol / muscles.length; // split evenly across muscles
 
-    for (const muscleId of muscles) {
-      result.set(muscleId, (result.get(muscleId) ?? 0) + share);
+    // Check if we have activation data
+    const hasActivation = muscles.some((m) => m.activationPercent != null);
+
+    if (hasActivation) {
+      // Weighted distribution by activation percentage
+      const totalActivation = muscles.reduce(
+        (sum, m) => sum + (m.activationPercent ?? 50), // default 50 for unknown
+        0,
+      );
+      for (const muscle of muscles) {
+        const weight = (muscle.activationPercent ?? 50) / totalActivation;
+        result.set(
+          muscle.muscleGroupId,
+          (result.get(muscle.muscleGroupId) ?? 0) + vol * weight,
+        );
+      }
+    } else {
+      // Fallback: even split (legacy behavior)
+      const share = vol / muscles.length;
+      for (const muscle of muscles) {
+        result.set(
+          muscle.muscleGroupId,
+          (result.get(muscle.muscleGroupId) ?? 0) + share,
+        );
+      }
     }
   }
 
@@ -409,6 +441,46 @@ export function computeStreak(sets: WorkoutSet[]): TrainingStreakResult {
     lastTrainedAt: days[days.length - 1] ?? null,
     longestDayStreak: longest,
   };
+}
+
+// ─── Training frequency per week (for bar chart) ────────────────────────────
+
+export interface WeeklyFrequencyEntry {
+  label: string; // short label like "Mar 3"
+  weekStart: string; // YYYY-MM-DD
+  days: number; // unique training days that week
+}
+
+/**
+ * Returns training days per ISO week for the last N weeks.
+ */
+export function trainingFrequencyPerWeek(sets: WorkoutSet[], weeks = 8): WeeklyFrequencyEntry[] {
+  const today = new Date();
+  const result: WeeklyFrequencyEntry[] = [];
+
+  for (let w = weeks - 1; w >= 0; w--) {
+    const weekStart = new Date(today);
+    const dayOfWeek = weekStart.getDay() || 7;
+    weekStart.setDate(weekStart.getDate() - dayOfWeek + 1 - w * 7);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+
+    const startStr = weekStart.toISOString().slice(0, 10);
+    const endStr = weekEnd.toISOString().slice(0, 10);
+
+    const daysSet = new Set<string>();
+    for (const set of sets) {
+      const dateStr = set.logged_at.slice(0, 10);
+      if (dateStr >= startStr && dateStr < endStr) {
+        daysSet.add(dateStr);
+      }
+    }
+
+    const label = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    result.push({ label, weekStart: startStr, days: daysSet.size });
+  }
+
+  return result;
 }
 
 export function exercisePRs(sets: WorkoutSet[], exerciseId: string): PRRecord[] {

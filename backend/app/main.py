@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.models.schemas import HealthResponse
-from app.routers import ai, analytics
+from app.routers import advanced_analytics, ai, analytics
 from app.sentry import init_sentry
 
 
@@ -65,6 +65,7 @@ def create_app() -> FastAPI:
 
     app.include_router(ai.router)
     app.include_router(analytics.router)
+    app.include_router(advanced_analytics.router)
 
     @app.get("/health", response_model=HealthResponse, tags=["health"])
     async def health_check() -> HealthResponse:
@@ -80,6 +81,7 @@ def create_app() -> FastAPI:
             "dataExportEnabled": True,
             "weightSuggestionEnabled": True,
             "diagnosticsEnabled": True,
+            "advancedAnalyticsEnabled": True,
         }
 
     return app

@@ -35,6 +35,8 @@ async def test_generate_summaries(mock_db_pool: MagicMock) -> None:
         {
             "weight": 100.0,
             "reps": 5,
+            "rpe": 8.0,
+            "set_type": "working",
             "logged_at": MagicMock(strftime=MagicMock(return_value="2026-03-20")),
             "exercise_name": "Bench Press",
             "category": "chest",
@@ -42,14 +44,29 @@ async def test_generate_summaries(mock_db_pool: MagicMock) -> None:
         {
             "weight": 80.0,
             "reps": 10,
+            "rpe": 7.5,
+            "set_type": "working",
             "logged_at": MagicMock(strftime=MagicMock(return_value="2026-03-21")),
             "exercise_name": "Squat",
             "category": "legs",
         },
     ]
 
-    # First call returns user_ids, subsequent calls return training data
-    conn.fetch.side_effect = [user_rows, training_rows, training_rows]
+    # First call returns user_ids, subsequent calls return training data.
+    # Advanced metrics (muscle_workload, volume_landmarks, body_part_balance)
+    # each call pool.acquire() -> conn.fetch(), so we provide empty results
+    # for those secondary queries per user.
+    conn.fetch.side_effect = [
+        user_rows,  # user list
+        training_rows,  # user-1 training data
+        [],  # user-1 muscle workload
+        [],  # user-1 volume landmarks
+        [],  # user-1 body part balance
+        training_rows,  # user-2 training data
+        [],  # user-2 muscle workload
+        [],  # user-2 volume landmarks
+        [],  # user-2 body part balance
+    ]
     conn.execute.return_value = None
 
     count = await generate_weekly_summaries(mock_db_pool)
@@ -100,6 +117,8 @@ async def test_generate_summaries_handles_error(mock_db_pool: MagicMock) -> None
         {
             "weight": 60.0,
             "reps": 12,
+            "rpe": 7.0,
+            "set_type": "working",
             "logged_at": MagicMock(strftime=MagicMock(return_value="2026-03-22")),
             "exercise_name": "Lat Pulldown",
             "category": "back",
@@ -107,8 +126,15 @@ async def test_generate_summaries_handles_error(mock_db_pool: MagicMock) -> None
     ]
 
     # First call: user list. Second call (user-fail): raise exception.
-    # Third call (user-ok): return training data.
-    conn.fetch.side_effect = [user_rows, Exception("DB error"), training_rows_ok]
+    # Third call (user-ok): return training data + empty advanced metrics.
+    conn.fetch.side_effect = [
+        user_rows,
+        Exception("DB error"),  # user-fail training data
+        training_rows_ok,  # user-ok training data
+        [],  # user-ok muscle workload
+        [],  # user-ok volume landmarks
+        [],  # user-ok body part balance
+    ]
     conn.execute.return_value = None
 
     count = await generate_weekly_summaries(mock_db_pool)

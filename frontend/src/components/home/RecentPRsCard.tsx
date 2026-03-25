@@ -7,6 +7,7 @@ import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import { useRecentPRs } from '@/hooks/useAnalytics';
 import { useProfile } from '@/hooks/useProfile';
 import { formatRelativeDate } from '@/utils/formatters';
+import { DATA_FONT } from '@/theme';
 
 export function RecentPRsCard() {
   const { data: recentPRs, isLoading } = useRecentPRs();
@@ -14,7 +15,7 @@ export function RecentPRsCard() {
   const weightUnit = profile?.preferred_weight_unit ?? 'kg';
 
   if (isLoading) {
-    return <Skeleton variant="rounded" height={100} sx={{ borderRadius: '16px' }} />;
+    return <Skeleton variant="rounded" height={120} sx={{ borderRadius: '16px' }} />;
   }
 
   if (!recentPRs || recentPRs.length === 0) {
@@ -24,9 +25,25 @@ export function RecentPRsCard() {
   return (
     <Card>
       <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-        <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-          Recent PRs
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+          <Box
+            sx={{
+              width: 32,
+              height: 32,
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 152, 0, 0.10))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <EmojiEventsIcon sx={{ color: '#FFD700', fontSize: 18 }} />
+          </Box>
+          <Typography variant="subtitle1" fontWeight={600}>
+            Recent PRs
+          </Typography>
+        </Box>
         <Box
           sx={{
             display: 'flex',
@@ -38,31 +55,39 @@ export function RecentPRsCard() {
           }}
         >
           {recentPRs.map((pr) => (
-            <Card
+            <Box
               key={pr.id}
               sx={{
-                minWidth: 140,
-                bgcolor: 'rgba(255, 215, 0, 0.05)',
-                border: '1px solid rgba(255, 215, 0, 0.2)',
+                minWidth: 130,
                 flexShrink: 0,
+                p: 1.5,
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.10), rgba(255, 152, 0, 0.05))',
+                border: '1px solid rgba(255, 215, 0, 0.25)',
               }}
             >
-              <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                <EmojiEventsIcon sx={{ color: '#FFD700', fontSize: 20, mb: 0.5 }} />
-                <Typography variant="body2" fontWeight={600} noWrap>
-                  {pr.exerciseName || 'Exercise'}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {pr.recordType.replace('_', ' ')}
-                </Typography>
-                <Typography variant="body2" fontWeight={700} sx={{ color: '#FFD700' }}>
-                  {pr.value} {weightUnit}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {formatRelativeDate(pr.achievedAt)}
-                </Typography>
-              </CardContent>
-            </Card>
+              <Typography variant="body2" fontWeight={600} noWrap sx={{ mb: 0.25 }}>
+                {pr.exerciseName || 'Exercise'}
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>
+                {pr.recordType.replace('_', ' ')}
+              </Typography>
+              <Typography
+                sx={{
+                  fontFamily: DATA_FONT,
+                  fontSize: '1.125rem',
+                  fontWeight: 800,
+                  color: '#FFD700',
+                  lineHeight: 1,
+                  mb: 0.5,
+                }}
+              >
+                {pr.value} {weightUnit}
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.6875rem' }}>
+                {formatRelativeDate(pr.achievedAt)}
+              </Typography>
+            </Box>
           ))}
         </Box>
       </CardContent>

@@ -7,11 +7,33 @@ import Button from '@mui/material/Button';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useMuscleDistribution } from '@/hooks/useAnalytics';
 import { useNavigate } from '@tanstack/react-router';
+import { CHART_COLORS, DATA_FONT } from '@/theme';
 
-const MUSCLE_COLORS = [
-  '#A8C7FA', '#66BB6A', '#F9A825', '#EF5350', '#AB47BC',
-  '#26C6DA', '#FF7043', '#66BB6A', '#42A5F5', '#FFA726',
-];
+function CustomTooltip({ active, payload }: {
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; payload: { percentage: number } }>;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  const entry = payload[0]!;
+  return (
+    <Box
+      sx={{
+        backgroundColor: 'rgba(20, 24, 32, 0.95)',
+        border: '1px solid rgba(160, 170, 184, 0.15)',
+        borderRadius: '6px',
+        px: 1,
+        py: 0.5,
+      }}
+    >
+      <Typography variant="caption" sx={{ color: '#EAEEF4', fontWeight: 600 }}>
+        {entry.name}
+      </Typography>
+      <Typography sx={{ fontFamily: DATA_FONT, fontSize: '0.6875rem', color: '#A0AAB8' }}>
+        {Math.round(entry.value).toLocaleString()} vol · {entry.payload.percentage}%
+      </Typography>
+    </Box>
+  );
+}
 
 export function HomeMuscleDonut() {
   const { data, isLoading } = useMuscleDistribution('month');
@@ -26,7 +48,14 @@ export function HomeMuscleDonut() {
   }
 
   const totalVolume = data.reduce((sum, d) => sum + d.volume, 0);
-  const chartData = data.map((d) => ({ name: d.muscleName, value: d.volume }));
+
+  // Shannon entropy-based balance score (0-100)
+  const proportions = data.map(d => d.volume / totalVolume).filter(p => p > 0);
+  const maxEntropy = Math.log(proportions.length); // log of number of muscle groups
+  const entropy = -proportions.reduce((sum, p) => sum + p * Math.log(p), 0);
+  const balanceScore = maxEntropy > 0 ? Math.round((entropy / maxEntropy) * 100) : 0;
+
+  const chartData = data.map((d) => ({ name: d.muscleName, value: d.volume, percentage: d.percentage }));
 
   return (
     <Card>
@@ -60,10 +89,10 @@ export function HomeMuscleDonut() {
                   strokeWidth={0}
                 >
                   {chartData.map((_entry, index) => (
-                    <Cell key={`cell-${index}`} fill={MUSCLE_COLORS[index % MUSCLE_COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={CHART_COLORS.series[index % CHART_COLORS.series.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip content={<CustomTooltip />} />
               </PieChart>
             </ResponsiveContainer>
             <Box
@@ -76,11 +105,19 @@ export function HomeMuscleDonut() {
                 pointerEvents: 'none',
               }}
             >
-              <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.55rem' }}>
-                TOTAL
+              <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.6875rem' }}>
+                Balance
               </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', lineHeight: 1 }}>
-                {totalVolume >= 1000 ? `${(totalVolume / 1000).toFixed(0)}k` : Math.round(totalVolume)}
+              <Typography
+                sx={{
+                  fontFamily: DATA_FONT,
+                  fontWeight: 800,
+                  color: balanceScore >= 75 ? 'success.main' : balanceScore >= 50 ? 'warning.main' : 'error.main',
+                  lineHeight: 1,
+                  fontSize: '0.875rem',
+                }}
+              >
+                {balanceScore}
               </Typography>
             </Box>
           </Box>
@@ -94,14 +131,21 @@ export function HomeMuscleDonut() {
                     width: 8,
                     height: 8,
                     borderRadius: '2px',
-                    backgroundColor: MUSCLE_COLORS[index % MUSCLE_COLORS.length],
+                    backgroundColor: CHART_COLORS.series[index % CHART_COLORS.series.length],
                     flexShrink: 0,
                   }}
                 />
                 <Typography variant="caption" sx={{ color: 'text.secondary', flex: 1 }} noWrap>
                   {entry.muscleName}
                 </Typography>
-                <Typography variant="caption" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                <Typography
+                  sx={{
+                    fontFamily: DATA_FONT,
+                    fontSize: '0.6875rem',
+                    color: 'text.primary',
+                    fontWeight: 700,
+                  }}
+                >
                   {entry.percentage}%
                 </Typography>
               </Box>

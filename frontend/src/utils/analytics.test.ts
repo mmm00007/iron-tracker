@@ -9,6 +9,7 @@ import {
   volumeByMuscle,
   topExercises,
   e1rmTrend,
+  type MuscleActivation,
 } from './analytics';
 import type { WorkoutSet } from '@/types/database';
 
@@ -28,6 +29,14 @@ function makeSet(overrides: Partial<WorkoutSet> & { logged_at: string }): Workou
     notes: null,
     estimated_1rm: null,
     synced_at: null,
+    updated_at: new Date().toISOString(),
+    duration_seconds: null,
+    distance_meters: null,
+    distance_unit: null,
+    training_date: null,
+    side: null,
+    rest_seconds: null,
+    workout_cluster_id: null,
     ...overrides,
   };
 }
@@ -279,18 +288,42 @@ describe('computeStreak', () => {
 });
 
 describe('volumeByMuscle', () => {
-  it('splits volume evenly across muscles', () => {
+  it('splits volume evenly when no activation data', () => {
     const sets = [
       makeSet({ logged_at: '2025-03-20T10:00:00Z', exercise_id: 'bench', weight: 100, reps: 10 }),
     ];
 
-    // bench targets 2 muscles
-    const exerciseMuscles = new Map<string, number[]>([['bench', [1, 2]]]);
+    // bench targets 2 muscles, no activation data (legacy behavior)
+    const exerciseMuscles = new Map<string, MuscleActivation[]>([
+      ['bench', [
+        { muscleGroupId: 1, activationPercent: null },
+        { muscleGroupId: 2, activationPercent: null },
+      ]],
+    ]);
     const result = volumeByMuscle(sets, exerciseMuscles);
 
     // 100*10 = 1000 volume, split evenly = 500 each
     expect(result.get(1)).toBe(500);
     expect(result.get(2)).toBe(500);
+  });
+
+  it('weights volume by activation percentage when available', () => {
+    const sets = [
+      makeSet({ logged_at: '2025-03-20T10:00:00Z', exercise_id: 'bench', weight: 100, reps: 10 }),
+    ];
+
+    // bench: chest 90%, triceps 30% activation → total 120, weights: 75%/25%
+    const exerciseMuscles = new Map<string, MuscleActivation[]>([
+      ['bench', [
+        { muscleGroupId: 1, activationPercent: 90 },
+        { muscleGroupId: 2, activationPercent: 30 },
+      ]],
+    ]);
+    const result = volumeByMuscle(sets, exerciseMuscles);
+
+    // 1000 * (90/120) = 750, 1000 * (30/120) = 250
+    expect(result.get(1)).toBe(750);
+    expect(result.get(2)).toBe(250);
   });
 
   it('returns empty map for sets with no muscle mappings', () => {

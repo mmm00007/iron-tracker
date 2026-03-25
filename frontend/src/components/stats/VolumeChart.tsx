@@ -2,8 +2,9 @@ import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import {
-  BarChart,
+  ComposedChart,
   Bar,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -13,20 +14,11 @@ import {
   Cell,
 } from 'recharts';
 import type { WeeklyVolumeEntry } from '@/utils/analytics';
-
-const VARIANT_COLORS = [
-  '#A8C7FA',
-  '#66BB6A',
-  '#F9A825',
-  '#EF5350',
-  '#AB47BC',
-];
+import { CHART_COLORS, DATA_FONT } from '@/theme';
 
 function formatWeek(weekStr: string): string {
-  // weekStr is YYYY-Www; convert to readable label like "Jan 6"
   const [year, week] = weekStr.split('-W');
-  // Compute the Monday of that ISO week
-  const jan4 = new Date(Number(year), 0, 4); // Jan 4 is always in week 1
+  const jan4 = new Date(Number(year), 0, 4);
   const jan4DayOfWeek = jan4.getDay() || 7;
   const monday = new Date(jan4);
   monday.setDate(jan4.getDate() - (jan4DayOfWeek - 1) + (Number(week) - 1) * 7);
@@ -35,34 +27,52 @@ function formatWeek(weekStr: string): string {
 
 interface CustomTooltipProps {
   active?: boolean;
-  payload?: Array<{ value: number; name: string; color: string }>;
+  payload?: Array<{ value: number; name: string; color: string; dataKey: string }>;
   label?: string;
 }
 
 function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   if (!active || !payload || payload.length === 0) return null;
-  const total = payload.reduce((sum, p) => sum + p.value, 0);
+  const barPayloads = payload.filter((p) => p.dataKey !== 'movingAvg');
+  const total = barPayloads.reduce((sum, p) => sum + p.value, 0);
   return (
     <Box
       sx={{
-        backgroundColor: 'surface.containerHigh',
-        border: '1px solid rgba(202, 196, 208, 0.2)',
+        backgroundColor: 'rgba(20, 24, 32, 0.95)',
+        border: '1px solid rgba(160, 170, 184, 0.12)',
         borderRadius: '8px',
         p: 1.5,
+        backdropFilter: 'blur(8px)',
       }}
     >
-      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>
+      <Typography variant="caption" sx={{ color: '#A0AAB8', display: 'block', mb: 0.5 }}>
         {label ? formatWeek(label) : ''}
       </Typography>
-      {payload.map((p, i) => (
+      {barPayloads.map((p, i) => (
         <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <Box sx={{ width: 8, height: 8, borderRadius: '2px', backgroundColor: p.color }} />
-          <Typography variant="caption" sx={{ color: 'text.primary' }}>
-            {p.name}: {Math.round(p.value).toLocaleString()}
+          <Typography variant="caption" sx={{ color: '#EAEEF4' }}>
+            {p.name}:{' '}
+          </Typography>
+          <Typography
+            sx={{ fontFamily: DATA_FONT, fontSize: '0.75rem', fontWeight: 700, color: '#EAEEF4' }}
+          >
+            {Math.round(p.value).toLocaleString()}
           </Typography>
         </Box>
       ))}
-      <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600, display: 'block', mt: 0.5 }}>
+      <Typography
+        sx={{
+          fontFamily: DATA_FONT,
+          fontSize: '0.75rem',
+          fontWeight: 700,
+          color: CHART_COLORS.primary,
+          display: 'block',
+          mt: 0.5,
+          pt: 0.5,
+          borderTop: '1px solid rgba(160, 170, 184, 0.12)',
+        }}
+      >
         Total: {Math.round(total).toLocaleString()}
       </Typography>
     </Box>
@@ -73,7 +83,6 @@ interface VolumeChartProps {
   data: WeeklyVolumeEntry[];
   isLoading?: boolean;
   isError?: boolean;
-  /** Map from variantId (or 'none') to display name */
   variantNames?: Map<string, string>;
 }
 
@@ -111,8 +120,8 @@ export function VolumeChart({ data, isLoading, isError, variantNames }: VolumeCh
   const variantKeys = [...new Set(data.flatMap((d) => Object.keys(d.variantBreakdown)))];
   const isMultiVariant = variantKeys.length > 1 || (variantKeys.length === 1 && variantKeys[0] !== 'none');
 
-  // Build chart data
-  const chartData = data.map((entry) => {
+  // Build chart data with moving average
+  const chartData = data.map((entry, idx) => {
     const row: Record<string, string | number> = { week: entry.week };
     if (isMultiVariant) {
       for (const key of variantKeys) {
@@ -121,6 +130,10 @@ export function VolumeChart({ data, isLoading, isError, variantNames }: VolumeCh
     } else {
       row['volume'] = entry.volume;
     }
+    // 4-week simple moving average
+    const windowStart = Math.max(0, idx - 3);
+    const windowSlice = data.slice(windowStart, idx + 1);
+    row['movingAvg'] = Math.round(windowSlice.reduce((s, e) => s + e.volume, 0) / windowSlice.length);
     return row;
   });
 
@@ -131,20 +144,20 @@ export function VolumeChart({ data, isLoading, isError, variantNames }: VolumeCh
   };
 
   return (
-    <Box sx={{ width: '100%', height: { xs: 240, md: 320, lg: 400 } }}>
+    <Box sx={{ width: '100%', height: { xs: 260, md: 340, lg: 420 } }}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={chartData} margin={{ top: 5, right: 12, left: -10, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(202, 196, 208, 0.1)" vertical={false} />
+        <ComposedChart data={chartData} margin={{ top: 8, right: 12, left: -8, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(160, 170, 184, 0.06)" vertical={false} />
           <XAxis
             dataKey="week"
             tickFormatter={formatWeek}
-            tick={{ fill: '#CAC4D0', fontSize: 10 }}
-            axisLine={{ stroke: 'rgba(202, 196, 208, 0.2)' }}
+            tick={{ fill: '#636D7E', fontSize: 10, fontFamily: DATA_FONT }}
+            axisLine={{ stroke: 'rgba(160, 170, 184, 0.1)' }}
             tickLine={false}
             interval="preserveStartEnd"
           />
           <YAxis
-            tick={{ fill: '#CAC4D0', fontSize: 10 }}
+            tick={{ fill: '#636D7E', fontSize: 10, fontFamily: DATA_FONT }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`}
@@ -155,7 +168,7 @@ export function VolumeChart({ data, isLoading, isError, variantNames }: VolumeCh
             <Legend
               formatter={(value) => (
                 <Typography component="span" variant="caption" sx={{ color: 'text.secondary' }}>
-                  {getVariantLabel(value)}
+                  {value === 'movingAvg' ? '4-wk avg' : getVariantLabel(value)}
                 </Typography>
               )}
             />
@@ -167,21 +180,32 @@ export function VolumeChart({ data, isLoading, isError, variantNames }: VolumeCh
                 dataKey={key}
                 name={getVariantLabel(key)}
                 stackId="a"
-                fill={VARIANT_COLORS[i % VARIANT_COLORS.length]}
-                radius={i === variantKeys.length - 1 ? [3, 3, 0, 0] : [0, 0, 0, 0]}
+                fill={CHART_COLORS.series[i % CHART_COLORS.series.length]}
+                radius={i === variantKeys.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
               />
             ))
           ) : (
-            <Bar dataKey="volume" name="Volume" fill="#A8C7FA" radius={[3, 3, 0, 0]}>
+            <Bar dataKey="volume" name="Volume" fill={CHART_COLORS.primary} radius={[4, 4, 0, 0]}>
               {chartData.map((_entry, index) => (
                 <Cell
                   key={`cell-${index}`}
-                  fill={index === chartData.length - 1 ? '#5B8DEF' : '#A8C7FA'}
+                  fill={index === chartData.length - 1 ? CHART_COLORS.primary : `${CHART_COLORS.primary}80`}
                 />
               ))}
             </Bar>
           )}
-        </BarChart>
+          {/* 4-week moving average trend line */}
+          <Line
+            type="monotone"
+            dataKey="movingAvg"
+            name="4-wk avg"
+            stroke="#F9A825"
+            strokeWidth={2}
+            strokeDasharray="6 3"
+            dot={false}
+            activeDot={false}
+          />
+        </ComposedChart>
       </ResponsiveContainer>
     </Box>
   );

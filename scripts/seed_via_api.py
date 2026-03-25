@@ -8,9 +8,13 @@ import re
 import sys
 import urllib.request
 
-PROJECT_ID = "sdgqxhpdkwpxxvnzubpy"
+PROJECT_ID = os.environ.get("SUPABASE_PROJECT_ID", "")
 API_URL = f"https://api.supabase.com/v1/projects/{PROJECT_ID}/database/query"
-TOKEN = "sbp_e054eedb99faa2fa56e52802db6dc5b81f8e066f"
+TOKEN = os.environ.get("SUPABASE_PAT", "")
+
+if not PROJECT_ID or not TOKEN:
+    print("Error: SUPABASE_PROJECT_ID and SUPABASE_PAT environment variables must be set.")
+    sys.exit(1)
 CHUNK_SIZE = 20  # statements per API call
 
 

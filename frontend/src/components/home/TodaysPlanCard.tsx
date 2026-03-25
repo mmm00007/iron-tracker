@@ -21,6 +21,7 @@ export function TodaysPlanCard() {
     <Card
       sx={{
         border: '1px solid rgba(168, 199, 250, 0.2)',
+        backgroundColor: 'surface.container',
         background: 'linear-gradient(135deg, rgba(168, 199, 250, 0.06) 0%, rgba(168, 199, 250, 0.02) 100%)',
       }}
     >
@@ -31,7 +32,7 @@ export function TodaysPlanCard() {
             <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600 }}>
               Today's Plan · {dayLabel}
             </Typography>
-            <Chip label={plan.name} size="small" sx={{ height: 20, fontSize: '0.6rem' }} />
+            <Chip label={plan.name} size="small" sx={{ height: 24, fontSize: '0.65rem' }} />
           </Box>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
             {day.items.map((item) => (
@@ -40,7 +41,7 @@ export function TodaysPlanCard() {
                 label={`${item.exerciseName ?? 'Exercise'} ${item.target_sets}×${item.target_reps_min}-${item.target_reps_max}`}
                 size="small"
                 variant="outlined"
-                sx={{ fontSize: '0.7rem', height: 22 }}
+                sx={{ fontSize: '0.75rem', height: 28 }}
               />
             ))}
           </Box>

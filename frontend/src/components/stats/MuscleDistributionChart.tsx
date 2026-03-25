@@ -5,20 +5,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import type { MuscleDistributionEntry } from '@/hooks/useAnalytics';
-
-// Chart colors for dark theme
-const MUSCLE_COLORS = [
-  '#A8C7FA', // primary blue
-  '#66BB6A', // green
-  '#F9A825', // amber
-  '#EF5350', // red
-  '#AB47BC', // purple
-  '#26C6DA', // cyan
-  '#FF7043', // deep orange
-  '#66BB6A', // green 2
-  '#42A5F5', // light blue
-  '#FFA726', // orange
-];
+import { CHART_COLORS, DATA_FONT } from '@/theme';
 
 interface CustomTooltipProps {
   active?: boolean;
@@ -31,16 +18,17 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   return (
     <Box
       sx={{
-        backgroundColor: 'surface.containerHigh',
-        border: '1px solid rgba(202, 196, 208, 0.2)',
-        borderRadius: '8px',
-        p: 1,
+        backgroundColor: 'rgba(20, 24, 32, 0.95)',
+        border: '1px solid rgba(160, 170, 184, 0.12)',
+        borderRadius: '6px',
+        px: 1.5,
+        py: 0.75,
       }}
     >
-      <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 600 }}>
+      <Typography variant="body2" sx={{ color: '#EAEEF4', fontWeight: 600 }}>
         {entry.name}
       </Typography>
-      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+      <Typography sx={{ fontFamily: DATA_FONT, fontSize: '0.75rem', color: '#A0AAB8' }}>
         {Math.round(entry.payload.volume).toLocaleString()} vol · {entry.payload.percentage}%
       </Typography>
     </Box>
@@ -90,16 +78,24 @@ export function MuscleDistributionChart({ data, isLoading, isError }: MuscleDist
         )}
 
         {!isLoading && !isError && data.length > 0 && (
-          <>
-            <Box sx={{ position: 'relative', height: { xs: 220, md: 280, lg: 320 } }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', md: 'row' },
+              alignItems: { xs: 'center', md: 'flex-start' },
+              gap: 2,
+            }}
+          >
+            {/* Donut chart */}
+            <Box sx={{ position: 'relative', height: { xs: 200, md: 240, lg: 280 }, width: { xs: '100%', md: '55%' } }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={chartData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={55}
-                    outerRadius={85}
+                    innerRadius="55%"
+                    outerRadius="85%"
                     paddingAngle={2}
                     dataKey="value"
                     strokeWidth={0}
@@ -107,7 +103,7 @@ export function MuscleDistributionChart({ data, isLoading, isError }: MuscleDist
                     {chartData.map((_entry, index) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={MUSCLE_COLORS[index % MUSCLE_COLORS.length]}
+                        fill={CHART_COLORS.series[index % CHART_COLORS.series.length]}
                       />
                     ))}
                   </Pie>
@@ -126,10 +122,18 @@ export function MuscleDistributionChart({ data, isLoading, isError }: MuscleDist
                   pointerEvents: 'none',
                 }}
               >
-                <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', fontSize: '0.65rem' }}>
+                <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', fontSize: '0.6rem' }}>
                   TOTAL VOL
                 </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary', lineHeight: 1 }}>
+                <Typography
+                  sx={{
+                    fontFamily: DATA_FONT,
+                    fontWeight: 800,
+                    color: 'text.primary',
+                    lineHeight: 1,
+                    fontSize: { xs: '1.125rem', md: '1.25rem' },
+                  }}
+                >
                   {totalVolume >= 1000
                     ? `${(totalVolume / 1000).toFixed(1)}k`
                     : Math.round(totalVolume)}
@@ -137,9 +141,9 @@ export function MuscleDistributionChart({ data, isLoading, isError }: MuscleDist
               </Box>
             </Box>
 
-            {/* Custom legend */}
-            <Box sx={{ mt: 1 }}>
-              {data.slice(0, 6).map((entry, index) => (
+            {/* Legend */}
+            <Box sx={{ flex: 1, width: '100%' }}>
+              {data.slice(0, 8).map((entry, index) => (
                 <Box
                   key={entry.muscleGroupId}
                   sx={{
@@ -155,7 +159,7 @@ export function MuscleDistributionChart({ data, isLoading, isError }: MuscleDist
                         width: 10,
                         height: 10,
                         borderRadius: '2px',
-                        backgroundColor: MUSCLE_COLORS[index % MUSCLE_COLORS.length],
+                        backgroundColor: CHART_COLORS.series[index % CHART_COLORS.series.length],
                         flexShrink: 0,
                       }}
                     />
@@ -163,18 +167,39 @@ export function MuscleDistributionChart({ data, isLoading, isError }: MuscleDist
                       {entry.muscleName}
                     </Typography>
                   </Box>
-                  <Typography variant="caption" sx={{ color: 'text.primary', fontWeight: 600 }}>
-                    {entry.percentage}%
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography
+                      sx={{
+                        fontFamily: DATA_FONT,
+                        fontSize: '0.6875rem',
+                        color: 'text.disabled',
+                        fontWeight: 400,
+                      }}
+                    >
+                      {Math.round(entry.volume).toLocaleString()}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontFamily: DATA_FONT,
+                        fontSize: '0.75rem',
+                        color: 'text.primary',
+                        fontWeight: 700,
+                        minWidth: 32,
+                        textAlign: 'right',
+                      }}
+                    >
+                      {entry.percentage}%
+                    </Typography>
+                  </Box>
                 </Box>
               ))}
-              {data.length > 6 && (
+              {data.length > 8 && (
                 <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mt: 0.5 }}>
-                  +{data.length - 6} more muscle groups
+                  +{data.length - 8} more muscle groups
                 </Typography>
               )}
             </Box>
-          </>
+          </Box>
         )}
       </CardContent>
     </Card>

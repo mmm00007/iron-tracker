@@ -35,7 +35,7 @@ export function BottomNav({ activeTab, onChange }: NavProps) {
                 transform: 'translateX(-50%)',
                 width: '64px',
                 height: '32px',
-                backgroundColor: 'rgba(168, 199, 250, 0.16)',
+                backgroundColor: 'rgba(91, 234, 162, 0.12)',
                 borderRadius: '100px',
                 zIndex: -1,
               },

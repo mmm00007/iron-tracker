@@ -7,50 +7,44 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import { useTrainingFrequency } from '@/hooks/useAnalytics';
 import type { DayActivity } from '@/utils/analytics';
-import { theme } from '@/theme';
+import { DATA_FONT, CHART_COLORS } from '@/theme';
 
-// ─── Color scale ───────────────────────────────────────────────────────────────
+// ─── Color scale (uses primary green gradient) ──────────────────────────────
 
 function volumeToColor(volume: number, maxVolume: number): string {
-  if (volume === 0 || maxVolume === 0) return theme.palette.surface.containerHigh; // empty cell
+  if (volume === 0 || maxVolume === 0) return 'rgba(160, 170, 184, 0.06)'; // empty cell
   const ratio = Math.min(volume / maxVolume, 1);
 
-  if (ratio < 0.25) return '#1A3A5C'; // low — dark blue
-  if (ratio < 0.5) return '#1565C0';  // mid-low — blue
-  if (ratio < 0.75) return '#2E7D32'; // mid-high — green
-  return '#F9A825';                   // high — yellow
+  if (ratio < 0.25) return `${CHART_COLORS.primary}25`;
+  if (ratio < 0.5) return `${CHART_COLORS.primary}50`;
+  if (ratio < 0.75) return `${CHART_COLORS.primary}90`;
+  return CHART_COLORS.primary;
 }
 
-// ─── Build grid ───────────────────────────────────────────────────────────────
+// ─── Build grid ──────────────────────────────────────────────────────────────
 
 interface CalCell {
-  date: string; // YYYY-MM-DD
+  date: string;
   volume: number;
   setCount: number;
-  dayOfWeek: number; // 0=Sun, 6=Sat
+  dayOfWeek: number;
 }
 
-function buildCalendarGrid(activities: DayActivity[]): { cells: (CalCell | null)[][]; weeks: string[] } {
+function buildCalendarGrid(activities: DayActivity[]): { cells: (CalCell | null)[][] } {
   const activityMap = new Map(activities.map((a) => [a.date, a]));
-
-  // Start 12 weeks ago from today (Monday)
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
 
-  // Find the Monday 12 weeks back
   const startDate = new Date(today);
-  const dayOfWeek = today.getDay() || 7; // Monday = 1, Sunday = 7
-  startDate.setDate(today.getDate() - dayOfWeek + 1 - 11 * 7); // back to Monday 12 weeks ago
+  const dayOfWeek = today.getDay() || 7;
+  startDate.setDate(today.getDate() - dayOfWeek + 1 - 11 * 7);
 
-  // Build 12 weeks × 7 days grid (row = week, col = day of week Mon–Sun)
-  const weeks: string[] = [];
   const cells: (CalCell | null)[][] = [];
 
   for (let w = 0; w < 12; w++) {
     const week: (CalCell | null)[] = [];
     const weekStart = new Date(startDate);
     weekStart.setDate(startDate.getDate() + w * 7);
-    weeks.push(weekStart.toISOString().slice(0, 10));
 
     for (let d = 0; d < 7; d++) {
       const date = new Date(weekStart);
@@ -58,7 +52,7 @@ function buildCalendarGrid(activities: DayActivity[]): { cells: (CalCell | null)
       const dateStr = date.toISOString().slice(0, 10);
 
       if (dateStr > todayStr) {
-        week.push(null); // future dates
+        week.push(null);
         continue;
       }
 
@@ -73,19 +67,18 @@ function buildCalendarGrid(activities: DayActivity[]): { cells: (CalCell | null)
     cells.push(week);
   }
 
-  return { cells, weeks };
+  return { cells };
 }
 
 const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export function TrainingCalendar() {
   const { data, isLoading, isError } = useTrainingFrequency();
   const [tooltip, setTooltip] = useState<{ date: string; volume: number; sets: number } | null>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
 
-  // Clear tooltip when tapping outside the calendar grid (touch devices)
   useEffect(() => {
     if (!tooltip) return;
     const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
@@ -101,19 +94,33 @@ export function TrainingCalendar() {
     };
   }, [tooltip]);
 
-  const { cells, maxVolume } = useMemo(() => {
-    if (!data) return { cells: [], maxVolume: 0 };
+  const { cells, maxVolume, totalDays } = useMemo(() => {
+    if (!data) return { cells: [], maxVolume: 0, totalDays: 0 };
     const { cells } = buildCalendarGrid(data);
     const maxVol = Math.max(...data.map((a) => a.volume), 1);
-    return { cells, maxVolume: maxVol };
+    return { cells, maxVolume: maxVol, totalDays: data.length };
   }, [data]);
 
   return (
     <Card sx={{ mb: 2 }}>
       <CardContent sx={{ p: { xs: 1.5, md: 2 }, '&:last-child': { pb: { xs: 1.5, md: 2 } } }}>
-        <Typography variant="overline" sx={{ color: 'text.secondary', display: 'block', mb: 1.5 }}>
-          Training Calendar
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+          <Typography variant="overline" sx={{ color: 'text.secondary' }}>
+            Training Calendar
+          </Typography>
+          {totalDays > 0 && (
+            <Typography
+              sx={{
+                fontFamily: DATA_FONT,
+                fontSize: '0.6875rem',
+                fontWeight: 700,
+                color: CHART_COLORS.primary,
+              }}
+            >
+              {totalDays} days
+            </Typography>
+          )}
+        </Box>
 
         {isLoading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
@@ -145,7 +152,8 @@ export function TrainingCalendar() {
                   sx={{
                     color: 'text.disabled',
                     textAlign: 'center',
-                    fontSize: '0.6rem',
+                    fontSize: '0.55rem',
+                    fontFamily: DATA_FONT,
                     lineHeight: 1,
                   }}
                 >
@@ -154,7 +162,7 @@ export function TrainingCalendar() {
               ))}
             </Box>
 
-            {/* Calendar grid — rows = weeks, cols = days */}
+            {/* Calendar grid */}
             <Box
               ref={calendarRef}
               sx={{
@@ -209,7 +217,7 @@ export function TrainingCalendar() {
                             backgroundColor: color,
                             cursor: cell.volume > 0 ? 'pointer' : 'default',
                             transition: 'transform 0.1s',
-                            outline: isSelected ? '2px solid rgba(255,255,255,0.5)' : 'none',
+                            outline: isSelected ? `2px solid ${CHART_COLORS.primary}` : 'none',
                             '&:hover': cell.volume > 0
                               ? { transform: 'scale(1.2)', zIndex: 1 }
                               : {},
@@ -224,7 +232,6 @@ export function TrainingCalendar() {
                               setTooltip(null);
                               return;
                             }
-                            // Toggle off if same cell tapped again; otherwise show this cell
                             setTooltip(isSelected
                               ? null
                               : { date: cell.date, volume: cell.volume, sets: cell.setCount }
@@ -240,21 +247,31 @@ export function TrainingCalendar() {
 
             {/* Legend */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1.5, justifyContent: 'flex-end' }}>
-              <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.6rem' }}>
+              <Typography
+                sx={{ color: 'text.disabled', fontSize: '0.55rem', fontFamily: DATA_FONT }}
+              >
                 Less
               </Typography>
-              {[theme.palette.surface.containerHigh, '#1A3A5C', '#1565C0', '#2E7D32', '#F9A825'].map((color) => (
+              {[
+                'rgba(160, 170, 184, 0.06)',
+                `${CHART_COLORS.primary}25`,
+                `${CHART_COLORS.primary}50`,
+                `${CHART_COLORS.primary}90`,
+                CHART_COLORS.primary,
+              ].map((c) => (
                 <Box
-                  key={color}
+                  key={c}
                   sx={{
                     width: 10,
                     height: 10,
                     borderRadius: '2px',
-                    backgroundColor: color,
+                    backgroundColor: c,
                   }}
                 />
               ))}
-              <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.6rem' }}>
+              <Typography
+                sx={{ color: 'text.disabled', fontSize: '0.55rem', fontFamily: DATA_FONT }}
+              >
                 More
               </Typography>
             </Box>
@@ -266,12 +283,19 @@ export function TrainingCalendar() {
                   mt: 1,
                   p: 1,
                   borderRadius: '8px',
-                  backgroundColor: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(202, 196, 208, 0.12)',
+                  backgroundColor: 'rgba(91, 234, 162, 0.04)',
+                  border: `1px solid ${CHART_COLORS.primary}20`,
                 }}
               >
                 <Typography variant="caption" sx={{ color: 'text.primary' }}>
-                  {tooltip.date} · {tooltip.sets} sets · {Math.round(tooltip.volume)} vol
+                  {tooltip.date} ·{' '}
+                  <Box component="span" sx={{ fontFamily: DATA_FONT, fontWeight: 700 }}>
+                    {tooltip.sets} sets
+                  </Box>{' '}
+                  ·{' '}
+                  <Box component="span" sx={{ fontFamily: DATA_FONT, fontWeight: 700, color: CHART_COLORS.primary }}>
+                    {Math.round(tooltip.volume)} vol
+                  </Box>
                 </Typography>
               </Box>
             )}

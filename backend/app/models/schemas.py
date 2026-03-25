@@ -221,6 +221,14 @@ class AdvancedAnalyticsDashboard(BaseModel):
     muscle_frequency: "MuscleFrequencyResponse | None" = None
     staleness: "StalenessResponse | None" = None
     load_distribution: "LoadDistributionResponse | None" = None
+    # Deep insight analytics
+    bilateral_asymmetry: "BilateralAsymmetryResponse | None" = None
+    body_composition: "BodyCompositionResponse | None" = None
+    training_density: "TrainingDensityResponse | None" = None
+    sleep_performance: "SleepPerformanceResponse | None" = None
+    time_performance: "TimePerformanceResponse | None" = None
+    rest_analysis: "RestAnalysisResponse | None" = None
+    relative_strength: "RelativeStrengthResponse | None" = None
 
 
 # ─── ACWR Models ─────────────────────────────────────────────────────────────
@@ -493,3 +501,223 @@ class LoadDistributionResponse(BaseModel):
     busiest_day: str | None
     lightest_day: str | None
     period_weeks: int
+
+
+# ─── Bilateral Asymmetry Detection ────────────────────────────────────────────
+
+
+class AsymmetryExerciseEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    exercise_id: str
+    exercise_name: str
+    laterality: str | None
+    left_e1rm: float
+    right_e1rm: float
+    asymmetry_pct: float
+    lsi: float
+    dominant_side: str
+    severity: str
+    left_volume: float
+    right_volume: float
+    data_points_left: int
+    data_points_right: int
+
+
+class BilateralAsymmetryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    exercises: list[AsymmetryExerciseEntry]
+    avg_asymmetry: float | None
+    flagged_count: int
+    normal_count: int
+    period_days: int
+    disclaimer: str
+
+
+# ─── Body Composition Analytics ───────────────────────────────────────────────
+
+
+class WeightTrendEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    date: str
+    weight_kg: float
+    ema_kg: float
+    body_fat_pct: float | None
+
+
+class BodyCompositionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    current_weight_kg: float | None
+    weight_trend: list[WeightTrendEntry]
+    weight_change_kg: float | None
+    weight_change_pct: float | None
+    bmi: float | None
+    bmi_label: str | None
+    ffmi: float | None
+    ffmi_normalized: float | None
+    ffmi_label: str | None
+    body_fat_pct: float | None
+    lean_mass_kg: float | None
+    data_points: int
+    period_days: int
+    disclaimer: str
+
+
+# ─── Training Density / Efficiency ────────────────────────────────────────────
+
+
+class SessionDensityEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    training_date: str
+    cluster_id: str
+    duration_minutes: float
+    working_sets: int
+    total_volume_kg: float
+    sets_per_hour: float
+    volume_per_minute: float
+    exercise_count: int
+
+
+class TrainingDensityResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    sessions: list[SessionDensityEntry]
+    avg_sets_per_hour: float | None
+    avg_volume_per_minute: float | None
+    trend_direction: str
+    trend_slope: float | None
+    period_days: int
+    disclaimer: str
+
+
+# ─── Sleep-Performance Correlation ────────────────────────────────────────────
+
+
+class SleepBucketEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    bucket: str
+    sleep_range: str
+    session_count: int
+    avg_volume_kg: float
+    avg_e1rm: float | None
+    avg_rpe: float | None
+
+
+class SleepPerformanceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    correlation_sleep_volume: float | None
+    correlation_sleep_e1rm: float | None
+    correlation_sleep_rpe: float | None
+    correlation_label: str
+    confidence: str
+    sleep_buckets: list[SleepBucketEntry]
+    avg_sleep_hours: float | None
+    optimal_sleep_range: str | None
+    data_points: int
+    period_days: int
+    disclaimer: str
+
+
+# ─── Time-of-Day Performance ─────────────────────────────────────────────────
+
+
+class TimeWindowEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    window: str
+    hour_range: str
+    session_count: int
+    avg_e1rm_pct: float | None
+    avg_volume_kg: float
+    avg_rpe: float | None
+    working_sets: int
+
+
+class TimePerformanceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    windows: list[TimeWindowEntry]
+    best_window: str | None
+    best_window_advantage_pct: float | None
+    data_coverage: str
+    period_days: int
+    disclaimer: str
+
+
+# ─── Rest Period Analysis ─────────────────────────────────────────────────────
+
+
+class RestByTypeEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    category: str
+    mechanic: str | None
+    set_count: int
+    avg_rest: float
+    median_rest: float
+    p25_rest: float
+    p75_rest: float
+    optimal_range_low: float
+    optimal_range_high: float
+    compliance_pct: float
+
+
+class RestTrendEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    week_start: str
+    avg_rest: float
+    sets_with_rest: int
+
+
+class RestAnalysisResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    by_type: list[RestByTypeEntry]
+    weekly_trend: list[RestTrendEntry]
+    overall_avg_rest: float | None
+    overall_median_rest: float | None
+    rest_coverage_pct: float
+    flags: list[str]
+    period_days: int
+    disclaimer: str
+
+
+# ─── Relative Strength Index ─────────────────────────────────────────────────
+
+
+class RelativeStrengthEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    exercise_id: str
+    exercise_name: str
+    e1rm_kg: float
+    bw_ratio: float
+    dots_score: float | None
+
+
+class RelativeStrengthTrendEntry(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    date: str
+    total_dots: float
+    bodyweight_kg: float
+
+
+class RelativeStrengthResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    exercises: list[RelativeStrengthEntry]
+    total_dots: float | None
+    bodyweight_kg: float | None
+    sex: str
+    bw_data_age_days: int | None
+    trend: list[RelativeStrengthTrendEntry]
+    period_days: int
+    disclaimer: str

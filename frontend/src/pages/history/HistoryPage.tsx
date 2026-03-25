@@ -214,7 +214,7 @@ export function HistoryPage() {
                 onClick={() => setDateFilter(f)}
                 color={dateFilter === f ? 'primary' : 'default'}
                 variant={dateFilter === f ? 'filled' : 'outlined'}
-                sx={{ fontSize: '0.7rem' }}
+                sx={{ fontSize: '0.75rem', flexShrink: 0 }}
               />
             ))}
           </Stack>
@@ -237,7 +237,7 @@ export function HistoryPage() {
             sx={{
               display: 'grid',
               gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
-              gap: { xs: 0, md: 2 },
+              gap: { xs: 1.5, md: 2 },
             }}
           >
             {filteredSessions.map((session) => (

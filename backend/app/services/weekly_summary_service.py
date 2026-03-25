@@ -1,20 +1,23 @@
 import json
 import logging
 import uuid
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import asyncpg
+
+from app.services.muscle_workload_service import compute_muscle_workload
+from app.services.periodization_service import compute_body_part_balance
+from app.services.volume_landmarks_service import compute_volume_landmarks
 
 logger = logging.getLogger(__name__)
 
 
 async def generate_weekly_summaries(db_pool: asyncpg.Pool) -> int:
-    """Generate weekly training summaries for all active users.
+    """Generate enriched weekly training summaries for all active users.
 
     Returns the number of summaries generated.
     """
-    # Find users who trained in the last 7 days
-    week_ago = datetime.utcnow() - timedelta(days=7)
+    week_ago = datetime.now(UTC) - timedelta(days=7)
 
     async with db_pool.acquire() as conn:
         user_ids = await conn.fetch(
@@ -43,10 +46,10 @@ async def _generate_user_summary(
     since: datetime,
 ) -> None:
     async with db_pool.acquire() as conn:
-        # This week's stats
         rows = await conn.fetch(
             """
-            SELECT s.weight, s.reps, s.logged_at, e.name AS exercise_name, e.category
+            SELECT s.weight, s.reps, s.rpe, s.set_type, s.logged_at,
+                   e.name AS exercise_name, e.category
             FROM sets s
             JOIN exercises e ON s.exercise_id = e.id
             WHERE s.user_id = $1 AND s.logged_at >= $2
@@ -62,7 +65,8 @@ async def _generate_user_summary(
         total_sets = len(rows)
         total_volume = sum(r["weight"] * r["reps"] for r in rows)
         training_days = len(set(r["logged_at"].strftime("%Y-%m-%d") for r in rows))
-        exercises = {}
+
+        exercises: dict[str, dict] = {}
         for r in rows:
             name = r["exercise_name"]
             if name not in exercises:
@@ -72,24 +76,138 @@ async def _generate_user_summary(
 
         top_exercises = sorted(exercises.items(), key=lambda x: -x[1]["volume"])[:5]
 
-        summary = {
-            "week_ending": datetime.utcnow().strftime("%Y-%m-%d"),
-            "total_sets": total_sets,
-            "total_volume": round(total_volume),
-            "training_days": training_days,
-            "top_exercises": [
-                {"name": name, "sets": data["sets"], "volume": round(data["volume"])}
-                for name, data in top_exercises
-            ],
-        }
+        # ── Compute advanced metrics for richer insights ──
+        working_types = {"working", "top", "drop", "backoff", "failure"}
+        rpe_values = [
+            float(r["rpe"])
+            for r in rows
+            if r["rpe"] is not None and (r["set_type"] or "working") in working_types
+        ]
+        avg_rpe = round(sum(rpe_values) / len(rpe_values), 1) if rpe_values else None
+        effective_sets = sum(1 for r in rows if r["rpe"] is not None and float(r["rpe"]) >= 7)
 
-        # Store as an analysis report with scope_type='week'
-        report_id = str(uuid.uuid4())
+        # Get advanced analytics (these are cheap DB queries)
+        try:
+            workload = await compute_muscle_workload(user_id, db_pool, period_days=7)
+            balance_index = workload.balance_index
+            balance_label = workload.balance_label
+        except Exception:
+            balance_index = None
+            balance_label = None
+
+        try:
+            landmarks = await compute_volume_landmarks(user_id, db_pool)
+            muscles_over_mrv = landmarks.muscles_over_mrv
+            muscles_below_mev = landmarks.muscles_below_mev
+        except Exception:
+            muscles_over_mrv = 0
+            muscles_below_mev = 0
+
+        try:
+            balance = await compute_body_part_balance(user_id, db_pool, period_days=7)
+            push_pull_ratio = balance.push_pull_ratio
+            push_pull_status = balance.push_pull_status
+        except Exception:
+            push_pull_ratio = None
+            push_pull_status = None
+
+        # ── Build insights array ──
+        insights = []
+
+        # Core overview
         summary_text = (
             f"This week: {total_sets} sets across {training_days} days, "
             f"{round(total_volume)} total volume. "
             f"Top exercise: {top_exercises[0][0] if top_exercises else 'N/A'}."
         )
+
+        consistency_rec = (
+            "Great consistency!"
+            if training_days >= 4
+            else "Try to add another training day next week."
+        )
+        insights.append(
+            {
+                "metric": "Weekly Overview",
+                "finding": summary_text,
+                "delta": None,
+                "recommendation": f"You trained {training_days} days. {consistency_rec}",
+            }
+        )
+
+        # Intensity insight
+        if avg_rpe is not None:
+            if avg_rpe > 8.5:
+                rpe_rec = "Average RPE is very high. Consider incorporating lighter sessions to manage fatigue."
+            elif avg_rpe < 6.0:
+                rpe_rec = "Average RPE is low. You may benefit from pushing closer to failure on working sets."
+            else:
+                rpe_rec = "Good intensity management. Most sets are in the productive RPE range."
+            insights.append(
+                {
+                    "metric": "Training Intensity",
+                    "finding": f"Average RPE: {avg_rpe}. Effective sets (RPE≥7): {effective_sets}/{total_sets}.",
+                    "delta": None,
+                    "recommendation": rpe_rec,
+                }
+            )
+
+        # Balance insight
+        if balance_index is not None:
+            if balance_label == "well_balanced":
+                bal_rec = "Excellent muscle group coverage this week."
+            elif balance_label == "moderate":
+                bal_rec = "Consider diversifying exercises to cover underrepresented muscle groups."
+            else:
+                bal_rec = "Training is heavily concentrated on few muscle groups. Broaden your exercise selection."
+            insights.append(
+                {
+                    "metric": "Workload Balance",
+                    "finding": f"Balance index: {balance_index:.2f} ({balance_label}).",
+                    "delta": None,
+                    "recommendation": bal_rec,
+                }
+            )
+
+        # Volume landmarks insight
+        if muscles_over_mrv > 0:
+            insights.append(
+                {
+                    "metric": "Volume Warning",
+                    "finding": f"{muscles_over_mrv} muscle group(s) exceed Maximum Recoverable Volume.",
+                    "delta": None,
+                    "recommendation": "Consider reducing volume for overloaded muscle groups or planning a deload.",
+                }
+            )
+        if muscles_below_mev > 0:
+            insights.append(
+                {
+                    "metric": "Volume Gap",
+                    "finding": f"{muscles_below_mev} muscle group(s) below Minimum Effective Volume.",
+                    "delta": None,
+                    "recommendation": "Add sets for underserved muscle groups to stimulate growth.",
+                }
+            )
+
+        # Push/pull insight
+        if push_pull_ratio is not None and push_pull_status == "imbalanced":
+            direction = "push-dominant" if push_pull_ratio > 1.0 else "pull-dominant"
+            insights.append(
+                {
+                    "metric": "Push/Pull Balance",
+                    "finding": f"Push/pull ratio: {push_pull_ratio:.2f} ({direction}).",
+                    "delta": None,
+                    "recommendation": (
+                        "Add more pulling exercises (rows, pulldowns) to balance shoulder health."
+                        if push_pull_ratio > 1.0
+                        else "Consider adding more pressing movements."
+                    ),
+                }
+            )
+
+        # Store enriched report
+        report_id = str(uuid.uuid4())
+        now = datetime.now(UTC)
 
         await conn.execute(
             """
@@ -99,18 +217,9 @@ async def _generate_user_summary(
             """,
             report_id,
             user_id,
-            (datetime.utcnow() - timedelta(days=7)).strftime("%Y-%m-%d"),
-            datetime.utcnow().strftime("%Y-%m-%d"),
+            (now - timedelta(days=7)).strftime("%Y-%m-%d"),
+            now.strftime("%Y-%m-%d"),
             ["weekly_summary"],
             summary_text,
-            json.dumps(
-                [
-                    {
-                        "metric": "Weekly Overview",
-                        "finding": summary_text,
-                        "delta": None,
-                        "recommendation": f"You trained {training_days} days. {'Great consistency!' if training_days >= 4 else 'Try to add another training day next week.'}",
-                    }
-                ]
-            ),
+            json.dumps(insights),
         )

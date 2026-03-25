@@ -40,7 +40,7 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
-import { useExercises, useMuscleGroups, type ExerciseWithMuscles } from '@/hooks/useExercises';
+import { useExercises, useMuscleGroups } from '@/hooks/useExercises';
 import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
 import type { Exercise } from '@/types/database';
 

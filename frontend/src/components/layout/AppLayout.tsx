@@ -51,7 +51,7 @@ export function AppLayout() {
             overflowY: 'auto',
             overflowX: 'hidden',
             backgroundColor: 'background.default',
-            pb: '80px',
+            pb: 'calc(80px + env(safe-area-inset-bottom, 0px))',
           }}
         >
           <Outlet />

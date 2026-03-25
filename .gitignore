@@ -57,3 +57,7 @@ docs/UX-AUDIT-TRACKER.md
 
 # One-off scripts with credentials
 scripts/run_backfill.mjs
+scripts/seed_via_api.py
+
+# Local Netlify folder
+.netlify

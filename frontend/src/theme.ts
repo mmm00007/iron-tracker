@@ -1,13 +1,63 @@
 import { createTheme, type PaletteMode } from '@mui/material/styles';
 
+// ─── Font families ───────────────────────────────────────────────────────────
+export const DATA_FONT = '"JetBrains Mono", "SF Mono", "Fira Code", monospace';
+
+// ─── Shared data typography styles ──────────────────────────────────────────
+export const DATA_LARGE = { fontFamily: DATA_FONT, fontSize: 'clamp(1.25rem, 4vw, 2rem)', fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em' } as const;
+export const DATA_SMALL = { fontFamily: DATA_FONT, fontSize: 'clamp(0.6875rem, 2vw, 0.875rem)', fontWeight: 600 } as const;
+
+// ─── Chart axis color (WCAG AA on card surfaces) ───────────────────────────
+export const CHART_AXIS_COLOR = '#8E96A4';
+
+// ─── Chart color palette (consistent across all visualizations) ──────────────
+export const CHART_COLORS = {
+  primary: '#5BEAA2',    // main accent — vibrant mint
+  secondary: '#42A5F5',  // cool blue
+  tertiary: '#F9A825',   // amber
+  quaternary: '#EF5350', // red
+  quinary: '#AB47BC',    // purple
+  senary: '#26C6DA',     // cyan
+  series: [
+    '#5BEAA2', '#42A5F5', '#F9A825', '#EF5350', '#AB47BC',
+    '#26C6DA', '#FF7043', '#66BB6A', '#7E57C2', '#FFA726',
+  ],
+  muscle: {
+    Chest: '#EF5350',
+    Back: '#42A5F5',
+    Shoulders: '#FFA726',
+    Biceps: '#66BB6A',
+    Triceps: '#AB47BC',
+    Quadriceps: '#26C6DA',
+    Hamstrings: '#00897B',
+    Glutes: '#EC407A',
+    Core: '#F9A825',
+    Calves: '#78909C',
+    Forearms: '#8D6E63',
+    Trapezius: '#7E57C2',
+    Abdominals: '#F9A825',
+    Latissimus: '#42A5F5',
+    Pectoralis: '#EF5350',
+    Deltoids: '#FFA726',
+  } as Record<string, string>,
+  getMuscleColor(muscle: string, fallbackIdx: number): string {
+    const direct = this.muscle[muscle];
+    if (direct) return direct;
+    for (const [key, color] of Object.entries(this.muscle)) {
+      if (muscle.toLowerCase().includes(key.toLowerCase())) return color;
+    }
+    return this.series[fallbackIdx % this.series.length] ?? '#A8C7FA';
+  },
+};
+
 // ----- Dark palette (default) -----
 const darkPalette = {
   mode: 'dark' as PaletteMode,
   primary: {
-    main: '#A8C7FA',
-    light: '#C5D9FC',
-    dark: '#5B8DEF',
-    contrastText: '#00305A',
+    main: '#5BEAA2',
+    light: '#8AF0BF',
+    dark: '#2DBD75',
+    contrastText: '#003822',
   },
   secondary: {
     main: '#C2C7CF',
@@ -16,14 +66,14 @@ const darkPalette = {
     contrastText: '#2B3038',
   },
   background: {
-    default: '#121212',
-    paper: '#1E1E1E',
+    default: '#0D0F12',
+    paper: '#161A1F',
   },
   surface: {
-    main: '#121212',
-    container: '#1A1A2E',
-    containerHigh: '#2A2A3E',
-    containerHighest: '#1E1E1E',
+    main: '#0D0F12',
+    container: '#141820',
+    containerHigh: '#1E2430',
+    containerHighest: '#161A1F',
   },
   error: {
     main: '#FFB4AB',
@@ -35,16 +85,16 @@ const darkPalette = {
     dark: '#F57F17',
   },
   success: {
-    main: '#66BB6A',
-    light: '#81C784',
-    dark: '#388E3C',
+    main: '#5BEAA2',
+    light: '#8AF0BF',
+    dark: '#2DBD75',
   },
   text: {
-    primary: '#E6E1E5',
-    secondary: '#CAC4D0',
-    disabled: '#938F99',
+    primary: '#EAEEF4',
+    secondary: '#A0AAB8',
+    disabled: '#8E96A4',
   },
-  divider: 'rgba(202, 196, 208, 0.12)',
+  divider: 'rgba(160, 170, 184, 0.10)',
   prGold: {
     main: '#FFD700',
     contrastText: '#1A1A00',
@@ -59,9 +109,9 @@ const darkPalette = {
 const lightPalette = {
   mode: 'light' as PaletteMode,
   primary: {
-    main: '#1B5E8C',
-    light: '#2E75B6',
-    dark: '#0D3B5C',
+    main: '#0C8A50',
+    light: '#12A862',
+    dark: '#066838',
     contrastText: '#FFFFFF',
   },
   secondary: {
@@ -71,14 +121,14 @@ const lightPalette = {
     contrastText: '#FFFFFF',
   },
   background: {
-    default: '#FFFBFE',
-    paper: '#F5F5F5',
+    default: '#F8FAFB',
+    paper: '#FFFFFF',
   },
   surface: {
-    main: '#FFFBFE',
-    container: '#F0F0F8',
-    containerHigh: '#EAEAF2',
-    containerHighest: '#F5F5F5',
+    main: '#F8FAFB',
+    container: '#EEF2F5',
+    containerHigh: '#E4E9ED',
+    containerHighest: '#FFFFFF',
   },
   error: {
     main: '#BA1A1A',
@@ -90,16 +140,16 @@ const lightPalette = {
     dark: '#E65100',
   },
   success: {
-    main: '#2E7D32',
-    light: '#4CAF50',
-    dark: '#1B5E20',
+    main: '#0C8A50',
+    light: '#12A862',
+    dark: '#066838',
   },
   text: {
-    primary: '#1C1B1F',
-    secondary: '#49454F',
-    disabled: '#938F99',
+    primary: '#111820',
+    secondary: '#4A5568',
+    disabled: '#94A3B8',
   },
-  divider: 'rgba(28, 27, 31, 0.12)',
+  divider: 'rgba(17, 24, 32, 0.10)',
   prGold: {
     main: '#B8960F',
     contrastText: '#FFFFFF',
@@ -115,13 +165,13 @@ const lightPalette = {
  */
 export function createAppTheme(mode: PaletteMode) {
   const palette = mode === 'light' ? lightPalette : darkPalette;
-  const surfaceBg = mode === 'light' ? '#FFFBFE' : '#121212';
-  const surfaceText = mode === 'light' ? '#1C1B1F' : '#E6E1E5';
-  const containerBg = mode === 'light' ? '#F0F0F8' : '#1A1A2E';
-  const paperBg = mode === 'light' ? '#F5F5F5' : '#1E1E1E';
-  const borderColor = mode === 'light' ? 'rgba(28, 27, 31, 0.12)' : 'rgba(202, 196, 208, 0.12)';
-  const navSelected = mode === 'light' ? '#1B5E8C' : '#A8C7FA';
-  const navDefault = mode === 'light' ? '#49454F' : '#CAC4D0';
+  const surfaceBg = mode === 'light' ? '#F8FAFB' : '#0D0F12';
+  const surfaceText = mode === 'light' ? '#111820' : '#EAEEF4';
+  const containerBg = mode === 'light' ? '#EEF2F5' : '#141820';
+  const paperBg = mode === 'light' ? '#FFFFFF' : '#161A1F';
+  const borderColor = mode === 'light' ? 'rgba(17, 24, 32, 0.10)' : 'rgba(160, 170, 184, 0.12)';
+  const navSelected = mode === 'light' ? '#0C8A50' : '#5BEAA2';
+  const navDefault = mode === 'light' ? '#4A5568' : '#A0AAB8';
 
   return createTheme({
     breakpoints: {
@@ -142,7 +192,7 @@ export function createAppTheme(mode: PaletteMode) {
       h4: { fontSize: '1.25rem', fontWeight: 600 },
       h5: { fontSize: '1.125rem', fontWeight: 500 },
       h6: { fontSize: '1rem', fontWeight: 500 },
-      subtitle1: { fontSize: '1rem', fontWeight: 500, letterSpacing: '0.009em' },
+      subtitle1: { fontSize: '1.0625rem', fontWeight: 600, letterSpacing: '0.009em' },
       subtitle2: { fontSize: '0.875rem', fontWeight: 500, letterSpacing: '0.007em' },
       body1: { fontSize: '1rem', fontWeight: 400, letterSpacing: '0.031em' },
       body2: { fontSize: '0.875rem', fontWeight: 400, letterSpacing: '0.018em' },
@@ -211,6 +261,14 @@ export function createAppTheme(mode: PaletteMode) {
         },
         defaultProps: { elevation: 0 },
       },
+      MuiCardContent: {
+        styleOverrides: {
+          root: {
+            padding: '16px',
+            '&:last-child': { paddingBottom: '16px' },
+          },
+        },
+      },
       MuiPaper: {
         styleOverrides: {
           root: { backgroundImage: 'none', backgroundColor: paperBg },
@@ -256,7 +314,7 @@ export function createAppTheme(mode: PaletteMode) {
         },
       },
       MuiChip: {
-        styleOverrides: { root: { borderRadius: '8px', fontWeight: 500 } },
+        styleOverrides: { root: { borderRadius: '100px', fontWeight: 500 } },
       },
       MuiListItem: {
         styleOverrides: { root: { borderRadius: '12px' } },

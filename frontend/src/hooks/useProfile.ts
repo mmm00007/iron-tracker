@@ -13,6 +13,14 @@ const DEFAULT_PROFILE: Omit<Profile, 'id' | 'created_at' | 'updated_at'> = {
   training_days_per_week: 3,
   theme_seed_color: '#2E75B6',
   onboarding_completed: false,
+  timezone: 'UTC',
+  day_start_hour: 4,
+  height_cm: null,
+  cluster_gap_minutes: 90,
+  sleep_window_start: null,
+  sleep_window_end: null,
+  workout_window_start: null,
+  workout_window_end: null,
 };
 
 export function useProfile() {

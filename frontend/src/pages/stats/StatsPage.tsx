@@ -15,6 +15,7 @@ import {
   Button,
 } from '@mui/material';
 import { EmojiEvents, TrendingUp, TrendingDown, FitnessCenter, BarChart as BarChartIcon, AutoAwesome, MilitaryTech } from '@mui/icons-material';
+import LinearProgress from '@mui/material/LinearProgress';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { statsRoute } from '@/router';
 import { WeeklySnapshotCard } from '@/components/stats/WeeklySnapshotCard';
@@ -27,10 +28,15 @@ import {
   useTrainingFrequency,
   useMuscleDistribution,
   useTopExercises,
+  useRPEDistribution,
+  useMuscleBalance,
 } from '@/hooks/useAnalytics';
 import { useWeeklyMuscleVolume } from '@/hooks/useMuscleVolume';
+import { RPEDistributionChart } from '@/components/stats/RPEDistributionChart';
+import { MuscleBalanceRadar } from '@/components/stats/MuscleBalanceRadar';
 import { useProfile } from '@/hooks/useProfile';
 import { formatRelativeDate, formatVolume } from '@/utils/formatters';
+import { DATA_FONT, CHART_COLORS } from '@/theme';
 
 type Period = 'week' | 'month' | '3months' | 'all';
 
@@ -60,6 +66,8 @@ export function StatsPage() {
   const { data: muscleData, isLoading: muscleLoading } = useMuscleDistribution(period);
   const { data: topExercises, isLoading: topLoading } = useTopExercises(5, period);
   const { data: muscleVolumeData } = useWeeklyMuscleVolume(period);
+  const { data: rpeData, isLoading: rpeLoading } = useRPEDistribution(period);
+  const { data: muscleBalanceData, isLoading: muscleBalanceLoading } = useMuscleBalance(period);
   const { data: profile } = useProfile();
   const weightUnit = profile?.preferred_weight_unit ?? 'kg';
 
@@ -110,7 +118,7 @@ export function StatsPage() {
         ))}
       </Stack>
 
-      {/* Full-page skeleton — shown until ALL queries have resolved */}
+      {/* Full-page skeleton */}
       {isAllLoading ? (
         <Box sx={{ px: 2 }}>
           <Stack spacing={2}>
@@ -122,7 +130,7 @@ export function StatsPage() {
           </Stack>
         </Box>
       ) : (
-        /* Unified empty state — shown only when all data sources are empty */
+        /* Empty state */
         (!recentPRs || recentPRs.length === 0) &&
         (!topExercises || topExercises.length === 0) ? (
           <Box sx={{ textAlign: 'center', py: 8, px: 3 }}>
@@ -144,49 +152,60 @@ export function StatsPage() {
             <Box
               sx={{
                 display: 'grid',
-                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
+                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
                 gap: 2,
               }}
             >
-              {/* Card 1: Weekly Snapshot — full width */}
+              {/* Weekly Snapshot — full width */}
               <Box sx={{ gridColumn: { md: '1 / -1' } }}>
                 <WeeklySnapshotCard />
               </Box>
 
-              {/* Card 2: Recent PRs — full width */}
+              {/* Recent PRs — full width */}
               <Card sx={{ gridColumn: { md: '1 / -1' } }}>
-                <CardContent>
-                  <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                    Recent PRs
-                  </Typography>
+                <CardContent sx={{ p: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                    <EmojiEvents sx={{ color: '#FFD700', fontSize: 20 }} />
+                    <Typography variant="subtitle1" fontWeight={600}>
+                      Recent PRs
+                    </Typography>
+                  </Box>
                   {recentPRs && recentPRs.length > 0 ? (
                     <Stack direction="row" spacing={1.5} sx={{ overflowX: 'auto', pb: 0.5 }}>
                       {recentPRs.map((pr) => (
-                        <Card
+                        <Box
                           key={pr.id}
                           sx={{
-                            minWidth: 140,
-                            bgcolor: 'rgba(255, 215, 0, 0.05)',
-                            border: '1px solid rgba(255, 215, 0, 0.2)',
+                            minWidth: 130,
                             flexShrink: 0,
+                            p: 1.5,
+                            borderRadius: '12px',
+                            background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.10), rgba(255, 152, 0, 0.05))',
+                            border: '1px solid rgba(255, 215, 0, 0.25)',
                           }}
                         >
-                          <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                            <EmojiEvents sx={{ color: '#FFD700', fontSize: 20, mb: 0.5 }} />
-                            <Typography variant="body2" fontWeight={600} noWrap>
-                              {pr.exerciseName || 'Exercise'}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {pr.recordType.replace('_', ' ')}
-                            </Typography>
-                            <Typography variant="body2" fontWeight={700} sx={{ color: '#FFD700' }}>
-                              {pr.value} {weightUnit}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {formatRelativeDate(pr.achievedAt)}
-                            </Typography>
-                          </CardContent>
-                        </Card>
+                          <Typography variant="body2" fontWeight={600} noWrap sx={{ mb: 0.25 }}>
+                            {pr.exerciseName || 'Exercise'}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                            {pr.recordType.replace('_', ' ')}
+                          </Typography>
+                          <Typography
+                            sx={{
+                              fontFamily: DATA_FONT,
+                              fontSize: '1.125rem',
+                              fontWeight: 800,
+                              color: '#FFD700',
+                              lineHeight: 1,
+                              mb: 0.5,
+                            }}
+                          >
+                            {pr.value} {weightUnit}
+                          </Typography>
+                          <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.6875rem' }}>
+                            {formatRelativeDate(pr.achievedAt)}
+                          </Typography>
+                        </Box>
                       ))}
                     </Stack>
                   ) : (
@@ -197,29 +216,19 @@ export function StatsPage() {
                 </CardContent>
               </Card>
 
-              {/* Card 3: Training Calendar — full width */}
+              {/* Training Calendar — full width */}
               <Box sx={{ gridColumn: { md: '1 / -1' } }}>
                 <TrainingCalendar />
               </Box>
 
-              {/* Card 4: Muscle Distribution */}
-              <Card>
-                <CardContent>
-                  <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                    Muscle Distribution
-                  </Typography>
-                  {muscleData && muscleData.length > 0 ? (
-                    <MuscleDistributionChart data={muscleData} />
-                  ) : (
-                    <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
-                      No data for this period
-                    </Typography>
-                  )}
-                </CardContent>
-              </Card>
+              {/* Muscle Distribution — takes 1 column on desktop */}
+              <MuscleDistributionChart
+                data={muscleData ?? []}
+                isLoading={muscleLoading}
+              />
 
-              {/* Card 5: Weekly Volume by Muscle Group */}
-              <Card sx={{ gridColumn: { md: '1 / -1' } }}>
+              {/* Weekly Volume by Muscle — spans 2 columns on desktop */}
+              <Card sx={{ gridColumn: { md: '1 / -1', lg: '2 / -1' } }}>
                 <CardContent>
                   <Typography variant="subtitle1" fontWeight={600} gutterBottom>
                     Weekly Volume by Muscle
@@ -234,40 +243,87 @@ export function StatsPage() {
                 </CardContent>
               </Card>
 
-              {/* Card 6: Top Exercises */}
-              <Card>
+              {/* RPE Distribution */}
+              {rpeData && rpeData.length > 0 && (
+                <Box sx={{ gridColumn: { md: '1 / -1', lg: '1 / span 1' } }}>
+                  <RPEDistributionChart data={rpeData} isLoading={rpeLoading} />
+                </Box>
+              )}
+
+              {/* Muscle Balance Radar */}
+              {muscleBalanceData && muscleBalanceData.length >= 3 && (
+                <Box sx={{ gridColumn: { md: '1 / -1', lg: '2 / -1' } }}>
+                  <MuscleBalanceRadar data={muscleBalanceData} isLoading={muscleBalanceLoading} />
+                </Box>
+              )}
+
+              {/* Top Exercises */}
+              <Card sx={{ gridColumn: { lg: '1 / -1' } }}>
                 <CardContent>
                   <Typography variant="subtitle1" fontWeight={600} gutterBottom>
                     Top Exercises
                   </Typography>
                   {topExercises && topExercises.length > 0 ? (
                     <List disablePadding>
-                      {topExercises.map((ex, idx) => (
-                        <ListItemButton
-                          key={ex.exerciseId}
-                          onClick={() =>
-                            navigate({ to: '/stats/$exerciseId', params: { exerciseId: ex.exerciseId } })
-                          }
-                          sx={{ borderRadius: 1, mb: 0.5 }}
-                        >
-                          <ListItemIcon sx={{ minWidth: 36 }}>
-                            <Typography variant="body2" fontWeight={700} color="primary">
-                              #{idx + 1}
-                            </Typography>
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={ex.exerciseName}
-                            secondary={formatVolume(ex.totalVolume)}
-                          />
-                          {ex.trend === 'up' ? (
-                            <TrendingUp sx={{ color: 'success.main', fontSize: 20 }} />
-                          ) : ex.trend === 'down' ? (
-                            <TrendingDown sx={{ color: 'error.main', fontSize: 20 }} />
-                          ) : (
-                            <FitnessCenter sx={{ color: 'text.disabled', fontSize: 20 }} />
-                          )}
-                        </ListItemButton>
-                      ))}
+                      {topExercises.map((ex, idx) => {
+                        const maxVol = topExercises[0]?.totalVolume ?? 1;
+                        const volPct = (ex.totalVolume / maxVol) * 100;
+                        const barColor = CHART_COLORS.series[idx % CHART_COLORS.series.length] ?? CHART_COLORS.primary;
+                        return (
+                          <ListItemButton
+                            key={ex.exerciseId}
+                            onClick={() =>
+                              navigate({ to: '/stats/$exerciseId', params: { exerciseId: ex.exerciseId } })
+                            }
+                            sx={{ borderRadius: 1, mb: 0.5, flexDirection: 'column', alignItems: 'stretch' }}
+                          >
+                            <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                              <ListItemIcon sx={{ minWidth: 36 }}>
+                                <Typography
+                                  sx={{
+                                    fontFamily: DATA_FONT,
+                                    fontWeight: 700,
+                                    color: barColor,
+                                    fontSize: '0.875rem',
+                                  }}
+                                >
+                                  #{idx + 1}
+                                </Typography>
+                              </ListItemIcon>
+                              <ListItemText
+                                primary={ex.exerciseName}
+                                secondary={
+                                  <Typography
+                                    component="span"
+                                    sx={{ fontFamily: DATA_FONT, fontSize: '0.75rem', color: 'text.secondary' }}
+                                  >
+                                    {ex.setCount} sets · {formatVolume(ex.totalVolume)}
+                                  </Typography>
+                                }
+                              />
+                              {ex.trend === 'up' ? (
+                                <TrendingUp sx={{ color: CHART_COLORS.primary, fontSize: 20 }} />
+                              ) : ex.trend === 'down' ? (
+                                <TrendingDown sx={{ color: 'error.main', fontSize: 20 }} />
+                              ) : (
+                                <FitnessCenter sx={{ color: 'text.disabled', fontSize: 20 }} />
+                              )}
+                            </Box>
+                            <LinearProgress
+                              variant="determinate"
+                              value={volPct}
+                              sx={{
+                                mt: 0.5,
+                                ml: 4.5,
+                                height: 4,
+                                borderRadius: 2,
+                                backgroundColor: `${barColor}15`,
+                                '& .MuiLinearProgress-bar': { backgroundColor: barColor, borderRadius: 2 },
+                              }}
+                            />
+                          </ListItemButton>
+                        );
+                      })}
                     </List>
                   ) : (
                     <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>

@@ -1,23 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
+import type { AnalysisReport } from '@/types/database';
+
+// Re-export for consumers that import from this module
+export type { AnalysisReport } from '@/types/database';
 
 export interface AnalysisInsight {
   metric: string;
   finding: string;
   delta: string | null;
   recommendation: string;
-}
-
-export interface AnalysisReport {
-  id: string;
-  scope_type: string;
-  scope_start: string;
-  scope_end: string;
-  goals: string[];
-  summary: string;
-  insights: AnalysisInsight[];
-  created_at: string;
 }
 
 export function useAnalysisReports() {

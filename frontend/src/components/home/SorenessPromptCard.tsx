@@ -91,8 +91,8 @@ export function SorenessPromptCard() {
             size="small"
             sx={{ mb: 1 }}
           >
-            <ToggleButton value="front" sx={{ px: 2, py: 0.25, fontSize: '0.7rem' }}>Front</ToggleButton>
-            <ToggleButton value="back" sx={{ px: 2, py: 0.25, fontSize: '0.7rem' }}>Back</ToggleButton>
+            <ToggleButton value="front" sx={{ px: 2, py: 0.5, fontSize: '0.75rem' }}>Front</ToggleButton>
+            <ToggleButton value="back" sx={{ px: 2, py: 0.5, fontSize: '0.75rem' }}>Back</ToggleButton>
           </ToggleButtonGroup>
 
           <BodySilhouette
@@ -103,7 +103,7 @@ export function SorenessPromptCard() {
         </Box>
 
         {/* Fallback chip selector for muscle groups not on silhouette */}
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1 }}>
           {(muscleGroups ?? []).slice(0, 10).map((mg) => (
             <Chip
               key={mg.id}
@@ -112,7 +112,7 @@ export function SorenessPromptCard() {
               onClick={() => handleMuscleClick(mg.name, mg.id)}
               color={selectedMuscle === mg.name ? 'primary' : 'default'}
               variant={selectedMuscle === mg.name ? 'filled' : 'outlined'}
-              sx={{ fontSize: '0.65rem', height: 22 }}
+              sx={{ fontSize: '0.75rem', height: 32, minWidth: 64 }}
             />
           ))}
         </Box>
@@ -136,7 +136,11 @@ export function SorenessPromptCard() {
               marks
               sx={{
                 '& .MuiSlider-track': { backgroundColor: SORENESS_COLORS[level] },
-                '& .MuiSlider-thumb': { backgroundColor: SORENESS_COLORS[level] },
+                '& .MuiSlider-thumb': { backgroundColor: SORENESS_COLORS[level], width: 28, height: 28 },
+                '& .MuiSlider-rail': {
+                  background: 'linear-gradient(to right, #66BB6A, #8BC34A, #FFC107, #FF9800, #F44336)',
+                  opacity: 0.3,
+                },
               }}
             />
             <Button

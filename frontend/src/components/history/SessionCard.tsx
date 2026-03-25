@@ -16,6 +16,7 @@ import {
   formatWeightReps,
 } from '@/utils/formatters';
 import { MiniBarChart } from '@/components/common/MiniBarChart';
+import { DATA_FONT, CHART_COLORS } from '@/theme';
 
 const MUSCLE_CHIP_COLORS: Record<string, string> = {
   Chest: '#EF5350',
@@ -34,8 +35,8 @@ const MUSCLE_CHIP_COLORS: Record<string, string> = {
 };
 
 function getMuscleColor(category: string | undefined): string {
-  if (!category) return '#A8C7FA';
-  return MUSCLE_CHIP_COLORS[category] ?? '#A8C7FA';
+  if (!category) return CHART_COLORS.primary;
+  return MUSCLE_CHIP_COLORS[category] ?? CHART_COLORS.primary;
 }
 
 interface SessionCardProps {
@@ -59,10 +60,10 @@ export function SessionCard({ session, customName }: SessionCardProps) {
   return (
     <Card
       sx={{
-        mb: 1.5,
         borderRadius: '16px',
-        backgroundColor: 'surface.containerHighest',
-        border: '1px solid rgba(202, 196, 208, 0.08)',
+        backgroundColor: 'background.paper',
+        border: '1px solid',
+        borderColor: 'divider',
       }}
     >
       <CardActionArea onClick={handleClick} sx={{ borderRadius: '16px' }}>
@@ -102,10 +103,11 @@ export function SessionCard({ session, customName }: SessionCardProps) {
               sx={{
                 height: 24,
                 fontSize: '0.75rem',
-                fontWeight: 500,
-                backgroundColor: 'rgba(168, 199, 250, 0.1)',
-                color: 'primary.light',
-                '& .MuiChip-icon': { color: 'primary.light', ml: 0.75 },
+                fontFamily: DATA_FONT,
+                fontWeight: 600,
+                backgroundColor: `${CHART_COLORS.primary}10`,
+                color: 'primary.main',
+                '& .MuiChip-icon': { color: 'primary.main', ml: 0.75 },
                 '& .MuiChip-label': { px: 0.75 },
               }}
             />
@@ -122,16 +124,30 @@ export function SessionCard({ session, customName }: SessionCardProps) {
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <FitnessCenterIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              <Typography
+                sx={{
+                  fontFamily: DATA_FONT,
+                  fontSize: '0.6875rem',
+                  fontWeight: 600,
+                  color: 'text.secondary',
+                }}
+              >
                 {session.totalSets} sets
               </Typography>
             </Box>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            <Typography
+              sx={{
+                fontFamily: DATA_FONT,
+                fontSize: '0.6875rem',
+                fontWeight: 600,
+                color: 'text.secondary',
+              }}
+            >
               {session.exerciseCount} {session.exerciseCount === 1 ? 'exercise' : 'exercises'}
             </Typography>
           </Box>
 
-          {/* Muscle group chips — color-coded by exercise category */}
+          {/* Muscle group chips */}
           {session.exercises.length > 0 && (
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, px: 2, pb: 1 }}>
               {[...new Set(session.exercises.map((ex) => ex.exerciseName.split(' ')[0]))].slice(0, 5).map((tag) => (
@@ -141,48 +157,89 @@ export function SessionCard({ session, customName }: SessionCardProps) {
                   size="small"
                   sx={{
                     height: 20,
-                    fontSize: '0.6rem',
+                    fontSize: '0.6875rem',
                     fontWeight: 600,
-                    backgroundColor: `${getMuscleColor(tag)}20`,
+                    backgroundColor: `${getMuscleColor(tag)}15`,
                     color: getMuscleColor(tag),
-                    border: `1px solid ${getMuscleColor(tag)}40`,
+                    border: `1px solid ${getMuscleColor(tag)}30`,
                   }}
                 />
               ))}
             </Box>
           )}
 
-          {/* Exercise summary list */}
+          {/* Exercise summary list with volume bars */}
           {session.exercises.length > 0 && (
             <>
-              <Divider sx={{ borderColor: 'rgba(202, 196, 208, 0.06)', mx: 2 }} />
+              <Divider sx={{ borderColor: 'divider', mx: 2 }} />
               <Box sx={{ px: 2, py: 1.25 }}>
-                {session.exercises.slice(0, 4).map((ex) => (
-                  <Box
-                    key={ex.exerciseId}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'baseline',
-                      gap: 0.75,
-                      py: 0.4,
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    <Typography
-                      variant="body2"
-                      sx={{ color: 'text.primary', fontWeight: 500, flexShrink: 0 }}
-                    >
-                      {ex.exerciseName}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', flexShrink: 0 }}>
-                      · {ex.setCount} {ex.setCount === 1 ? 'set' : 'sets'}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-                      ·{' '}
-                      {formatWeightReps(ex.topSet.weight, ex.topSet.reps, ex.topSet.unit)}
-                    </Typography>
-                  </Box>
-                ))}
+                {session.exercises.slice(0, 4).map((ex) => {
+                  const exVolume = ex.topSet.weight * ex.topSet.reps * ex.setCount;
+                  const maxExVol = Math.max(
+                    ...session.exercises.slice(0, 4).map((e) => e.topSet.weight * e.topSet.reps * e.setCount),
+                    1,
+                  );
+                  const volPct = (exVolume / maxExVol) * 100;
+                  const exColor = getMuscleColor(ex.exerciseName.split(' ')[0]);
+                  return (
+                    <Box key={ex.exerciseId} sx={{ py: 0.4 }}>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'baseline',
+                          gap: 0.75,
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{ color: 'text.primary', fontWeight: 500, flexShrink: 0 }}
+                        >
+                          {ex.exerciseName}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontFamily: DATA_FONT,
+                            fontSize: '0.6875rem',
+                            color: 'text.secondary',
+                            fontWeight: 400,
+                            flexShrink: 0,
+                          }}
+                        >
+                          · {ex.setCount} {ex.setCount === 1 ? 'set' : 'sets'}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontFamily: DATA_FONT,
+                            fontSize: '0.6875rem',
+                            color: 'text.disabled',
+                          }}
+                        >
+                          · {formatWeightReps(ex.topSet.weight, ex.topSet.reps, ex.topSet.unit)}
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          height: 3,
+                          borderRadius: 1.5,
+                          backgroundColor: `${exColor}15`,
+                          mt: 0.25,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            height: '100%',
+                            width: `${volPct}%`,
+                            backgroundColor: `${exColor}60`,
+                            borderRadius: 1.5,
+                            transition: 'width 0.3s ease',
+                          }}
+                        />
+                      </Box>
+                    </Box>
+                  );
+                })}
                 {session.exercises.length > 4 && (
                   <Typography
                     variant="caption"
@@ -196,11 +253,14 @@ export function SessionCard({ session, customName }: SessionCardProps) {
           )}
 
           {/* Footer: total volume + mini bar chart */}
-          <Divider sx={{ borderColor: 'rgba(202, 196, 208, 0.06)', mx: 2 }} />
+          <Divider sx={{ borderColor: 'rgba(160, 170, 184, 0.06)', mx: 2 }} />
           <Box sx={{ px: 2, py: 1.25, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
               Volume:{' '}
-              <Box component="span" sx={{ color: 'primary.main', fontWeight: 600 }}>
+              <Box
+                component="span"
+                sx={{ fontFamily: DATA_FONT, color: 'primary.main', fontWeight: 700 }}
+              >
                 {formatVolume(session.totalVolume)}
               </Box>
             </Typography>
@@ -208,8 +268,9 @@ export function SessionCard({ session, customName }: SessionCardProps) {
               data={session.exercises.slice(0, 6).map(
                 (ex) => ex.topSet.weight * ex.topSet.reps * ex.setCount
               )}
-              height={24}
-              width={48}
+              height={32}
+              width={64}
+              color={CHART_COLORS.primary}
             />
           </Box>
         </CardContent>

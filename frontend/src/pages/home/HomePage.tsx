@@ -36,33 +36,35 @@ export function HomePage() {
           {/* Quick action buttons */}
           <QuickActionsCard />
 
-          {/* Two-column grid on tablet/desktop */}
+          {/* Responsive dashboard grid */}
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
+              gridTemplateColumns: {
+                xs: '1fr',
+                md: 'repeat(2, 1fr)',
+                lg: '1fr 1.5fr 1fr',
+              },
               gap: 2,
             }}
           >
-            {/* Weekly snapshot — full width */}
-            <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+            {/* Weekly snapshot — full width on all layouts */}
+            <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
               <WeeklySnapshotCard />
             </Box>
 
-            {/* Streak + Volume trend side by side on tablet/desktop */}
+            {/* Streak + Volume trend + Muscle donut — 3 columns on desktop */}
             <TrainingStreakCard />
             <VolumeTrendCard />
-
-            {/* Muscle donut */}
             <HomeMuscleDonut />
 
-            {/* Exercise Progress — full width */}
-            <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+            {/* Exercise Progress — spans 2 columns on tablet, full on desktop */}
+            <Box sx={{ gridColumn: { md: '1 / -1', lg: '1 / span 2' } }}>
               <ExerciseProgressCard />
             </Box>
 
-            {/* Training Calendar — full width */}
-            <Box sx={{ gridColumn: { md: '1 / -1' } }}>
+            {/* Training Calendar — 1 column on desktop */}
+            <Box sx={{ gridColumn: { md: '1 / -1', lg: 'auto' } }}>
               <TrainingCalendar />
             </Box>
 

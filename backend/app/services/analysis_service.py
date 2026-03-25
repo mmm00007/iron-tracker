@@ -1,10 +1,14 @@
 import json
 import logging
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 import anthropic
 import asyncpg
+
+from app.services.muscle_workload_service import compute_muscle_workload
+from app.services.periodization_service import compute_body_part_balance
+from app.services.volume_landmarks_service import compute_volume_landmarks
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +22,11 @@ async def analyze_training(
     scope_end: str,
     goals: list[str],
 ) -> dict:
-    """Generate AI training analysis for a date range."""
+    """Generate AI training analysis for a date range.
+
+    Enriches the Claude prompt with computed analytics metrics (muscle workload,
+    volume landmarks, body part balance) for deeper, evidence-backed insights.
+    """
 
     # Fetch sets in scope
     async with db_pool.acquire() as conn:
@@ -43,14 +51,25 @@ async def analyze_training(
             "id": str(uuid.uuid4()),
             "summary": "No training data found for this period.",
             "insights": [],
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
         }
 
     # Build context for Claude
     total_sets = len(rows)
     total_volume = sum(r["weight"] * r["reps"] for r in rows)
     training_days = len(set(r["logged_at"].strftime("%Y-%m-%d") for r in rows))
-    exercises = {}
+
+    # Compute RPE stats
+    working_types = {"working", "top", "drop", "backoff", "failure"}
+    rpe_values = [
+        float(r["rpe"])
+        for r in rows
+        if r["rpe"] is not None and (r["set_type"] or "working") in working_types
+    ]
+    avg_rpe = round(sum(rpe_values) / len(rpe_values), 1) if rpe_values else None
+    effective_sets = sum(1 for r in rows if r["rpe"] is not None and float(r["rpe"]) >= 7)
+
+    exercises: dict[str, dict] = {}
     for r in rows:
         name = r["exercise_name"]
         if name not in exercises:
@@ -58,24 +77,78 @@ async def analyze_training(
         exercises[name]["sets"] += 1
         exercises[name]["volume"] += r["weight"] * r["reps"]
 
+    # Calculate scope period in days for advanced metrics
+    from datetime import date as _date
+
+    try:
+        start_dt = _date.fromisoformat(scope_start)
+        end_dt = _date.fromisoformat(scope_end)
+        period_days = max((end_dt - start_dt).days, 1)
+    except (ValueError, TypeError):
+        period_days = 7
+
     context = (
         f"Training period: {scope_start} to {scope_end}\n"
         f"Total sets: {total_sets}, Total volume: {total_volume:.0f}, Training days: {training_days}\n"
-        f"Goals: {', '.join(goals) if goals else 'general fitness'}\n\n"
-        f"Exercise breakdown:\n"
+        f"Goals: {', '.join(goals) if goals else 'general fitness'}\n"
     )
+
+    if avg_rpe is not None:
+        context += f"Average RPE (working sets): {avg_rpe}, Effective sets (RPE≥7): {effective_sets}/{total_sets}\n"
+
+    context += "\nExercise breakdown:\n"
     for name, data in sorted(exercises.items(), key=lambda x: -x[1]["volume"]):
         context += (
             f"- {name} ({data['category']}): {data['sets']} sets, {data['volume']:.0f} volume\n"
         )
 
+    # Enrich with advanced analytics (fault-tolerant)
+    try:
+        workload = await compute_muscle_workload(user_id, db_pool, period_days=period_days)
+        context += f"\nMuscle Workload Balance Index: {workload.balance_index:.2f} ({workload.balance_label})\n"
+        context += "Muscle workload (normalized scores):\n"
+        for m in sorted(workload.muscles, key=lambda x: -x.normalized_score)[:8]:
+            context += f"  - {m.muscle_group}: {m.normalized_score:.1f}x baseline, {m.weekly_sets} sets/wk\n"
+    except Exception:
+        pass
+
+    try:
+        landmarks = await compute_volume_landmarks(user_id, db_pool)
+        over = [m for m in landmarks.muscles if m.status == "over_mrv"]
+        below = [m for m in landmarks.muscles if m.status in ("below_mv", "maintenance")]
+        if over:
+            context += f"\nVolume WARNING — over MRV: {', '.join(m.muscle_group for m in over)}\n"
+        if below:
+            context += f"Volume GAP — below MEV: {', '.join(m.muscle_group for m in below)}\n"
+    except Exception:
+        pass
+
+    try:
+        balance = await compute_body_part_balance(user_id, db_pool, period_days=period_days)
+        if balance.push_pull_ratio is not None:
+            context += (
+                f"\nPush/Pull ratio: {balance.push_pull_ratio:.2f} ({balance.push_pull_status})\n"
+            )
+        if balance.upper_lower_ratio is not None:
+            context += f"Upper/Lower ratio: {balance.upper_lower_ratio:.2f} ({balance.upper_lower_status})\n"
+        if balance.imbalances:
+            context += "Imbalances detected:\n"
+            for imb in balance.imbalances:
+                context += f"  - {imb}\n"
+    except Exception:
+        pass
+
     # Call Claude
     client = anthropic.AsyncAnthropic(api_key=api_key)
     system_prompt = (
-        "You are a fitness coach analyzing training data. "
-        "Provide a brief summary and 3-5 specific, actionable insights. "
+        "You are an expert strength & conditioning coach analyzing training data. "
+        "You have access to computed analytics metrics including muscle workload "
+        "balance, volume landmarks (MV/MEV/MAV/MRV), push/pull ratios, RPE averages, "
+        "and effective volume counts. Use these to provide evidence-backed analysis. "
+        "Provide a brief summary and 3-6 specific, actionable insights. "
         "Each insight must include: metric (what you measured), finding (what you observed), "
         "delta (change vs expected, if applicable), and recommendation (what to do). "
+        "Be specific about numbers and percentages. Reference the computed metrics. "
         "Return ONLY valid JSON with this schema: "
         '{"summary": "...", "insights": [{"metric": "...", "finding": "...", "delta": "...", "recommendation": "..."}]}'
     )
@@ -146,5 +219,5 @@ async def analyze_training(
         "id": report_id,
         "summary": result.get("summary", ""),
         "insights": result.get("insights", []),
-        "created_at": datetime.utcnow().isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
     }

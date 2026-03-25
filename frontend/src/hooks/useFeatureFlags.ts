@@ -8,6 +8,7 @@ export interface FeatureFlags {
   dataExportEnabled: boolean;
   weightSuggestionEnabled: boolean;
   diagnosticsEnabled: boolean;
+  advancedAnalyticsEnabled: boolean;
 }
 
 const DEFAULT_FLAGS: FeatureFlags = {
@@ -18,6 +19,7 @@ const DEFAULT_FLAGS: FeatureFlags = {
   dataExportEnabled: true,
   weightSuggestionEnabled: true,
   diagnosticsEnabled: true,
+  advancedAnalyticsEnabled: false,
 };
 
 export function useFeatureFlags(): FeatureFlags {

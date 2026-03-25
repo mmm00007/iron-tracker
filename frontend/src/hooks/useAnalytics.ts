@@ -4,6 +4,7 @@ import type { WorkoutSet, PersonalRecord, Exercise } from '@/types/database';
 import {
   weeklySnapshot,
   trainingFrequency,
+  trainingFrequencyPerWeek,
   volumeByMuscle,
   topExercises,
   e1rmTrend,
@@ -11,7 +12,7 @@ import {
   exercisePRs,
   computeStreak,
 } from '@/utils/analytics';
-import type { TrainingStreakResult } from '@/utils/analytics';
+import type { TrainingStreakResult, WeeklyFrequencyEntry } from '@/utils/analytics';
 
 type Period = 'week' | 'month' | '3months' | 'all';
 
@@ -186,11 +187,11 @@ export function useMuscleDistribution(period: Period) {
       const sets = await fetchUserSets(since);
       if (sets.length === 0) return [];
 
-      // Fetch exercise-muscle mappings
+      // Fetch exercise-muscle mappings (including activation_percent for weighted volume)
       const exerciseIds = [...new Set(sets.map((s) => s.exercise_id))];
       const { data: muscles, error: muscleError } = await supabase
         .from('exercise_muscles')
-        .select('exercise_id, muscle_group_id')
+        .select('exercise_id, muscle_group_id, activation_percent')
         .in('exercise_id', exerciseIds);
 
       if (muscleError) throw muscleError;
@@ -206,11 +207,11 @@ export function useMuscleDistribution(period: Period) {
         (muscleGroups ?? []).map((mg) => [mg.id, mg.name]),
       );
 
-      // Build exercise → muscles map
-      const exerciseMuscles = new Map<string, number[]>();
+      // Build exercise → muscles map with activation percentages
+      const exerciseMuscles = new Map<string, { muscleGroupId: number; activationPercent: number | null }[]>();
       for (const row of muscles ?? []) {
         const existing = exerciseMuscles.get(row.exercise_id) ?? [];
-        existing.push(row.muscle_group_id);
+        existing.push({ muscleGroupId: row.muscle_group_id, activationPercent: row.activation_percent });
         exerciseMuscles.set(row.exercise_id, existing);
       }
 
@@ -309,6 +310,133 @@ export function useTrainingStreak() {
       cutoff.setDate(cutoff.getDate() - 90);
       const sets = await fetchUserSets(cutoff);
       return computeStreak(sets);
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ─── Training Frequency Per Week (bar chart data) ───────────────────────────
+
+/**
+ * Training days per week for the last 8 weeks (for bar chart visualization).
+ */
+export function useTrainingFrequencyWeekly() {
+  return useQuery<WeeklyFrequencyEntry[]>({
+    queryKey: ['analytics', 'trainingFrequencyWeekly'],
+    queryFn: async () => {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 60); // ~8.5 weeks
+      const sets = await fetchUserSets(cutoff);
+      return trainingFrequencyPerWeek(sets, 8);
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ─── RPE Distribution ────────────────────────────────────────────────────────
+
+export interface RPEDistributionEntry {
+  rpe: number;
+  count: number;
+}
+
+/**
+ * Distribution of RPE values across all working sets in the given period.
+ * Returns entries for RPE 1-10.
+ */
+export function useRPEDistribution(period: Period) {
+  return useQuery<RPEDistributionEntry[]>({
+    queryKey: ['analytics', 'rpeDistribution', period],
+    queryFn: async () => {
+      const since = periodCutoff(period);
+      const sets = await fetchUserSets(since);
+      const workingSets = sets.filter(
+        (s) => s.rpe !== null && s.rpe !== undefined && s.set_type !== 'warmup',
+      );
+      const counts = new Map<number, number>();
+      for (let rpe = 1; rpe <= 10; rpe++) counts.set(rpe, 0);
+      for (const s of workingSets) {
+        const rpe = Math.round(s.rpe!);
+        counts.set(rpe, (counts.get(rpe) ?? 0) + 1);
+      }
+      return Array.from(counts.entries())
+        .map(([rpe, count]) => ({ rpe, count }))
+        .filter((e) => e.count > 0);
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ─── Muscle Balance (sets per muscle group per week) ─────────────────────────
+
+export interface MuscleBalanceEntry {
+  muscleName: string;
+  sets: number;
+}
+
+/**
+ * Weekly average sets per muscle group for the radar chart.
+ */
+export function useMuscleBalance(period: Period) {
+  return useQuery<MuscleBalanceEntry[]>({
+    queryKey: ['analytics', 'muscleBalance', period],
+    queryFn: async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const since = periodCutoff(period);
+      const sets = await fetchUserSets(since);
+      if (sets.length === 0) return [];
+
+      // Calculate the number of weeks in the period
+      const now = new Date();
+      const start = since ?? new Date(Math.min(...sets.map((s) => new Date(s.logged_at).getTime())));
+      const weeks = Math.max(1, Math.ceil((now.getTime() - start.getTime()) / (7 * 24 * 60 * 60 * 1000)));
+
+      // Fetch exercise-muscle mappings
+      const exerciseIds = [...new Set(sets.map((s) => s.exercise_id))];
+      const { data: muscles } = await supabase
+        .from('exercise_muscles')
+        .select('exercise_id, muscle_group_id, is_primary')
+        .in('exercise_id', exerciseIds);
+
+      const { data: muscleGroups } = await supabase
+        .from('muscle_groups')
+        .select('id, name');
+
+      const muscleGroupMap = new Map<number, string>(
+        (muscleGroups ?? []).map((mg) => [mg.id, mg.name]),
+      );
+
+      // Build exercise → primary muscle groups
+      const exercisePrimaryMuscles = new Map<string, number[]>();
+      for (const row of muscles ?? []) {
+        if (!row.is_primary) continue;
+        const existing = exercisePrimaryMuscles.get(row.exercise_id) ?? [];
+        existing.push(row.muscle_group_id);
+        exercisePrimaryMuscles.set(row.exercise_id, existing);
+      }
+
+      // Count working sets per muscle group
+      const setsByMuscle = new Map<number, number>();
+      for (const s of sets) {
+        if (s.set_type === 'warmup') continue;
+        const primaryMuscles = exercisePrimaryMuscles.get(s.exercise_id) ?? [];
+        for (const muscleId of primaryMuscles) {
+          setsByMuscle.set(muscleId, (setsByMuscle.get(muscleId) ?? 0) + 1);
+        }
+      }
+
+      return Array.from(setsByMuscle.entries())
+        .map(([muscleId, totalSets]) => ({
+          muscleName: muscleGroupMap.get(muscleId) ?? `Muscle ${muscleId}`,
+          sets: Math.round(totalSets / weeks),
+        }))
+        .filter((e) => e.sets > 0)
+        .sort((a, b) => b.sets - a.sets)
+        .slice(0, 10); // Top 10 for readability on radar
     },
     staleTime: 5 * 60 * 1000,
   });

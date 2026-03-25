@@ -4,7 +4,7 @@ import type { WorkoutSet } from '@/types/database';
 import { useOfflineStore } from '@/stores/offlineStore';
 import { useAuthStore } from '@/stores/authStore';
 
-type NewSet = Omit<WorkoutSet, 'id' | 'synced_at' | 'estimated_1rm' | 'tempo' | 'rir'>;
+type NewSet = Omit<WorkoutSet, 'id' | 'synced_at' | 'estimated_1rm' | 'tempo' | 'rir' | 'updated_at' | 'duration_seconds' | 'distance_meters' | 'distance_unit' | 'training_date' | 'side' | 'rest_seconds' | 'workout_cluster_id'>;
 
 /** Query key helpers */
 const todaySetsKey = (exerciseId: string) => ['sets', 'today', exerciseId];
@@ -115,6 +115,14 @@ export function useLogSet() {
         estimated_1rm: null,
         tempo: null,
         rir: null,
+        updated_at: new Date().toISOString(),
+        duration_seconds: null,
+        distance_meters: null,
+        distance_unit: null,
+        training_date: null,
+        side: null,
+        rest_seconds: null,
+        workout_cluster_id: null,
       };
 
       queryClient.setQueryData<WorkoutSet[]>(key, (old) => [optimisticSet, ...(old ?? [])]);

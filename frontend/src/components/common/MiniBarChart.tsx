@@ -1,4 +1,5 @@
 import Box from '@mui/material/Box';
+import { CHART_COLORS } from '@/theme';
 
 interface MiniBarChartProps {
   data: number[];
@@ -10,7 +11,7 @@ interface MiniBarChartProps {
 
 export function MiniBarChart({
   data,
-  color = '#A8C7FA',
+  color = CHART_COLORS.primary,
   height = 32,
   width = 60,
   barWidth = 4,
@@ -36,8 +37,8 @@ export function MiniBarChart({
           sx={{
             width: barWidth,
             height: Math.max(2, (value / max) * height),
-            backgroundColor: i === data.length - 1 ? color : `${color}88`,
-            borderRadius: '1px',
+            backgroundColor: i === data.length - 1 ? color : `${color}50`,
+            borderRadius: '1.5px',
             transition: 'height 0.2s',
           }}
         />

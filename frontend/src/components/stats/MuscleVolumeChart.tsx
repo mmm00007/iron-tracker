@@ -12,36 +12,7 @@ import {
   type TooltipProps,
 } from 'recharts';
 import type { WeeklyMuscleVolume } from '@/hooks/useMuscleVolume';
-
-const MUSCLE_COLORS: Record<string, string> = {
-  Chest: '#EF5350',
-  Pectoralis: '#EF5350',
-  Back: '#42A5F5',
-  Latissimus: '#42A5F5',
-  Shoulders: '#FFA726',
-  Deltoids: '#FFA726',
-  Biceps: '#66BB6A',
-  Triceps: '#AB47BC',
-  Quadriceps: '#26C6DA',
-  Hamstrings: '#00897B',
-  Glutes: '#EC407A',
-  Calves: '#78909C',
-  Abdominals: '#F9A825',
-  Core: '#F9A825',
-  Forearms: '#8D6E63',
-  Trapezius: '#7E57C2',
-};
-
-const FALLBACK_COLORS = ['#90CAF9', '#A5D6A7', '#FFCC80', '#CE93D8', '#80DEEA', '#EF9A9A'];
-
-function getColor(muscle: string, idx: number): string {
-  // Try exact match first, then partial match
-  if (MUSCLE_COLORS[muscle]) return MUSCLE_COLORS[muscle];
-  for (const [key, color] of Object.entries(MUSCLE_COLORS)) {
-    if (muscle.toLowerCase().includes(key.toLowerCase())) return color;
-  }
-  return FALLBACK_COLORS[idx % FALLBACK_COLORS.length]!;
-}
+import { CHART_COLORS, DATA_FONT } from '@/theme';
 
 function formatWeek(week: string): string {
   const d = new Date(week + 'T00:00:00');
@@ -56,14 +27,15 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
   return (
     <Box
       sx={{
-        backgroundColor: 'rgba(30, 30, 30, 0.95)',
-        border: '1px solid rgba(202, 196, 208, 0.2)',
-        borderRadius: 1,
+        backgroundColor: 'rgba(20, 24, 32, 0.95)',
+        border: '1px solid rgba(160, 170, 184, 0.12)',
+        borderRadius: '8px',
         p: 1.5,
         minWidth: 140,
+        backdropFilter: 'blur(8px)',
       }}
     >
-      <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.5 }}>
+      <Typography variant="caption" sx={{ color: '#A0AAB8', display: 'block', mb: 0.5 }}>
         Week of {label}
       </Typography>
       {payload.map((p) => (
@@ -71,17 +43,17 @@ function CustomTooltip({ active, payload, label }: TooltipProps<number, string>)
           <Typography variant="caption" sx={{ color: p.color }}>
             {p.name}
           </Typography>
-          <Typography variant="caption" sx={{ color: 'text.primary', fontWeight: 600 }}>
+          <Typography sx={{ fontFamily: DATA_FONT, fontSize: '0.6875rem', color: '#EAEEF4', fontWeight: 600 }}>
             {(p.value ?? 0).toLocaleString()}
           </Typography>
         </Box>
       ))}
-      <Box sx={{ borderTop: '1px solid rgba(202, 196, 208, 0.2)', mt: 0.5, pt: 0.5 }}>
+      <Box sx={{ borderTop: '1px solid rgba(160, 170, 184, 0.12)', mt: 0.5, pt: 0.5 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+          <Typography variant="caption" sx={{ color: '#A0AAB8' }}>
             Total
           </Typography>
-          <Typography variant="caption" sx={{ color: 'text.primary', fontWeight: 700 }}>
+          <Typography sx={{ fontFamily: DATA_FONT, fontSize: '0.6875rem', color: CHART_COLORS.primary, fontWeight: 700 }}>
             {total.toLocaleString()}
           </Typography>
         </Box>
@@ -96,7 +68,6 @@ interface MuscleVolumeChartProps {
 
 export function MuscleVolumeChart({ data }: MuscleVolumeChartProps) {
   const { chartData, muscleGroups } = useMemo(() => {
-    // Pivot: rows = weeks, columns = muscle groups
     const weeks = [...new Set(data.map((d) => d.week))].sort();
     const muscles = [...new Set(data.map((d) => d.muscleGroup))].sort();
 
@@ -121,33 +92,33 @@ export function MuscleVolumeChart({ data }: MuscleVolumeChartProps) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={260}>
+    <ResponsiveContainer width="100%" height={280}>
       <BarChart data={chartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
         <XAxis
           dataKey="week"
-          tick={{ fontSize: 11, fill: '#CAC4D0' }}
+          tick={{ fontSize: 10, fill: '#636D7E', fontFamily: DATA_FONT }}
           axisLine={false}
           tickLine={false}
         />
         <YAxis
-          tick={{ fontSize: 11, fill: '#938F99' }}
+          tick={{ fontSize: 10, fill: '#636D7E', fontFamily: DATA_FONT }}
           axisLine={false}
           tickLine={false}
           tickFormatter={(v: number) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v))}
         />
-        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(168, 199, 250, 0.06)' }} />
+        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(91, 234, 162, 0.04)' }} />
         <Legend
           iconType="circle"
           iconSize={8}
-          wrapperStyle={{ fontSize: '0.65rem', paddingTop: '8px' }}
+          wrapperStyle={{ fontSize: '0.6rem', paddingTop: '8px' }}
         />
         {muscleGroups.map((muscle, idx) => (
           <Bar
             key={muscle}
             dataKey={muscle}
             stackId="volume"
-            fill={getColor(muscle, idx)}
-            radius={idx === muscleGroups.length - 1 ? [2, 2, 0, 0] : undefined}
+            fill={CHART_COLORS.getMuscleColor(muscle, idx)}
+            radius={idx === muscleGroups.length - 1 ? [3, 3, 0, 0] : undefined}
           />
         ))}
       </BarChart>

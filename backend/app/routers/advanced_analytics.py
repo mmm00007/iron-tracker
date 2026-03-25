@@ -13,6 +13,8 @@ from app.auth import get_current_user
 from app.models.schemas import (
     ACWRResponse,
     AdvancedAnalyticsDashboard,
+    BilateralAsymmetryResponse,
+    BodyCompositionResponse,
     BodyPartBalanceResponse,
     CompositeScoreResponse,
     ConsistencyResponse,
@@ -25,12 +27,19 @@ from app.models.schemas import (
     PeriodizationResponse,
     ProgressiveOverloadResponse,
     RecoveryResponse,
+    RelativeStrengthResponse,
+    RestAnalysisResponse,
     SessionQualityResponse,
+    SleepPerformanceResponse,
     StalenessResponse,
     StrengthStandardsResponse,
+    TimePerformanceResponse,
+    TrainingDensityResponse,
     VolumeLandmarksResponse,
 )
 from app.services.acwr_service import compute_acwr
+from app.services.bilateral_asymmetry_service import compute_bilateral_asymmetry
+from app.services.body_composition_service import compute_body_composition
 from app.services.composite_score_service import compute_composite_score
 from app.services.consistency_service import compute_consistency
 from app.services.exercise_variety_service import compute_exercise_variety
@@ -45,9 +54,14 @@ from app.services.periodization_service import (
 )
 from app.services.progressive_overload_service import compute_progressive_overload
 from app.services.recovery_service import compute_recovery
+from app.services.relative_strength_service import compute_relative_strength
+from app.services.rest_analysis_service import compute_rest_analysis
 from app.services.session_quality_service import compute_session_quality
+from app.services.sleep_performance_service import compute_sleep_performance
 from app.services.staleness_service import compute_staleness
 from app.services.strength_standards_service import compute_strength_standards
+from app.services.time_performance_service import compute_time_performance
+from app.services.training_density_service import compute_training_density
 from app.services.volume_landmarks_service import compute_volume_landmarks
 
 router = APIRouter(prefix="/api/analytics/advanced", tags=["advanced-analytics"])
@@ -310,7 +324,114 @@ async def get_load_distribution(
     return await compute_load_distribution(user_id, db_pool, weeks=weeks)
 
 
-# ─── Aggregated dashboard ───────────────────────────────────────────────────
+# ─── Deep insight endpoints ─────────────────���──────────────────────────────
+
+
+@router.get("/bilateral-asymmetry", response_model=BilateralAsymmetryResponse)
+async def get_bilateral_asymmetry(
+    period: int = Query(default=90, ge=7, le=365, description="Period in days"),
+    user_id: str = Depends(get_current_user),
+    db_pool: asyncpg.Pool = Depends(_get_db_pool),
+) -> BilateralAsymmetryResponse:
+    """Bilateral strength asymmetry detection using Limb Symmetry Index.
+
+    Compares left vs right e1RM and volume for unilateral exercises.
+    Uses the LSI formula (weaker/stronger × 100) with thresholds from
+    Knapik et al. (1991) and Bishop et al. (2018).
+    """
+    return await compute_bilateral_asymmetry(user_id, db_pool, period_days=period)
+
+
+@router.get("/body-composition", response_model=BodyCompositionResponse)
+async def get_body_composition(
+    period: int = Query(default=90, ge=7, le=365, description="Period in days"),
+    user_id: str = Depends(get_current_user),
+    db_pool: asyncpg.Pool = Depends(_get_db_pool),
+) -> BodyCompositionResponse:
+    """Body composition analytics: BMI, FFMI, weight trends.
+
+    Computes BMI, Fat-Free Mass Index (Kouri et al. 1995 normalized),
+    7-day EMA weight trend, and body fat tracking. FFMI is the preferred
+    metric for trained individuals over BMI.
+    """
+    return await compute_body_composition(user_id, db_pool, period_days=period)
+
+
+@router.get("/training-density", response_model=TrainingDensityResponse)
+async def get_training_density(
+    period: int = Query(default=28, ge=7, le=365, description="Period in days"),
+    user_id: str = Depends(get_current_user),
+    db_pool: asyncpg.Pool = Depends(_get_db_pool),
+) -> TrainingDensityResponse:
+    """Training density and efficiency metrics.
+
+    Computes effective sets per hour and volume per minute per session.
+    Tracks density trends over time via linear regression.
+    """
+    return await compute_training_density(user_id, db_pool, period_days=period)
+
+
+@router.get("/sleep-performance", response_model=SleepPerformanceResponse)
+async def get_sleep_performance(
+    period: int = Query(default=90, ge=7, le=365, description="Period in days"),
+    user_id: str = Depends(get_current_user),
+    db_pool: asyncpg.Pool = Depends(_get_db_pool),
+) -> SleepPerformanceResponse:
+    """Sleep-performance correlation analysis.
+
+    Computes Spearman rank correlations between self-reported sleep
+    metrics and training performance. Includes bucket analysis
+    (poor/fair/good/excellent) for actionable insights.
+    """
+    return await compute_sleep_performance(user_id, db_pool, period_days=period)
+
+
+@router.get("/time-performance", response_model=TimePerformanceResponse)
+async def get_time_performance(
+    period: int = Query(default=90, ge=7, le=365, description="Period in days"),
+    user_id: str = Depends(get_current_user),
+    db_pool: asyncpg.Pool = Depends(_get_db_pool),
+) -> TimePerformanceResponse:
+    """Time-of-day performance analysis.
+
+    Analyzes training performance across four time windows
+    (morning/afternoon/evening/night) using circadian rhythm
+    research as context (Chtourou & Souissi, 2012).
+    """
+    return await compute_time_performance(user_id, db_pool, period_days=period)
+
+
+@router.get("/rest-analysis", response_model=RestAnalysisResponse)
+async def get_rest_analysis(
+    period: int = Query(default=28, ge=7, le=365, description="Period in days"),
+    user_id: str = Depends(get_current_user),
+    db_pool: asyncpg.Pool = Depends(_get_db_pool),
+) -> RestAnalysisResponse:
+    """Rest period distribution and analysis.
+
+    Analyzes rest periods segmented by exercise mechanic
+    (compound/isolation) against NSCA-recommended ranges.
+    Includes weekly trend tracking and safety flags.
+    """
+    return await compute_rest_analysis(user_id, db_pool, period_days=period)
+
+
+@router.get("/relative-strength", response_model=RelativeStrengthResponse)
+async def get_relative_strength(
+    period: int = Query(default=90, ge=7, le=365, description="Period in days"),
+    user_id: str = Depends(get_current_user),
+    db_pool: asyncpg.Pool = Depends(_get_db_pool),
+) -> RelativeStrengthResponse:
+    """Relative strength tracking using DOTS scores.
+
+    Computes IPF DOTS scores (2019) and simple bodyweight ratios
+    for benchmarkable compound lifts. Tracks relative strength
+    over time as bodyweight changes.
+    """
+    return await compute_relative_strength(user_id, db_pool, period_days=period)
+
+
+# ─── Aggregated dashboard ──────────���─────────────────────────────────────��──
 
 
 @router.get("/dashboard", response_model=AdvancedAnalyticsDashboard)
@@ -319,7 +440,7 @@ async def get_dashboard(
     user_id: str = Depends(get_current_user),
     db_pool: asyncpg.Pool = Depends(_get_db_pool),
 ) -> AdvancedAnalyticsDashboard:
-    """Comprehensive analytics dashboard aggregating all 17 advanced metrics.
+    """Comprehensive analytics dashboard aggregating all 24 advanced metrics.
 
     Runs all analytics queries in parallel for optimal performance.
     Uses return_exceptions=True so one failing metric doesn't break the
@@ -343,6 +464,14 @@ async def get_dashboard(
         compute_muscle_frequency(user_id, db_pool, weeks=max(period // 7, 2)),
         compute_staleness(user_id, db_pool, weeks=max(period // 7, 2)),
         compute_load_distribution(user_id, db_pool, weeks=max(period // 7, 2)),
+        # Deep insight analytics
+        compute_bilateral_asymmetry(user_id, db_pool, period_days=max(period, 90)),
+        compute_body_composition(user_id, db_pool, period_days=max(period, 90)),
+        compute_training_density(user_id, db_pool, period_days=max(period, 28)),
+        compute_sleep_performance(user_id, db_pool, period_days=max(period, 90)),
+        compute_time_performance(user_id, db_pool, period_days=max(period, 90)),
+        compute_rest_analysis(user_id, db_pool, period_days=max(period, 28)),
+        compute_relative_strength(user_id, db_pool, period_days=max(period, 90)),
         return_exceptions=True,
     )
 
@@ -376,6 +505,7 @@ async def get_dashboard(
         ),
         None, None, None, None, None, None,  # acwr..fitness_fatigue
         None, None, None, None,  # composite..load_distribution
+        None, None, None, None, None, None, None,  # 7 deep insight analytics
     ]
 
     resolved = [
@@ -401,4 +531,11 @@ async def get_dashboard(
         muscle_frequency=resolved[14],
         staleness=resolved[15],
         load_distribution=resolved[16],
+        bilateral_asymmetry=resolved[17],
+        body_composition=resolved[18],
+        training_density=resolved[19],
+        sleep_performance=resolved[20],
+        time_performance=resolved[21],
+        rest_analysis=resolved[22],
+        relative_strength=resolved[23],
     )
