@@ -9,17 +9,21 @@ export interface ExerciseWithLastSet extends Exercise {
   lastLoggedAt?: string;
 }
 
+export interface ExerciseWithMuscles extends Exercise {
+  exercise_muscles: { muscle_group_id: number }[];
+}
+
 export function useExercises() {
-  return useQuery<Exercise[]>({
+  return useQuery<ExerciseWithMuscles[]>({
     queryKey: ['exercises'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('exercises')
-        .select('*')
+        .select('*, exercise_muscles(muscle_group_id)')
         .order('name', { ascending: true });
 
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as ExerciseWithMuscles[];
     },
     staleTime: 10 * 60 * 1000, // 10 minutes — exercise catalog changes rarely
   });

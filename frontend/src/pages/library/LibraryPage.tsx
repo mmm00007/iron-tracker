@@ -40,7 +40,7 @@ import MenuBookIcon from '@mui/icons-material/MenuBook';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
-import { useExercises, useMuscleGroups } from '@/hooks/useExercises';
+import { useExercises, useMuscleGroups, type ExerciseWithMuscles } from '@/hooks/useExercises';
 import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
 import type { Exercise } from '@/types/database';
 
@@ -302,7 +302,7 @@ export function LibraryPage() {
 
   const [search, setSearch] = useState('');
   const [equipmentFilter, setEquipmentFilter] = useState<string>('all');
-  const [muscleFilter, setMuscleFilter] = useState<string | null>(null);
+  const [muscleFilter, setMuscleFilter] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'all' | 'favorites'>('all');
 
   // Detail / CRUD state
@@ -322,7 +322,9 @@ export function LibraryPage() {
       );
     }
     if (equipmentFilter !== 'all') list = list.filter((e) => e.equipment?.toLowerCase() === equipmentFilter);
-    if (muscleFilter) list = list.filter((e) => e.category === muscleFilter);
+    if (muscleFilter) list = list.filter((e) =>
+      e.exercise_muscles?.some((em) => em.muscle_group_id === muscleFilter)
+    );
     return list;
   }, [exercises, search, equipmentFilter, muscleFilter, viewMode, favoriteIds]);
 
@@ -397,9 +399,9 @@ export function LibraryPage() {
         <Stack direction="row" spacing={0.5} sx={{ overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, mt: 0.5, mb: 1 }}>
           {(muscleGroups ?? []).slice(0, 12).map((mg) => (
             <Chip key={mg.id} label={mg.name} size="small"
-              onClick={() => setMuscleFilter(muscleFilter === mg.name ? null : mg.name)}
-              color={muscleFilter === mg.name ? 'secondary' : 'default'}
-              variant={muscleFilter === mg.name ? 'filled' : 'outlined'}
+              onClick={() => setMuscleFilter(muscleFilter === mg.id ? null : mg.id)}
+              color={muscleFilter === mg.id ? 'secondary' : 'default'}
+              variant={muscleFilter === mg.id ? 'filled' : 'outlined'}
               sx={{ fontSize: '0.65rem', height: 24, flexShrink: 0 }}
             />
           ))}
