@@ -3,15 +3,7 @@ from datetime import UTC, date, datetime, timedelta
 import asyncpg
 
 from app.models.schemas import ExerciseE1RM, WeeklySummary
-
-# ─── 1RM formula ─────────────────────────────────────────────────────────────
-
-
-def _epley(weight: float, reps: int) -> float:
-    """Epley formula: weight × (1 + reps / 30). Returns weight for 1 rep."""
-    if reps <= 0 or weight <= 0:
-        return weight
-    return weight * (1 + reps / 30)
+from app.services.utils import epley as _epley
 
 
 # ─── Weekly summary ───────────────────────────────────────────────────────────

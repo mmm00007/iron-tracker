@@ -64,21 +64,6 @@ NOW = datetime.now(UTC)
 TODAY = date.today()
 
 
-@pytest.fixture
-def mock_db_pool() -> MagicMock:
-    pool = MagicMock()
-    conn = AsyncMock()
-    conn.fetchrow.return_value = None
-    conn.fetch.return_value = []
-    conn.fetchval.return_value = None
-    ctx = AsyncMock()
-    ctx.__aenter__ = AsyncMock(return_value=conn)
-    ctx.__aexit__ = AsyncMock(return_value=False)
-    pool.acquire.return_value = ctx
-    pool._conn = conn
-    return pool
-
-
 # =============================================================================
 # PLAN ADHERENCE SERVICE
 # =============================================================================

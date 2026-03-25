@@ -5,24 +5,11 @@ from datetime import UTC, datetime, timedelta
 import asyncpg
 
 from app.models.schemas import SessionDensityEntry, TrainingDensityResponse
+from functools import partial
 
+from app.services.utils import linear_regression
 
-def _linear_regression(
-    xs: list[float], ys: list[float]
-) -> tuple[float | None, float | None]:
-    """Pure-Python simple linear regression. Returns (slope, intercept)."""
-    n = len(xs)
-    if n < 3:
-        return None, None
-    x_mean = sum(xs) / n
-    y_mean = sum(ys) / n
-    num = sum((x - x_mean) * (y - y_mean) for x, y in zip(xs, ys))
-    den = sum((x - x_mean) ** 2 for x in xs)
-    if den == 0:
-        return 0.0, y_mean
-    slope = num / den
-    intercept = y_mean - slope * x_mean
-    return slope, intercept
+_linear_regression = partial(linear_regression, min_points=3)
 
 
 async def compute_training_density(

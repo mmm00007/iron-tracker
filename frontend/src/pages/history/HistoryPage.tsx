@@ -167,6 +167,7 @@ export function HistoryPage() {
         <Toolbar sx={{ px: 2, minHeight: '56px !important' }}>
           <Typography
             variant="h6"
+            component="h1"
             sx={{
               flex: 1,
               fontWeight: 700,

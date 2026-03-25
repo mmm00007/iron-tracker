@@ -13,19 +13,6 @@ from tests.conftest import FAKE_USER_ID
 
 
 @pytest.fixture
-def mock_db_pool() -> MagicMock:
-    """Create a mock asyncpg pool with acquire() context manager."""
-    pool = MagicMock()
-    conn = AsyncMock()
-    ctx = AsyncMock()
-    ctx.__aenter__ = AsyncMock(return_value=conn)
-    ctx.__aexit__ = AsyncMock(return_value=False)
-    pool.acquire.return_value = ctx
-    pool._conn = conn  # expose for assertions
-    return pool
-
-
-@pytest.fixture
 def analytics_client(mock_db_pool: MagicMock) -> TestClient:
     """TestClient with auth and db_pool overrides for analytics routes."""
     from app.routers.analytics import get_db_pool

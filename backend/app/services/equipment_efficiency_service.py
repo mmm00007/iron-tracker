@@ -28,25 +28,13 @@ from app.models.schemas import (
     EquipmentEfficiencyResponse,
 )
 
+from app.services.utils import linear_regression_slope as _linear_regression
+
 _DISCLAIMER = (
     "Equipment efficiency reflects your personal performance across "
     "different machines and equipment. Past performance does not "
     "guarantee future results."
 )
-
-
-def _linear_regression(xs: list[float], ys: list[float]) -> float | None:
-    """Simple OLS slope on (xs, ys). Returns None if fewer than 4 points."""
-    n = len(xs)
-    if n < 4:
-        return None
-    x_mean = sum(xs) / n
-    y_mean = sum(ys) / n
-    num = sum((x - x_mean) * (y - y_mean) for x, y in zip(xs, ys))
-    den = sum((x - x_mean) ** 2 for x in xs)
-    if den == 0:
-        return 0.0
-    return num / den
 
 
 async def compute_equipment_efficiency(

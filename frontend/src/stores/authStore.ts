@@ -101,6 +101,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     // Clear persisted query cache (workout history, PII) on sign-out
     await indexedDBPersister.removeClient().catch(() => {});
+    // Clear service worker cache to prevent stale PII persistence
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k))).catch(() => {});
+    }
     set({ user: null, session: null, loading: false, error: null, sessionExpired: false });
   },
 

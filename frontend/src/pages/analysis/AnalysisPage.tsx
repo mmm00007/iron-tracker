@@ -112,7 +112,7 @@ export function AnalysisPage() {
     <Box sx={{ pb: { xs: 10, md: 2 } }}>
       <AppBar position="static" elevation={0} color="transparent">
         <Toolbar sx={{ px: 2, minHeight: '56px !important' }}>
-          <Typography variant="h6" fontWeight={700} sx={{ flexGrow: 1 }}>
+          <Typography variant="h6" component="h1" fontWeight={700} sx={{ flexGrow: 1 }}>
             AI Analysis
           </Typography>
         </Toolbar>

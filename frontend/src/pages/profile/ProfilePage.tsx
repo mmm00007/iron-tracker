@@ -88,7 +88,7 @@ export function ProfilePage() {
 
   return (
     <Container maxWidth="sm" sx={{ py: 4 }}>
-      <Typography variant="h5" fontWeight={600} gutterBottom>
+      <Typography variant="h5" component="h1" fontWeight={600} gutterBottom>
         Profile
       </Typography>
 

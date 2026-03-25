@@ -17,7 +17,10 @@ from datetime import UTC, datetime, timedelta
 
 import asyncpg
 
+from functools import partial
+
 from app.models.schemas import AdherenceWeekEntry, PlanAdherenceResponse
+from app.services.utils import linear_regression
 
 _DISCLAIMER = (
     "Plan adherence reflects consistency with your training plan. "
@@ -32,27 +35,7 @@ _DECLINING_THRESHOLD = -0.02
 _BURNOUT_SLOPE_THRESHOLD = -0.03
 _BURNOUT_RPE_THRESHOLD = 8.0
 
-
-def _linear_regression(
-    xs: list[float], ys: list[float]
-) -> tuple[float | None, float | None]:
-    """Ordinary least-squares linear regression (pure Python).
-
-    Returns (slope, intercept) or (None, None) if fewer than 4 data points
-    or zero variance in x.
-    """
-    n = len(xs)
-    if n < _MIN_WEEKS_FOR_TREND:
-        return None, None
-    x_mean = sum(xs) / n
-    y_mean = sum(ys) / n
-    num = sum((x - x_mean) * (y - y_mean) for x, y in zip(xs, ys))
-    den = sum((x - x_mean) ** 2 for x in xs)
-    if den == 0:
-        return 0.0, y_mean
-    slope = num / den
-    intercept = y_mean - slope * x_mean
-    return slope, intercept
+_linear_regression = partial(linear_regression, min_points=_MIN_WEEKS_FOR_TREND)
 
 
 def _classify_trend(slope: float | None) -> str:

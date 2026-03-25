@@ -361,7 +361,7 @@ export function LibraryPage() {
       <AppBar position="static" elevation={0} color="transparent">
         <Toolbar sx={{ px: 2, minHeight: '56px !important' }}>
           <MenuBookIcon sx={{ mr: 1, color: 'text.secondary' }} />
-          <Typography variant="h6" fontWeight={700} sx={{ flexGrow: 1 }}>Exercise Library</Typography>
+          <Typography variant="h6" component="h1" fontWeight={700} sx={{ flexGrow: 1 }}>Exercise Library</Typography>
           <Button size="small" startIcon={<AddIcon />} onClick={() => { setEditExercise(null); setShowForm(true); }}>
             New
           </Button>

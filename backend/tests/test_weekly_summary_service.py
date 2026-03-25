@@ -4,22 +4,6 @@ import pytest
 
 from app.services.weekly_summary_service import generate_weekly_summaries
 
-# ── Fixtures ─────────────────────────────────────────────────────────────────
-
-
-@pytest.fixture
-def mock_db_pool() -> MagicMock:
-    """Create a mock asyncpg pool with acquire() context manager."""
-    pool = MagicMock()
-    conn = AsyncMock()
-    ctx = AsyncMock()
-    ctx.__aenter__ = AsyncMock(return_value=conn)
-    ctx.__aexit__ = AsyncMock(return_value=False)
-    pool.acquire.return_value = ctx
-    pool._conn = conn
-    return pool
-
-
 # ── Tests ────────────────────────────────────────────────────────────────────
 
 

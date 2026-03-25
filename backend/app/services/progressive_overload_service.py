@@ -8,35 +8,14 @@ from app.models.schemas import (
     ExerciseOverloadEntry,
     ProgressiveOverloadResponse,
 )
-
-
-def _epley(weight: float, reps: int) -> float:
-    if reps <= 0 or weight <= 0:
-        return weight
-    return weight * (1 + reps / 30)
+from app.services.utils import epley as _epley
+from app.services.utils import linear_regression as _shared_lr
 
 
 def _linear_regression(xs: list[float], ys: list[float]) -> tuple[float, float]:
-    """Simple OLS linear regression. Returns (slope, intercept).
-
-    Pure Python implementation — no numpy dependency required.
-    """
-    n = len(xs)
-    if n < 2:
-        return 0.0, (ys[0] if ys else 0.0)
-
-    sum_x = sum(xs)
-    sum_y = sum(ys)
-    sum_xy = sum(x * y for x, y in zip(xs, ys))
-    sum_x2 = sum(x * x for x in xs)
-
-    denom = n * sum_x2 - sum_x * sum_x
-    if denom == 0:
-        return 0.0, sum_y / n
-
-    slope = (n * sum_xy - sum_x * sum_y) / denom
-    intercept = (sum_y - slope * sum_x) / n
-    return slope, intercept
+    """Wrapper preserving original non-None return contract (min_points=2)."""
+    slope, intercept = _shared_lr(xs, ys, min_points=2)
+    return slope or 0.0, intercept or (ys[0] if ys else 0.0)
 
 
 def _detect_plateau(weekly_e1rms: list[float], threshold: float = 0.05) -> int:

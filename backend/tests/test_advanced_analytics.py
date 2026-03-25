@@ -27,19 +27,6 @@ from tests.conftest import FAKE_USER_ID
 
 
 @pytest.fixture
-def mock_db_pool() -> MagicMock:
-    pool = MagicMock()
-    conn = AsyncMock()
-    conn.fetchrow.return_value = None  # Default: no profile data
-    ctx = AsyncMock()
-    ctx.__aenter__ = AsyncMock(return_value=conn)
-    ctx.__aexit__ = AsyncMock(return_value=False)
-    pool.acquire.return_value = ctx
-    pool._conn = conn
-    return pool
-
-
-@pytest.fixture
 def adv_client(mock_db_pool: MagicMock) -> TestClient:
     from app.routers.advanced_analytics import _get_db_pool
 
