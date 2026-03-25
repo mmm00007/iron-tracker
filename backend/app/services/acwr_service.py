@@ -30,6 +30,7 @@ _CHRONIC_LAMBDA = 2 / (28 + 1)  # 28-day window
 
 def _classify_acwr(ratio: float) -> str:
     """Classify ACWR into risk zone."""
+    # ACWR zones per Gabbett (2016), Blanch & Gabbett (2016)
     if ratio < 0.8:
         return "under_prepared"
     if ratio <= 1.3:

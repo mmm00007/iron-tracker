@@ -58,6 +58,7 @@ def _classify_ffmi(ffmi_normalized: float, sex: str) -> str:
       <15 below_average, 15-17 average, 17-19 above_average,
       19-22 excellent, 22+ exceptional
     """
+    # FFMI norms per Kouri et al. (1995)
     if sex == "female":
         if ffmi_normalized < 15.0:
             return "below_average"

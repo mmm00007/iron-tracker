@@ -37,6 +37,7 @@ _MIN_SETS_PER_SIDE = 3
 
 def _classify_severity(asymmetry_pct: float) -> str:
     """Classify asymmetry percentage into severity tier."""
+    # LSI thresholds per Knapik et al. (1991), Bishop et al. (2018)
     if asymmetry_pct < 8:
         return "normal"
     if asymmetry_pct <= 15:

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import {
@@ -19,9 +20,6 @@ import LinearProgress from '@mui/material/LinearProgress';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { statsRoute } from '@/router';
 import { WeeklySnapshotCard } from '@/components/stats/WeeklySnapshotCard';
-import { TrainingCalendar } from '@/components/stats/TrainingCalendar';
-import { MuscleDistributionChart } from '@/components/stats/MuscleDistributionChart';
-import { MuscleVolumeChart } from '@/components/stats/MuscleVolumeChart';
 import { DeloadBanner } from '@/components/stats/DeloadBanner';
 import {
   useRecentPRs,
@@ -32,11 +30,16 @@ import {
   useMuscleBalance,
 } from '@/hooks/useAnalytics';
 import { useWeeklyMuscleVolume } from '@/hooks/useMuscleVolume';
-import { RPEDistributionChart } from '@/components/stats/RPEDistributionChart';
-import { MuscleBalanceRadar } from '@/components/stats/MuscleBalanceRadar';
 import { useProfile } from '@/hooks/useProfile';
 import { formatRelativeDate, formatVolume } from '@/utils/formatters';
 import { DATA_FONT, CHART_COLORS } from '@/theme';
+
+// Lazy-load chart components (recharts is ~150KB)
+const TrainingCalendar = lazy(() => import('@/components/stats/TrainingCalendar').then(m => ({ default: m.TrainingCalendar })));
+const MuscleDistributionChart = lazy(() => import('@/components/stats/MuscleDistributionChart').then(m => ({ default: m.MuscleDistributionChart })));
+const MuscleVolumeChart = lazy(() => import('@/components/stats/MuscleVolumeChart').then(m => ({ default: m.MuscleVolumeChart })));
+const RPEDistributionChart = lazy(() => import('@/components/stats/RPEDistributionChart').then(m => ({ default: m.RPEDistributionChart })));
+const MuscleBalanceRadar = lazy(() => import('@/components/stats/MuscleBalanceRadar').then(m => ({ default: m.MuscleBalanceRadar })));
 
 type Period = 'week' | 'month' | '3months' | 'all';
 
@@ -218,14 +221,18 @@ export function StatsPage() {
 
               {/* Training Calendar — full width */}
               <Box sx={{ gridColumn: { md: '1 / -1' } }}>
-                <TrainingCalendar />
+                <Suspense fallback={<Skeleton variant="rectangular" height={200} />}>
+                  <TrainingCalendar />
+                </Suspense>
               </Box>
 
               {/* Muscle Distribution — takes 1 column on desktop */}
-              <MuscleDistributionChart
-                data={muscleData ?? []}
-                isLoading={muscleLoading}
-              />
+              <Suspense fallback={<Skeleton variant="rectangular" height={200} />}>
+                <MuscleDistributionChart
+                  data={muscleData ?? []}
+                  isLoading={muscleLoading}
+                />
+              </Suspense>
 
               {/* Weekly Volume by Muscle — spans 2 columns on desktop */}
               <Card sx={{ gridColumn: { md: '1 / -1', lg: '2 / -1' } }}>
@@ -234,7 +241,9 @@ export function StatsPage() {
                     Weekly Volume by Muscle
                   </Typography>
                   {muscleVolumeData && muscleVolumeData.length > 0 ? (
-                    <MuscleVolumeChart data={muscleVolumeData} />
+                    <Suspense fallback={<Skeleton variant="rectangular" height={200} />}>
+                      <MuscleVolumeChart data={muscleVolumeData} />
+                    </Suspense>
                   ) : (
                     <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
                       No data for this period
@@ -246,14 +255,18 @@ export function StatsPage() {
               {/* RPE Distribution */}
               {rpeData && rpeData.length > 0 && (
                 <Box sx={{ gridColumn: { md: '1 / -1', lg: '1 / span 1' } }}>
-                  <RPEDistributionChart data={rpeData} isLoading={rpeLoading} />
+                  <Suspense fallback={<Skeleton variant="rectangular" height={200} />}>
+                    <RPEDistributionChart data={rpeData} isLoading={rpeLoading} />
+                  </Suspense>
                 </Box>
               )}
 
               {/* Muscle Balance Radar */}
               {muscleBalanceData && muscleBalanceData.length >= 3 && (
                 <Box sx={{ gridColumn: { md: '1 / -1', lg: '2 / -1' } }}>
-                  <MuscleBalanceRadar data={muscleBalanceData} isLoading={muscleBalanceLoading} />
+                  <Suspense fallback={<Skeleton variant="rectangular" height={200} />}>
+                    <MuscleBalanceRadar data={muscleBalanceData} isLoading={muscleBalanceLoading} />
+                  </Suspense>
                 </Box>
               )}
 

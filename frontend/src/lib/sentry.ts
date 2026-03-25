@@ -9,10 +9,6 @@ export function initSentry() {
     environment: import.meta.env.MODE,
     integrations: [
       Sentry.browserTracingIntegration(),
-      Sentry.replayIntegration({
-        maskAllText: true,
-        blockAllMedia: true,
-      }),
     ],
     // Performance: capture 20% of transactions in production
     tracesSampleRate: import.meta.env.PROD ? 0.2 : 1.0,
@@ -30,6 +26,11 @@ export function initSentry() {
       if (import.meta.env.DEV) return null;
       return event;
     },
+  });
+
+  // Lazy-load session replay integration to reduce initial bundle (~70KB)
+  Sentry.lazyLoadIntegration('replayIntegration').then((replayIntegration) => {
+    Sentry.addIntegration(replayIntegration({ maskAllText: true, blockAllMedia: true }));
   });
 }
 

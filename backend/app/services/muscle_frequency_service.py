@@ -25,6 +25,7 @@ from app.models.schemas import (
 
 # Evidence-based frequency targets (sessions per week).
 # Based on Schoenfeld (2016), NSCA, and Renaissance Periodization.
+# Frequency targets per Schoenfeld et al. (2016) meta-analysis
 # Format: {muscle: (min_optimal, max_optimal)}
 _FREQUENCY_TARGETS: dict[str, tuple[float, float]] = {
     "Chest": (1.5, 3.0),

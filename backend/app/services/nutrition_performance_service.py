@@ -210,7 +210,6 @@ async def compute_nutrition_performance(
     calorie_vals: list[float] = []
     carb_vals: list[float] = []
     volume_vals: list[float] = []
-    rpe_vals: list[float] = []
     carb_rpe_carbs: list[float] = []
     carb_rpe_rpes: list[float] = []
 

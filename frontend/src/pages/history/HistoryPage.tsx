@@ -27,6 +27,9 @@ import { SessionCard } from '@/components/history/SessionCard';
 import { useAllSessionNames } from '@/hooks/useSessionNames';
 import type { SessionGroup } from '@/utils/sessionGrouping';
 
+// Cap accumulated sessions to prevent unbounded memory growth (P3-15)
+const MAX_ACCUMULATED_SESSIONS = 500;
+
 function LoadingSkeleton() {
   return (
     <Box sx={{ px: 2, pt: 1 }}>
@@ -98,6 +101,7 @@ export function HistoryPage() {
   const { data: sessionNames } = useAllSessionNames();
 
   // Accumulate sessions across pages — each page is appended only once
+  // TODO: Migrate to useInfiniteQuery for cleaner pagination (see P3-15 audit)
   useEffect(() => {
     if (!sessionsQuery.isSuccess || !sessionsQuery.data) return;
     const sessions = sessionsQuery.data;
@@ -111,9 +115,15 @@ export function HistoryPage() {
     loadedPages.current.add(page);
 
     if (page === 0) {
-      setAllSessions(sessions);
+      setAllSessions(sessions.slice(0, MAX_ACCUMULATED_SESSIONS));
     } else {
-      setAllSessions((prev) => [...prev, ...sessions]);
+      setAllSessions((prev) => {
+        const combined = [...prev, ...sessions];
+        if (combined.length >= MAX_ACCUMULATED_SESSIONS) {
+          setHasMore(false);
+        }
+        return combined.slice(0, MAX_ACCUMULATED_SESSIONS);
+      });
     }
   }, [sessionsQuery.isSuccess, sessionsQuery.data, page]);
 

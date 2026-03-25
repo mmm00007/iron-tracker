@@ -1,5 +1,7 @@
+import { lazy, Suspense } from 'react';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
+import Skeleton from '@mui/material/Skeleton';
 import { GreetingCard } from '@/components/home/GreetingCard';
 import { TrainingStreakCard } from '@/components/home/TrainingStreakCard';
 import { QuickActionsCard } from '@/components/home/QuickActionsCard';
@@ -10,7 +12,9 @@ import { TodaysPlanCard } from '@/components/home/TodaysPlanCard';
 import { SorenessPromptCard } from '@/components/home/SorenessPromptCard';
 import { ExerciseProgressCard } from '@/components/home/ExerciseProgressCard';
 import { WeeklySnapshotCard } from '@/components/stats/WeeklySnapshotCard';
-import { TrainingCalendar } from '@/components/stats/TrainingCalendar';
+
+// Lazy-load chart components (recharts is ~150KB)
+const TrainingCalendar = lazy(() => import('@/components/stats/TrainingCalendar').then(m => ({ default: m.TrainingCalendar })));
 
 export function HomePage() {
   return (
@@ -65,7 +69,9 @@ export function HomePage() {
 
             {/* Training Calendar — 1 column on desktop */}
             <Box sx={{ gridColumn: { md: '1 / -1', lg: 'auto' } }}>
-              <TrainingCalendar />
+              <Suspense fallback={<Skeleton variant="rectangular" height={200} />}>
+                <TrainingCalendar />
+              </Suspense>
             </Box>
 
             {/* Recent PRs — full width */}

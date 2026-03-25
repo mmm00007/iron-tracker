@@ -265,6 +265,7 @@ async def compute_composite_score(
 
     # ── Recovery (0-100) ─────────────────────────────────────────────────
     if recovery_rows:
+        # Recovery windows per NSCA Essentials 4th ed., Ch. 5
         recovery_hours = {
             "Quadriceps": 72, "Hamstrings": 72, "Glutes": 72, "Lats": 72,
             "Chest": 56, "Shoulders": 56, "Biceps": 48, "Triceps": 48,
@@ -311,7 +312,7 @@ async def compute_composite_score(
         rpe_values = [float(r["rpe"]) for r in quality_rows if r["rpe"] is not None]
         if rpe_values:
             avg_rpe = sum(rpe_values) / len(rpe_values)
-            # Ideal working RPE: 7-8.5. Score drops below 6 and above 9.
+            # Ideal working RPE: 7-8.5 per Helms et al. (2016) RPE-RIR scale
             if 7 <= avg_rpe <= 8.5:
                 quality_score = 100
             elif 6 <= avg_rpe < 7:

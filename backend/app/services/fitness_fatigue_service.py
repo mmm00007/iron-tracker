@@ -37,7 +37,7 @@ from app.models.schemas import (
     FitnessFatigueTimePoint,
 )
 
-# Model parameters (Busso et al. 1997)
+# Banister impulse-response model (Banister 1991, Busso 2003)
 TAU_FITNESS = 42.0  # days
 TAU_FATIGUE = 7.0   # days
 K_FITNESS = 1.0     # fitness gain coefficient

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import {
   Box,
   Typography,
@@ -16,9 +16,11 @@ import {
 } from '@mui/material';
 import { ArrowBack } from '@mui/icons-material';
 import { useNavigate, useParams } from '@tanstack/react-router';
-import { E1RMChart } from '@/components/stats/E1RMChart';
-import { VolumeChart } from '@/components/stats/VolumeChart';
 import { PRTable } from '@/components/stats/PRTable';
+
+// Lazy-load chart components (recharts is ~150KB)
+const E1RMChart = lazy(() => import('@/components/stats/E1RMChart').then(m => ({ default: m.E1RMChart })));
+const VolumeChart = lazy(() => import('@/components/stats/VolumeChart').then(m => ({ default: m.VolumeChart })));
 import {
   useE1RMTrend,
   useExerciseVolumeTrend,
@@ -108,7 +110,9 @@ export function ExerciseStatsPage() {
                 {e1rmLoading ? (
                   <Skeleton variant="rounded" height={250} />
                 ) : e1rmData && e1rmData.length > 0 ? (
-                  <E1RMChart data={e1rmData} />
+                  <Suspense fallback={<Skeleton variant="rectangular" height={200} />}>
+                    <E1RMChart data={e1rmData} />
+                  </Suspense>
                 ) : (
                   <Typography
                     variant="body2"
@@ -161,7 +165,9 @@ export function ExerciseStatsPage() {
               {volumeLoading ? (
                 <Skeleton variant="rounded" height={250} />
               ) : volumeData && volumeData.length > 0 ? (
-                <VolumeChart data={volumeData} />
+                <Suspense fallback={<Skeleton variant="rectangular" height={200} />}>
+                  <VolumeChart data={volumeData} />
+                </Suspense>
               ) : (
                 <Typography
                   variant="body2"

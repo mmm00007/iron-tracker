@@ -22,6 +22,7 @@ from app.models.schemas import (
 # ─── Per-muscle-group volume landmarks (sets/week) ───────────────────────────
 # Values for intermediate lifters. Based on RP Hypertrophy Training Guide
 # and Schoenfeld meta-analyses on dose-response for hypertrophy.
+# Volume landmarks per Israetel et al., RP Hypertrophy Guide (2023)
 
 VOLUME_LANDMARKS: dict[str, dict[str, float]] = {
     "Chest": {"MV": 6, "MEV": 8, "MAV": 16, "MRV": 22},

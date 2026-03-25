@@ -77,14 +77,14 @@ def create_app() -> FastAPI:
     @app.get("/api/rollout-flags", tags=["config"])
     async def rollout_flags() -> dict:
         return {
-            "plansEnabled": True,
-            "analysisEnabled": True,
-            "sorenessEnabled": True,
-            "prBoardEnabled": True,
-            "dataExportEnabled": True,
-            "weightSuggestionEnabled": True,
-            "diagnosticsEnabled": True,
-            "advancedAnalyticsEnabled": True,
+            "plansEnabled": settings.FLAG_PLANS,
+            "analysisEnabled": settings.FLAG_ANALYSIS,
+            "sorenessEnabled": settings.FLAG_SORENESS,
+            "prBoardEnabled": settings.FLAG_PR_BOARD,
+            "dataExportEnabled": settings.FLAG_DATA_EXPORT,
+            "weightSuggestionEnabled": settings.FLAG_WEIGHT_SUGGESTION,
+            "diagnosticsEnabled": settings.FLAG_DIAGNOSTICS,
+            "advancedAnalyticsEnabled": settings.FLAG_ADVANCED_ANALYTICS,
         }
 
     return app

@@ -16,6 +16,16 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     CRON_SECRET: str = ""
 
+    # Feature flags (all default to True; set to "false" via env var to disable)
+    FLAG_PLANS: bool = True
+    FLAG_ANALYSIS: bool = True
+    FLAG_SORENESS: bool = True
+    FLAG_PR_BOARD: bool = True
+    FLAG_DATA_EXPORT: bool = True
+    FLAG_WEIGHT_SUGGESTION: bool = True
+    FLAG_DIAGNOSTICS: bool = True
+    FLAG_ADVANCED_ANALYTICS: bool = True
+
     @property
     def allowed_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]

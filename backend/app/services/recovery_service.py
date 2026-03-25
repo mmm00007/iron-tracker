@@ -10,6 +10,7 @@ from app.models.schemas import MuscleRecoveryEntry, RecoveryResponse
 # Larger muscles generally require more recovery time.
 # Based on NSCA guidelines and practical coaching recommendations.
 # These are population-level defaults; individual variation exists.
+# Recovery windows per NSCA Essentials 4th ed., Ch. 5
 
 RECOVERY_HOURS: dict[str, float] = {
     "Quadriceps": 72,
