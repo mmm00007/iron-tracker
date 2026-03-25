@@ -377,3 +377,4 @@ class FitnessFatigueResponse(BaseModel):
     recommendation: str
     timeline: list[FitnessFatigueTimePoint]
     peak_preparedness_date: str | None
+    disclaimer: str = ""

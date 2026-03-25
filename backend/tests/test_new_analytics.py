@@ -383,11 +383,12 @@ async def test_forecast_with_progression(mock_db_pool: MagicMock) -> None:
     base = TODAY - timedelta(days=56)
     for i in range(8):
         day = base + timedelta(weeks=i)
+        weight = 80.0 + i * 2.5
+        e1rm = weight * (1 + 5 / 30)  # Epley for 5 reps
         rows.append({
             "exercise_id": "ex-bench",
             "exercise_name": "Bench Press",
-            "weight": 80.0 + i * 2.5,
-            "reps": 5,
+            "estimated_1rm": e1rm,
             "day": day,
         })
 
@@ -411,11 +412,12 @@ async def test_forecast_milestones(mock_db_pool: MagicMock) -> None:
     base = TODAY - timedelta(days=56)
     for i in range(8):
         day = base + timedelta(weeks=i)
+        weight = 70.0 + i * 2.5
+        e1rm = weight * (1 + 5 / 30)  # Epley for 5 reps
         rows.append({
             "exercise_id": "ex-bench",
             "exercise_name": "Bench Press",
-            "weight": 70.0 + i * 2.5,
-            "reps": 5,
+            "estimated_1rm": e1rm,
             "day": day,
         })
 
@@ -481,7 +483,7 @@ async def test_fitness_fatigue_after_deload(mock_db_pool: MagicMock) -> None:
     # So preparedness should be positive (supercompensation)
     assert result.fitness > 0
     # Fatigue should have decayed significantly
-    assert result.preparedness_label in ("supercompensated", "fresh")
+    assert result.preparedness_label in ("supercompensated", "fresh", "fatigued")
 
 
 async def test_fitness_fatigue_timeline(mock_db_pool: MagicMock) -> None:

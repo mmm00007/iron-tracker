@@ -110,8 +110,13 @@ async def compute_acwr(
         )
 
     # Compute EWMA for acute and chronic loads
-    acute_ewma = daily_loads[0][1]
-    chronic_ewma = daily_loads[0][1]
+    # Initialize with mean of first 7 days to avoid single-point bias
+    # (data science expert recommendation — single-point initialization
+    # heavily biases early EWMA, especially the chronic component).
+    init_window = min(7, len(daily_loads))
+    init_mean = sum(load for _, load in daily_loads[:init_window]) / init_window
+    acute_ewma = init_mean
+    chronic_ewma = init_mean
     daily_acwr: list[tuple[date, float, float, float | None]] = []
 
     for day, load in daily_loads:

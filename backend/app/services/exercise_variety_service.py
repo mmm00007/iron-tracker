@@ -36,11 +36,11 @@ from app.models.schemas import (
 _PATTERN_KEYWORDS: dict[str, list[str]] = {
     "horizontal_push": [
         "bench press", "push up", "push-up", "pushup", "chest press",
-        "dumbbell press", "floor press", "dip",
+        "dumbbell press", "floor press",
     ],
     "vertical_push": [
         "overhead press", "shoulder press", "military press", "pike",
-        "arnold press", "push press", "z press",
+        "arnold press", "push press", "z press", "dip",
     ],
     "horizontal_pull": [
         "row", "cable row", "seated row", "t-bar", "inverted row",

@@ -109,32 +109,29 @@ async def compute_performance_forecast(
             """
             SELECT
                 s.exercise_id,
-                e.name       AS exercise_name,
-                s.weight,
-                s.reps,
-                DATE(s.logged_at) AS day
+                e.name             AS exercise_name,
+                s.estimated_1rm,
+                DATE(s.logged_at)  AS day
             FROM sets s
             JOIN exercises e ON e.id = s.exercise_id
             WHERE s.user_id = $1
               AND s.logged_at >= $2
-              AND s.weight > 0
-              AND s.reps > 0
+              AND s.estimated_1rm > 0
             ORDER BY s.exercise_id, s.logged_at
             """,
             user_id,
             since,
         )
 
-    # Group by exercise, compute best daily e1RM
+    # Group by exercise, best daily e1RM (uses DB-computed estimated_1rm
+    # for consistency with strength_standards_service and the sets trigger).
     exercise_data: dict[str, dict] = {}
     for row in rows:
         eid = str(row["exercise_id"])
         if eid not in exercise_data:
             exercise_data[eid] = {"name": row["exercise_name"], "day_best": {}}
         day: date = row["day"]
-        weight = float(row["weight"])
-        reps = int(row["reps"])
-        e1rm = weight * (1 + reps / 30) if reps > 0 else weight
+        e1rm = float(row["estimated_1rm"])
         current_best = exercise_data[eid]["day_best"].get(day, 0.0)
         if e1rm > current_best:
             exercise_data[eid]["day_best"][day] = e1rm
@@ -159,8 +156,10 @@ async def compute_performance_forecast(
         for label, future_weeks in [("4_weeks", 4), ("8_weeks", 8), ("12_weeks", 12)]:
             future_x = current_day_offset + future_weeks * 7
             projected = slope * future_x + intercept
-            # Don't project unreasonable values (negative or >3x current)
-            projected = max(0, min(projected, current_e1rm * 3))
+            # Don't project unreasonable values (negative or >1.5x current).
+            # Sports medicine expert: 3x was dangerously generous; 1.5x is
+            # the maximum physiologically plausible gain over 12 weeks.
+            projected = max(0, min(projected, current_e1rm * 1.5))
             projections[label] = round(projected, 1)
 
         # Milestone predictions
@@ -175,7 +174,7 @@ async def compute_performance_forecast(
                 if current_value >= target:
                     continue
                 days_needed = (target - current_value) / slope
-                if 0 < days_needed <= 365:
+                if 0 < days_needed <= 180:  # Cap at 6 months (sports medicine)
                     target_date = date.today() + timedelta(days=int(days_needed))
                     milestones.append(
                         ForecastMilestone(

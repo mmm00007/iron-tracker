@@ -45,17 +45,22 @@ K_FATIGUE = 2.0     # fatigue gain coefficient (higher: fatigue responds more)
 
 
 def _preparedness_label(preparedness: float, fitness: float) -> str:
-    """Classify preparedness state relative to fitness level."""
-    if fitness <= 0:
+    """Classify preparedness state relative to fitness level.
+
+    Uses "high_fatigue" instead of "overreached" because true overreaching
+    is a clinical diagnosis requiring performance, hormonal, and mood data
+    that a volume-based model cannot provide (sports medicine expert review).
+    """
+    if fitness < 0.01:
         return "insufficient_data"
-    ratio = preparedness / fitness if fitness > 0 else 0
+    ratio = preparedness / fitness
     if ratio > 0.3:
         return "supercompensated"
     if ratio > 0:
         return "fresh"
     if ratio > -0.3:
         return "fatigued"
-    return "overreached"
+    return "high_fatigue"
 
 
 def _taper_recommendation(preparedness: float, fatigue: float, fitness: float) -> str:
@@ -186,4 +191,11 @@ async def compute_fitness_fatigue(
         recommendation=recommendation,
         timeline=timeline,
         peak_preparedness_date=peak_date,
+        disclaimer=(
+            "This model provides a theoretical estimate of training readiness "
+            "based on volume data only. It does not account for sleep, nutrition, "
+            "stress, illness, or injury. Always listen to your body and consult a "
+            "healthcare provider if experiencing persistent fatigue, pain, or "
+            "performance decline."
+        ),
     )
