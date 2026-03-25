@@ -73,7 +73,13 @@ export interface Exercise {
   // Fields from migration 025
   default_rest_seconds: number | null;
   is_compound: boolean | null;
+  // Fields from migration 039
+  equipment_category: EquipmentCategory | null;
 }
+
+export type EquipmentCategory =
+  | 'barbell' | 'dumbbell' | 'machine' | 'cable' | 'bodyweight'
+  | 'kettlebell' | 'band' | 'smith_machine' | 'plate_loaded' | 'other';
 
 export type MuscleFunction = 'agonist' | 'synergist' | 'stabilizer';
 
@@ -229,6 +235,8 @@ export interface GymMachine {
   notes: string | null;
   sort_order: number;
   is_active: boolean;
+  // Fields from migration 039
+  equipment_category: EquipmentCategory | null;
   updated_at: string;
 }
 
@@ -781,4 +789,51 @@ export interface SessionQualityScore {
   session_rpe: number | null;
   scoring_version: number;
   computed_at: string;
+}
+
+// ─── New types from migration 039 ───────────────────────────────────────────
+
+export interface UserExerciseOverride {
+  id: string;
+  user_id: string;
+  exercise_id: string;
+  custom_name: string | null;
+  custom_form_cues: string | null;
+  custom_notes: string | null;
+  default_weight_override: number | null;
+  default_reps_override: number | null;
+  preferred_equipment_category: EquipmentCategory | null;
+  personal_difficulty: 1 | 2 | 3 | 4 | 5 | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExerciseEquipment {
+  id: string;
+  exercise_id: string;
+  equipment_category: EquipmentCategory;
+  is_default: boolean;
+  notes: string | null;
+}
+
+export interface ExerciseMuscleSummary {
+  exercise_id: string;
+  exercise_name: string;
+  equipment_category: EquipmentCategory | null;
+  is_compound: boolean | null;
+  difficulty_level: number | null;
+  movement_pattern: MovementPattern | null;
+  primary_muscles: string;
+  secondary_muscles: string | null;
+  max_activation_pct: number | null;
+}
+
+export interface GymExerciseCatalogEntry {
+  gym_id: string;
+  gym_name: string;
+  exercise_id: string;
+  exercise_name: string;
+  equipment_category: EquipmentCategory | null;
+  machine_name: string | null;
+  primary_muscles: string | null;
 }
