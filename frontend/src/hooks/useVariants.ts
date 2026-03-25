@@ -105,10 +105,16 @@ export function useUpdateVariant() {
       exerciseId: string;
       updates: Partial<Omit<EquipmentVariant, 'id' | 'user_id' | 'created_at'>>;
     }) => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       const { data, error } = await supabase
         .from('equipment_variants')
         .update(updates)
         .eq('id', id)
+        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -146,7 +152,12 @@ export function useDeleteVariant() {
 
   return useMutation({
     mutationFn: async ({ id, exerciseId }: { id: string; exerciseId: string }) => {
-      const { error } = await supabase.from('equipment_variants').delete().eq('id', id);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase.from('equipment_variants').delete().eq('id', id).eq('user_id', user.id);
       if (error) throw error;
       return { id, exerciseId };
     },

@@ -112,10 +112,12 @@ export function useCreatePlan() {
 
 export function useDeletePlan() {
   const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
 
   return useMutation({
     mutationFn: async (planId: string) => {
-      const { error } = await supabase.from('plans').delete().eq('id', planId);
+      if (!user) throw new Error('Not authenticated');
+      const { error } = await supabase.from('plans').delete().eq('id', planId).eq('user_id', user.id);
       if (error) throw error;
     },
     onSuccess: () => {

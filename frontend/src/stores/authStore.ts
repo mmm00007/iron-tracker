@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { indexedDBPersister } from '@/lib/offlinePersistence';
 
 interface AuthState {
   user: User | null;
@@ -82,7 +83,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.href,
+        redirectTo: window.location.origin,
       },
     });
     if (error) {
@@ -98,6 +99,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ loading: false, error: error.message });
       throw error;
     }
+    // Clear persisted query cache (workout history, PII) on sign-out
+    await indexedDBPersister.removeClient().catch(() => {});
     set({ user: null, session: null, loading: false, error: null, sessionExpired: false });
   },
 

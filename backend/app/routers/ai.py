@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import logging
 from collections import OrderedDict
@@ -36,6 +37,7 @@ def _validate_image_magic(data: bytes) -> bool:
 # In-memory rate limit tracker: {user_id: (date_str, count)}
 # Resets automatically when the date changes.
 _rate_limit_store: dict[str, tuple[str, int]] = {}
+_rate_limit_lock = asyncio.Lock()
 
 
 class _LRUCache:
@@ -67,33 +69,42 @@ class _LRUCache:
 _image_cache = _LRUCache(maxsize=100)
 
 
-def _check_rate_limit(user_id: str, limit: int) -> None:
+async def _check_rate_limit(user_id: str, limit: int) -> None:
     """Check if user has exceeded the daily AI request limit.
 
     Tracks requests per calendar day (UTC). Resets automatically at midnight.
-    Purges stale entries from previous days to keep memory bounded.
+    Uses an async lock to prevent TOCTOU races under concurrency.
+    Does NOT increment the counter — call _increment_rate_limit after success.
     """
-    today = date.today().isoformat()
+    async with _rate_limit_lock:
+        today = date.today().isoformat()
 
-    # Evict entries from previous days to prevent unbounded growth.
-    stale_keys = [uid for uid, (d, _) in _rate_limit_store.items() if d != today]
-    for key in stale_keys:
-        del _rate_limit_store[key]
+        # Evict entries from previous days to prevent unbounded growth.
+        stale_keys = [uid for uid, (d, _) in _rate_limit_store.items() if d != today]
+        for key in stale_keys:
+            del _rate_limit_store[key]
 
-    entry = _rate_limit_store.get(user_id)
+        entry = _rate_limit_store.get(user_id)
 
-    if entry is None:
-        # First request today — initialise counter
-        _rate_limit_store[user_id] = (today, 1)
-        return
+        if entry is not None:
+            _, count = entry
+            if count >= limit:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail=f"Daily AI request limit of {limit} reached. Try again tomorrow.",
+                )
 
-    stored_date, count = entry
-    if count >= limit:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Daily AI request limit of {limit} reached. Try again tomorrow.",
-        )
-    _rate_limit_store[user_id] = (stored_date, count + 1)
+
+async def _increment_rate_limit(user_id: str) -> None:
+    """Increment the rate limit counter after a successful AI call."""
+    async with _rate_limit_lock:
+        today = date.today().isoformat()
+        entry = _rate_limit_store.get(user_id)
+        if entry is None:
+            _rate_limit_store[user_id] = (today, 1)
+        else:
+            stored_date, count = entry
+            _rate_limit_store[user_id] = (stored_date, count + 1)
 
 
 @router.post("/identify-machine", response_model=MachineIdentificationResponse)
@@ -104,13 +115,13 @@ async def identify_machine(
 ) -> MachineIdentificationResponse:
     """Identify gym equipment from an uploaded photo using Claude AI.
 
-    Accepts JPEG or PNG images up to 5 MB.  Results are cached by SHA-256
-    image hash so identical images are never sent to the AI twice.
+    Accepts JPEG or PNG images up to 5 MB.  Results are cached per-user by
+    SHA-256 image hash so identical images are never sent to the AI twice.
     Each authenticated user is limited to AI_RATE_LIMIT_PER_DAY requests per
     calendar day (default 10).
     """
     # --- Rate limiting (checked before reading bytes to fail fast) ---
-    _check_rate_limit(user_id, settings.AI_RATE_LIMIT_PER_DAY)
+    await _check_rate_limit(user_id, settings.AI_RATE_LIMIT_PER_DAY)
 
     # --- File type validation ---
     content_type = (image.content_type or "").lower()
@@ -143,9 +154,10 @@ async def identify_machine(
             ),
         )
 
-    # --- Cache lookup ---
+    # --- Cache lookup (scoped to user to prevent cross-user leakage) ---
     image_hash = hashlib.sha256(image_bytes).hexdigest()
-    cached = _image_cache.get(image_hash)
+    cache_key = f"{user_id}:{image_hash}"
+    cached = _image_cache.get(cache_key)
     if cached is not None:
         logger.info("Cache hit for image hash %s (user %s)", image_hash[:12], user_id)
         return cached
@@ -162,8 +174,11 @@ async def identify_machine(
             detail="AI service temporarily unavailable. Please try again.",
         ) from exc
 
+    # Increment rate limit only after successful AI call
+    await _increment_rate_limit(user_id)
+
     # Cache successful result
-    _image_cache.set(image_hash, result)
+    _image_cache.set(cache_key, result)
     return result
 
 
@@ -178,7 +193,7 @@ async def analyze_training_data(
 
     Rate limited to 5 requests per user per day.
     """
-    _check_rate_limit(user_id, min(settings.AI_RATE_LIMIT_PER_DAY, 5))
+    await _check_rate_limit(user_id, min(settings.AI_RATE_LIMIT_PER_DAY, 5))
 
     db_pool = getattr(request.app.state, "db_pool", None)
     if db_pool is None:
@@ -203,5 +218,8 @@ async def analyze_training_data(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Analysis service temporarily unavailable.",
         ) from exc
+
+    # Increment rate limit only after successful analysis
+    await _increment_rate_limit(user_id)
 
     return AnalysisResponse(**result)

@@ -18,7 +18,7 @@ export function initSentry() {
     tracesSampleRate: import.meta.env.PROD ? 0.2 : 1.0,
     // Session replay: 10% of sessions, 100% of sessions with errors
     replaysSessionSampleRate: 0.1,
-    replaysOnErrorSampleRate: 1.0,
+    replaysOnErrorSampleRate: 0.5,
     // Filter out noise
     ignoreErrors: [
       'ResizeObserver loop',

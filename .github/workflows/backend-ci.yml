@@ -45,7 +45,6 @@ jobs:
 
       - name: Run tests with coverage
         env:
-          SUPABASE_URL: "https://test.supabase.co"
           SUPABASE_DB_URL: "postgresql://test:test@localhost:5432/test"
           SUPABASE_JWT_SECRET: "test-jwt-secret-that-is-at-least-32-chars-long"
           ANTHROPIC_API_KEY: ""

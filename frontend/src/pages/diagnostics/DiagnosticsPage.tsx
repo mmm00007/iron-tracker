@@ -22,7 +22,7 @@ export function DiagnosticsPage() {
   const [healthStatus, setHealthStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
   const [healthLatency, setHealthLatency] = useState<number | null>(null);
 
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
   const handleHealthCheck = async () => {
     setHealthStatus('loading');

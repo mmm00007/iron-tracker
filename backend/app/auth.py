@@ -1,6 +1,7 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
+from jwt import DecodeError, ExpiredSignatureError, InvalidTokenError
+from jwt import decode as jwt_decode
 
 from app.config import Settings, get_settings
 
@@ -19,7 +20,7 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(
+        payload = jwt_decode(
             token,
             settings.SUPABASE_JWT_SECRET,
             algorithms=["HS256"],
@@ -28,7 +29,7 @@ async def get_current_user(
         user_id: str | None = payload.get("sub")
         if user_id is None:
             raise credentials_exception
-    except JWTError:
+    except (DecodeError, ExpiredSignatureError, InvalidTokenError):
         raise credentials_exception
 
     return user_id

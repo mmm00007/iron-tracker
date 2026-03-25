@@ -1,4 +1,6 @@
-from pydantic import BaseModel, ConfigDict
+from typing import Annotated
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TargetMuscles(BaseModel):
@@ -52,7 +54,7 @@ class AnalysisRequest(BaseModel):
     scope_type: str  # 'day', 'week', 'month'
     scope_start: str  # ISO date
     scope_end: str  # ISO date
-    goals: list[str] = []
+    goals: list[Annotated[str, Field(max_length=200)]] = Field(default=[], max_length=10)
 
 
 class AnalysisResponse(BaseModel):

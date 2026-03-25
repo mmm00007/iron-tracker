@@ -1,8 +1,8 @@
 from datetime import UTC, datetime, timedelta
 
+import jwt as pyjwt
 import pytest
 from fastapi import HTTPException
-from jose import jwt
 
 from app.auth import get_current_user
 from app.config import Settings
@@ -14,7 +14,6 @@ _ALGORITHM = "HS256"
 
 def _make_settings(**overrides) -> Settings:
     defaults = {
-        "SUPABASE_URL": "https://test.supabase.co",
         "SUPABASE_DB_URL": "postgresql://localhost/test",
         "SUPABASE_JWT_SECRET": _TEST_SECRET,
         "ANTHROPIC_API_KEY": "",
@@ -24,7 +23,7 @@ def _make_settings(**overrides) -> Settings:
 
 
 def _encode_jwt(payload: dict) -> str:
-    return jwt.encode(payload, _TEST_SECRET, algorithm=_ALGORITHM)
+    return pyjwt.encode(payload, _TEST_SECRET, algorithm=_ALGORITHM)
 
 
 class _FakeCredentials:

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { WorkoutSet } from '@/types/database';
 import { useOfflineStore } from '@/stores/offlineStore';
+import { useAuthStore } from '@/stores/authStore';
 
 type NewSet = Omit<WorkoutSet, 'id' | 'synced_at' | 'estimated_1rm' | 'tempo' | 'rir'>;
 
@@ -151,6 +152,7 @@ export function useLogSet() {
  */
 export function useUpdateSet() {
   const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
 
   return useMutation({
     mutationFn: async ({
@@ -161,10 +163,12 @@ export function useUpdateSet() {
       exerciseId: string;
       updates: { weight?: number; reps?: number };
     }) => {
+      if (!user) throw new Error('Not authenticated');
       const { data, error } = await supabase
         .from('sets')
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', setId)
+        .eq('user_id', user.id)
         .select()
         .single();
       if (error) throw error;
@@ -208,10 +212,12 @@ export function useUpdateSet() {
  */
 export function useDeleteSet() {
   const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
 
   return useMutation({
     mutationFn: async ({ setId }: { setId: string; exerciseId: string }) => {
-      const { error } = await supabase.from('sets').delete().eq('id', setId);
+      if (!user) throw new Error('Not authenticated');
+      const { error } = await supabase.from('sets').delete().eq('id', setId).eq('user_id', user.id);
       if (error) throw error;
     },
 

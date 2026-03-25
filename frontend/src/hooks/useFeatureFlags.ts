@@ -26,7 +26,7 @@ export function useFeatureFlags(): FeatureFlags {
     queryFn: async () => {
       // Try to fetch remote flags from backend
       try {
-        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+        const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
         const res = await fetch(`${apiBaseUrl}/api/rollout-flags`, { signal: AbortSignal.timeout(3000) });
         if (res.ok) {
           const remote = await res.json();

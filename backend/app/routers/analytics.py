@@ -1,7 +1,8 @@
 import asyncpg
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 
 from app.auth import get_current_user
+from app.config import Settings, get_settings
 from app.models.schemas import ExerciseE1RM, WeeklySummary
 from app.services import analytics_service
 from app.services.weekly_summary_service import generate_weekly_summaries
@@ -46,12 +47,17 @@ async def compute_1rm(
 
 @router.post("/jobs/generate-weekly-trends")
 async def generate_weekly_trends(
+    x_cron_secret: str = Header(..., alias="X-Cron-Secret"),
+    settings: Settings = Depends(get_settings),
     db_pool: asyncpg.Pool = Depends(get_db_pool),
 ) -> dict:
     """Generate weekly training summaries for all active users.
 
     Designed to be called by a cron job (e.g., Monday 6 AM UTC).
-    No auth required — should be protected by network policy or API key in production.
+    Protected by a shared secret passed via the X-Cron-Secret header.
     """
+    if not settings.CRON_SECRET or x_cron_secret != settings.CRON_SECRET:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
     count = await generate_weekly_summaries(db_pool)
     return {"status": "ok", "summaries_generated": count}

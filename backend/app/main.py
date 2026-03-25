@@ -52,7 +52,6 @@ def create_app() -> FastAPI:
         title="Iron Tracker API",
         description="Backend API for the Iron Tracker gym tracking PWA",
         version="0.1.0",
-        debug=settings.DEBUG,
         lifespan=lifespan,
     )
 

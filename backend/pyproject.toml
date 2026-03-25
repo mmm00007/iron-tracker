@@ -14,7 +14,7 @@ dependencies = [
     "pydantic-settings",
     "httpx",
     "asyncpg",
-    "python-jose[cryptography]",
+    "PyJWT[cryptography]",
     "python-multipart",
     "anthropic",
     "sentry-sdk[fastapi,asyncpg]",

@@ -54,11 +54,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Auth endpoints: NEVER cache — responses contain tokens and session data
+  if (request.url.includes('/auth/v1/')) {
+    return;
+  }
+
   // Network-first for Supabase API and any /api/ calls
   // Falls back to cache if the network request fails (e.g., offline)
   if (
     request.url.includes('/rest/v1/') ||
-    request.url.includes('/auth/v1/') ||
     request.url.includes('/api/')
   ) {
     event.respondWith(

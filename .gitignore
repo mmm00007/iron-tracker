@@ -51,3 +51,9 @@ docs/deployment/handoff.json
 
 # UX audit tracker (local only)
 docs/UX-AUDIT-TRACKER.md
+
+# Binary tarballs
+*.tgz
+
+# One-off scripts with credentials
+scripts/run_backfill.mjs
