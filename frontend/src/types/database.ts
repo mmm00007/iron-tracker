@@ -75,8 +75,14 @@ export interface Exercise {
   is_compound: boolean | null;
   // Fields from migration 039
   equipment_category: EquipmentCategory | null;
+  // Fields from migration 042 (generated column)
+  equipment_class: EquipmentClass | null;
 }
 
+/** Broad equipment grouping for top-level filters (generated from equipment_category). */
+export type EquipmentClass = 'machine' | 'freeweight' | 'bodyweight';
+
+/** Granular equipment subcategory (13 values). */
 export type EquipmentCategory =
   | 'barbell' | 'dumbbell' | 'machine' | 'cable' | 'bodyweight'
   | 'kettlebell' | 'band' | 'smith_machine' | 'plate_loaded'
@@ -236,8 +242,9 @@ export interface GymMachine {
   notes: string | null;
   sort_order: number;
   is_active: boolean;
-  // Fields from migration 039
+  // Fields from migration 039 + 042
   equipment_category: EquipmentCategory | null;
+  equipment_class: EquipmentClass | null;
   updated_at: string;
 }
 
@@ -821,6 +828,7 @@ export interface ExerciseMuscleSummary {
   exercise_id: string;
   exercise_name: string;
   equipment_category: EquipmentCategory | null;
+  equipment_class: EquipmentClass | null;
   is_compound: boolean | null;
   difficulty_level: number | null;
   movement_pattern: MovementPattern | null;
@@ -835,6 +843,7 @@ export interface GymExerciseCatalogEntry {
   exercise_id: string;
   exercise_name: string;
   equipment_category: EquipmentCategory | null;
+  equipment_class: EquipmentClass | null;
   machine_name: string | null;
   primary_muscles: string | null;
 }
