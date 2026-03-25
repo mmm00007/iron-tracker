@@ -124,10 +124,34 @@ After this migration, **zero exercises have NULL activation_percent.**
 |------|--------|
 | `supabase/migrations/039_exercise_enrichment.sql` | New migration: equipment enum, overrides table, views, indexes |
 | `supabase/migrations/040_activation_pct_enrichment.sql` | New migration: 100+ exercise activation percentages |
-| `frontend/src/types/database.ts` | New types: EquipmentCategory, UserExerciseOverride, ExerciseEquipment, ExerciseMuscleSummary, GymExerciseCatalogEntry; updated Exercise and GymMachine interfaces |
+| `supabase/migrations/041_domain_expert_corrections.sql` | Follow-up: expanded equipment enum (+trap_bar, ez_bar, suspension), corrected 12 muscle activation values from EMG literature |
+| `frontend/src/types/database.ts` | New types: EquipmentCategory (13 values), UserExerciseOverride, ExerciseEquipment, ExerciseMuscleSummary, GymExerciseCatalogEntry; updated Exercise and GymMachine interfaces |
+
+### Migration 041: Domain Expert Corrections
+
+Based on the fitness domain expert's review of the initial migrations:
+
+**Equipment taxonomy expansion:** Added `trap_bar` (hex bar has distinct biomechanics — Swinton et al. 2011), `ez_bar` (changes brachioradialis ratio — Marcolin 2018), and `suspension` (TRX/rings have distinct stabilization profile). Auto-backfill from exercise names.
+
+**Activation corrections** (12 exercises where EMG data contradicts the pattern-based defaults):
+
+| Exercise | Muscle | Was | Now | Source |
+|----------|--------|-----|-----|--------|
+| Close-grip bench | Triceps | 55% (synergist) | **100%** (agonist) | Lehman 2005 |
+| Close-grip bench | Chest | 100% (primary) | **70%** (synergist) | Lehman 2005 |
+| Incline bench | Shoulders | 70% | **80%** | Trebs 2010 |
+| Face pull | Traps | 55% | **70%** | Escamilla 2009 |
+| Hammer curl | Biceps | 100% | **80%** | Marcolin 2018 |
+| Hammer curl | Forearms | 35% | **75%** (agonist) | Marcolin 2018 |
+| Sumo deadlift | Quads | 45% | **60%** | Escamilla 2001 |
+| Sumo deadlift | Hamstrings | 80% | **65%** | Escamilla 2001 |
+| Hack squat | Glutes | 55% | **35%** | Machine reduces hip extension |
+| Upright row | Shoulders | 55% | **85%** (agonist) | McAllister 2014 |
+| Romanian deadlift | Lower back | 60% | **65%** | McAllister 2014 |
+| Seated cable row | Traps | 55% | **70%** | Fenwick 2009 |
 
 ## Agents Consulted
 
-- **Fitness Domain Expert** — Validated equipment taxonomy, muscle activation percentages, exercise editability boundaries
+- **Fitness Domain Expert** — Validated equipment taxonomy (recommended +3 categories), corrected 12 activation values from EMG literature, advised muscle mappings must remain admin-only authoritative data
 - **Database Specialist** — Designed migration with RLS, indexes, views, idempotent DDL
 - **Data Science Expert** — Provided activation percentage data from EMG literature

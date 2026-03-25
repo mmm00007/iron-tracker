@@ -79,7 +79,8 @@ export interface Exercise {
 
 export type EquipmentCategory =
   | 'barbell' | 'dumbbell' | 'machine' | 'cable' | 'bodyweight'
-  | 'kettlebell' | 'band' | 'smith_machine' | 'plate_loaded' | 'other';
+  | 'kettlebell' | 'band' | 'smith_machine' | 'plate_loaded'
+  | 'trap_bar' | 'ez_bar' | 'suspension' | 'other';
 
 export type MuscleFunction = 'agonist' | 'synergist' | 'stabilizer';
 
