@@ -1,0 +1,17 @@
+name: Weekly Trends Cron
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Monday 6:00 AM UTC
+  workflow_dispatch: {}   # Manual trigger
+
+jobs:
+  generate-weekly-trends:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger weekly trends generation
+        run: |
+          curl -sf -X POST \
+            "${{ secrets.API_BASE_URL }}/api/analytics/jobs/generate-weekly-trends" \
+            -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json"
