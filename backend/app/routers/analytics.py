@@ -34,7 +34,7 @@ async def get_weekly_summary(
     return await analytics_service.compute_weekly_summary(user_id, db_pool)
 
 
-@router.post("/compute-1rm", response_model=list[ExerciseE1RM])
+@router.get("/compute-1rm", response_model=list[ExerciseE1RM])
 async def compute_1rm(
     exercise_id: _uuid.UUID,
     user_id: str = Depends(get_current_user),

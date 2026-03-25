@@ -1,6 +1,7 @@
+import re
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class TargetMuscles(BaseModel):
@@ -52,9 +53,16 @@ class AnalysisRequest(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     scope_type: Literal["day", "week", "month"]
-    scope_start: str  # ISO date
-    scope_end: str  # ISO date
+    scope_start: str  # ISO date YYYY-MM-DD
+    scope_end: str  # ISO date YYYY-MM-DD
     goals: list[Annotated[str, Field(max_length=200)]] = Field(default=[], max_length=10)
+
+    @field_validator("scope_start", "scope_end")
+    @classmethod
+    def validate_iso_date(cls, v: str) -> str:
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", v):
+            raise ValueError("Must be ISO date YYYY-MM-DD")
+        return v
 
 
 class AnalysisResponse(BaseModel):

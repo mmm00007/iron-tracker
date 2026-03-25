@@ -2,7 +2,7 @@ import ssl as _ssl
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
@@ -36,6 +36,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     except Exception as e:
         logger.error("Failed to initialize database pool: %s", e)
         app.state.db_pool = None
+
+    if not settings.CRON_SECRET:
+        logger.warning(
+            "CRON_SECRET is not set — the weekly trends cron endpoint will reject all requests. "
+            "Set the CRON_SECRET environment variable to enable cron jobs."
+        )
 
     yield
 
@@ -71,7 +77,11 @@ def create_app() -> FastAPI:
     app.include_router(advanced_analytics.router)
 
     @app.get("/health", response_model=HealthResponse, tags=["health"])
-    async def health_check() -> HealthResponse:
+    async def health_check(request: Request) -> HealthResponse:
+        if getattr(request.app.state, "db_pool", None) is None:
+            from fastapi import HTTPException
+
+            raise HTTPException(status_code=503, detail="Database unavailable")
         return HealthResponse(status="ok")
 
     @app.get("/api/rollout-flags", tags=["config"])

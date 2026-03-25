@@ -90,7 +90,7 @@ async def analyze_training(
     context = (
         f"Training period: {scope_start} to {scope_end}\n"
         f"Total sets: {total_sets}, Total volume: {total_volume:.0f}, Training days: {training_days}\n"
-        f"Goals: {', '.join(goals) if goals else 'general fitness'}\n"
+        f"Goals: {', '.join(g.replace(chr(10), ' ').replace(chr(13), ' ') for g in goals) if goals else 'general fitness'}\n"
     )
 
     if avg_rpe is not None:
@@ -109,8 +109,8 @@ async def analyze_training(
         context += "Muscle workload (normalized scores):\n"
         for m in sorted(workload.muscles, key=lambda x: -x.normalized_score)[:8]:
             context += f"  - {m.muscle_group}: {m.normalized_score:.1f}x baseline, {m.weekly_sets} sets/wk\n"
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Muscle workload enrichment failed: %s", exc)
 
     try:
         landmarks = await compute_volume_landmarks(user_id, db_pool)
@@ -120,8 +120,8 @@ async def analyze_training(
             context += f"\nVolume WARNING — over MRV: {', '.join(m.muscle_group for m in over)}\n"
         if below:
             context += f"Volume GAP — below MEV: {', '.join(m.muscle_group for m in below)}\n"
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Volume landmarks enrichment failed: %s", exc)
 
     try:
         balance = await compute_body_part_balance(user_id, db_pool, period_days=period_days)
@@ -135,8 +135,8 @@ async def analyze_training(
             context += "Imbalances detected:\n"
             for imb in balance.imbalances:
                 context += f"  - {imb}\n"
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Body part balance enrichment failed: %s", exc)
 
     # Call Claude
     client = anthropic.AsyncAnthropic(api_key=api_key)
@@ -211,7 +211,7 @@ async def analyze_training(
             scope_start,
             scope_end,
             goals,
-            result.get("summary", ""),
+            str(result.get("summary", ""))[:2000],
             json.dumps(result.get("insights", [])),
         )
 

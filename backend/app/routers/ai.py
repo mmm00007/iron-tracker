@@ -23,20 +23,24 @@ _ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
 _MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 # Magic byte signatures for supported image formats
-_MAGIC_BYTES = {
-    b"\xff\xd8\xff": "image/jpeg",
-    b"\x89PNG": "image/png",
-    b"RIFF": "image/webp",
-}
+_MAGIC_JPEG = b"\xff\xd8\xff"
+_MAGIC_PNG = b"\x89PNG"
 
 
 def _validate_image_magic(data: bytes) -> bool:
-    return any(data.startswith(magic) for magic in _MAGIC_BYTES)
+    """Validate image magic bytes. WebP requires full RIFF+WEBP signature check."""
+    if data.startswith(_MAGIC_JPEG) or data.startswith(_MAGIC_PNG):
+        return True
+    # WebP: RIFF container with WEBP identifier at offset 8
+    if data[:4] == b"RIFF" and len(data) >= 12 and data[8:12] == b"WEBP":
+        return True
+    return False
 
 
-# In-memory rate limit tracker: {user_id: (date_str, count)}
-# Resets automatically when the date changes.
-_rate_limit_store: dict[str, tuple[str, int]] = {}
+# In-memory rate limit trackers — separate counters per endpoint to prevent
+# identify-machine requests from consuming analyze budget and vice versa.
+_identify_rate_store: dict[str, tuple[str, int]] = {}
+_analyze_rate_store: dict[str, tuple[str, int]] = {}
 _rate_limit_lock = asyncio.Lock()
 
 
@@ -69,7 +73,9 @@ class _LRUCache:
 _image_cache = _LRUCache(maxsize=100)
 
 
-async def _check_rate_limit(user_id: str, limit: int) -> None:
+async def _check_rate_limit(
+    store: dict[str, tuple[str, int]], user_id: str, limit: int
+) -> None:
     """Check if user has exceeded the daily AI request limit.
 
     Tracks requests per calendar day (UTC). Resets automatically at midnight.
@@ -80,11 +86,11 @@ async def _check_rate_limit(user_id: str, limit: int) -> None:
         today = date.today().isoformat()
 
         # Evict entries from previous days to prevent unbounded growth.
-        stale_keys = [uid for uid, (d, _) in _rate_limit_store.items() if d != today]
+        stale_keys = [uid for uid, (d, _) in store.items() if d != today]
         for key in stale_keys:
-            del _rate_limit_store[key]
+            del store[key]
 
-        entry = _rate_limit_store.get(user_id)
+        entry = store.get(user_id)
 
         if entry is not None:
             _, count = entry
@@ -95,16 +101,18 @@ async def _check_rate_limit(user_id: str, limit: int) -> None:
                 )
 
 
-async def _increment_rate_limit(user_id: str) -> None:
+async def _increment_rate_limit(
+    store: dict[str, tuple[str, int]], user_id: str
+) -> None:
     """Increment the rate limit counter after a successful AI call."""
     async with _rate_limit_lock:
         today = date.today().isoformat()
-        entry = _rate_limit_store.get(user_id)
+        entry = store.get(user_id)
         if entry is None:
-            _rate_limit_store[user_id] = (today, 1)
+            store[user_id] = (today, 1)
         else:
             stored_date, count = entry
-            _rate_limit_store[user_id] = (stored_date, count + 1)
+            store[user_id] = (stored_date, count + 1)
 
 
 @router.post("/identify-machine", response_model=MachineIdentificationResponse)
@@ -121,7 +129,7 @@ async def identify_machine(
     calendar day (default 10).
     """
     # --- Rate limiting (checked before reading bytes to fail fast) ---
-    await _check_rate_limit(user_id, settings.AI_RATE_LIMIT_PER_DAY)
+    await _check_rate_limit(_identify_rate_store, user_id, settings.AI_RATE_LIMIT_PER_DAY)
 
     # --- File type validation ---
     content_type = (image.content_type or "").lower()
@@ -131,8 +139,24 @@ async def identify_machine(
             detail="Unsupported image format. Accepted formats: JPEG, PNG, WebP.",
         )
 
-    # --- Read and validate file size ---
-    image_bytes = await image.read()
+    # --- Stream-read with early size abort to prevent DoS via large uploads ---
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        chunk = await image.read(65536)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > _MAX_IMAGE_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    f"Image too large. Maximum allowed size is"
+                    f" {_MAX_IMAGE_BYTES // (1024 * 1024)} MB."
+                ),
+            )
+        chunks.append(chunk)
+    image_bytes = b"".join(chunks)
 
     if not image_bytes:
         raise HTTPException(
@@ -144,14 +168,6 @@ async def identify_machine(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="File does not appear to be a valid image.",
-        )
-
-    if len(image_bytes) > _MAX_IMAGE_BYTES:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=(
-                f"Image too large. Maximum allowed size is {_MAX_IMAGE_BYTES // (1024 * 1024)} MB."
-            ),
         )
 
     # --- Cache lookup (scoped to user to prevent cross-user leakage) ---
@@ -175,7 +191,7 @@ async def identify_machine(
         ) from exc
 
     # Increment rate limit only after successful AI call
-    await _increment_rate_limit(user_id)
+    await _increment_rate_limit(_identify_rate_store, user_id)
 
     # Cache successful result
     _image_cache.set(cache_key, result)
@@ -193,7 +209,7 @@ async def analyze_training_data(
 
     Rate limited to 5 requests per user per day.
     """
-    await _check_rate_limit(user_id, min(settings.AI_RATE_LIMIT_PER_DAY, 5))
+    await _check_rate_limit(_analyze_rate_store, user_id, min(settings.AI_RATE_LIMIT_PER_DAY, 5))
 
     db_pool = getattr(request.app.state, "db_pool", None)
     if db_pool is None:
@@ -220,6 +236,6 @@ async def analyze_training_data(
         ) from exc
 
     # Increment rate limit only after successful analysis
-    await _increment_rate_limit(user_id)
+    await _increment_rate_limit(_analyze_rate_store, user_id)
 
     return AnalysisResponse(**result)

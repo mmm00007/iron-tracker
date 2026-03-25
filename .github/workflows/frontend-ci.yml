@@ -32,8 +32,7 @@ jobs:
         run: npm ci
 
       - name: Dependency audit
-        run: npm audit --audit-level=high || true
-        continue-on-error: true
+        run: npm audit --audit-level=high
 
       - name: ESLint
         run: npm run lint
@@ -42,6 +41,13 @@ jobs:
 
       - name: TypeScript type check
         run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: "https://placeholder.supabase.co"
+          VITE_SUPABASE_ANON_KEY: "placeholder"
+          VITE_API_URL: "http://localhost:8000"
 
       - name: Run tests with coverage
         run: npx vitest run --reporter=verbose --coverage

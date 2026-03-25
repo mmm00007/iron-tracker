@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { supabase, API_BASE_URL } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import type { AnalysisReport } from '@/types/database';
 
@@ -50,8 +50,7 @@ export function useRequestAnalysis() {
       if (!session) throw new Error('Not authenticated');
 
       // Call the backend API
-      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const response = await fetch(`${apiBaseUrl}/api/ai/analyze`, {
+      const response = await fetch(`${API_BASE_URL}/api/ai/analyze`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

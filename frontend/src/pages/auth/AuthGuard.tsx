@@ -4,6 +4,9 @@ import { Box, CircularProgress, Snackbar, Alert } from '@mui/material';
 import { useAuthStore } from '@/stores/authStore';
 import { useProfile } from '@/hooks/useProfile';
 
+// Routes accessible mid-onboarding (hoisted to module scope for referential stability)
+const ONBOARDING_ALLOWED_PATHS = new Set(['/onboarding', '/log/identify']);
+
 interface AuthGuardProps {
   children: ReactNode;
 }
@@ -36,9 +39,6 @@ export function AuthGuard({ children }: AuthGuardProps) {
     }
   }, [isAuthLoading, user, sessionExpired, navigate]);
 
-  // Routes that are accessible mid-onboarding (before onboarding_completed = true).
-  const ONBOARDING_ALLOWED_PATHS = ['/onboarding', '/log/identify'];
-
   // Redirect to onboarding if the user hasn't completed it yet.
   useEffect(() => {
     if (
@@ -46,7 +46,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
       user &&
       profile &&
       !profile.onboarding_completed &&
-      !ONBOARDING_ALLOWED_PATHS.includes(location.pathname)
+      !ONBOARDING_ALLOWED_PATHS.has(location.pathname)
     ) {
       void navigate({ to: '/onboarding' });
     }
@@ -63,7 +63,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
           backgroundColor: 'background.default',
         }}
       >
-        <CircularProgress />
+        <CircularProgress aria-label="Loading, please wait" />
         <Snackbar
           open={showExpiredToast}
           anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
@@ -79,7 +79,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   // While the onboarding redirect is pending (profile loaded but not completed),
   // keep showing the spinner so the protected page content never flashes.
   // Exception: allow /log/identify so the camera flow works during onboarding step 4.
-  if (profile && !profile.onboarding_completed && !ONBOARDING_ALLOWED_PATHS.includes(location.pathname)) {
+  if (profile && !profile.onboarding_completed && !ONBOARDING_ALLOWED_PATHS.has(location.pathname)) {
     return (
       <Box
         sx={{

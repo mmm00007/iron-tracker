@@ -49,20 +49,39 @@ export function useExercisesByMuscle(muscleGroupId: number) {
 export function useExerciseSearch(query: string) {
   const queryClient = useQueryClient();
 
+  // Ensure the exercises cache is populated before searching
+  const exercisesState = queryClient.getQueryState(['exercises']);
+  const isCacheReady = exercisesState?.status === 'success';
+
   return useQuery<Exercise[]>({
     queryKey: ['exercises', 'search', query],
-    queryFn: () => {
+    queryFn: async () => {
       const trimmed = query.trim();
       if (!trimmed) return [];
 
-      const cached = queryClient.getQueryData<Exercise[]>(['exercises']) ?? [];
+      // If cache is not populated, fetch exercises first
+      let cached = queryClient.getQueryData<Exercise[]>(['exercises']);
+      if (!cached || cached.length === 0) {
+        cached = await queryClient.fetchQuery({
+          queryKey: ['exercises'],
+          queryFn: async () => {
+            const { data, error } = await supabase
+              .from('exercises')
+              .select('*, exercise_muscles(muscle_group_id)')
+              .order('name', { ascending: true });
+            if (error) throw error;
+            return (data ?? []) as Exercise[];
+          },
+        });
+      }
+
       const lower = trimmed.toLowerCase();
-      const results = cached
+      const results = (cached ?? [])
         .filter((e) => e.name.toLowerCase().includes(lower))
         .slice(0, 50);
       return results;
     },
-    enabled: query.trim().length > 0,
+    enabled: query.trim().length > 0 && isCacheReady,
     staleTime: Infinity, // derived from cached exercise list — no expiry needed
   });
 }

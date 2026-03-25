@@ -14,3 +14,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
   },
 });
+
+/** Backend API base URL — set via VITE_API_URL at build time.
+ *  Falls back to empty string (same-origin) in production if unset. */
+export const API_BASE_URL = import.meta.env.VITE_API_URL || '';

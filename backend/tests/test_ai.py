@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.models.schemas import MachineIdentificationResponse, TargetMuscles
-from app.routers.ai import _image_cache, _rate_limit_store
+from app.routers.ai import _image_cache, _identify_rate_store, _analyze_rate_store
 
 FAKE_IDENTIFICATION = MachineIdentificationResponse(
     exercise_names=["Leg Press"],
@@ -27,11 +27,13 @@ FAKE_IDENTIFICATION = MachineIdentificationResponse(
 
 @pytest.fixture(autouse=True)
 def clear_rate_limit_and_cache() -> None:
-    """Reset rate limit store and image cache between tests."""
-    _rate_limit_store.clear()
+    """Reset rate limit stores and image cache between tests."""
+    _identify_rate_store.clear()
+    _analyze_rate_store.clear()
     _image_cache.clear()
     yield
-    _rate_limit_store.clear()
+    _identify_rate_store.clear()
+    _analyze_rate_store.clear()
     _image_cache.clear()
 
 
@@ -112,7 +114,7 @@ def test_identify_machine_rate_limit(test_client: TestClient) -> None:
         # Hit rate limit by setting count to the limit directly
         from tests.conftest import FAKE_USER_ID
 
-        _rate_limit_store[FAKE_USER_ID] = (date.today().isoformat(), 10)  # Default limit
+        _identify_rate_store[FAKE_USER_ID] = (date.today().isoformat(), 10)  # Default limit
 
         response = test_client.post(
             "/api/ai/identify-machine",

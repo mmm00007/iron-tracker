@@ -10,6 +10,10 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.12"
+      - key: DEBUG
+        value: "false"
+      - key: SUPABASE_URL
+        sync: false
       - key: SUPABASE_DB_URL
         sync: false
       - key: SUPABASE_JWT_SECRET

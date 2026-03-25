@@ -151,15 +151,16 @@ export function useLogSet() {
       if (context?.previousSets !== undefined) {
         queryClient.setQueryData(todaySetsKey(newSet.exercise_id), context.previousSets);
       }
-      decrementPending();
     },
 
     onSuccess: () => {
-      decrementPending();
       setLastSync(new Date());
     },
 
     onSettled: (_data, _err, newSet) => {
+      // Decrement pending only in onSettled (called once per mutation lifecycle)
+      // to prevent counter drift when retries trigger multiple onError + final onSuccess
+      decrementPending();
       void queryClient.invalidateQueries({ queryKey: todaySetsKey(newSet.exercise_id) });
       void queryClient.invalidateQueries({
         queryKey: lastSetKey(newSet.exercise_id, newSet.variant_id),

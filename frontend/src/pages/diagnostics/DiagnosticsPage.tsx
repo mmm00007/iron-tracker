@@ -15,6 +15,7 @@ import ErrorIcon from '@mui/icons-material/Error';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import { useAuthStore } from '@/stores/authStore';
 import { useFeatureFlags } from '@/hooks/useFeatureFlags';
+import { API_BASE_URL } from '@/lib/supabase';
 
 export function DiagnosticsPage() {
   const { user, session } = useAuthStore();
@@ -22,7 +23,7 @@ export function DiagnosticsPage() {
   const [healthStatus, setHealthStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
   const [healthLatency, setHealthLatency] = useState<number | null>(null);
 
-  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const apiBaseUrl = API_BASE_URL;
 
   const handleHealthCheck = async () => {
     setHealthStatus('loading');

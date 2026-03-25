@@ -312,7 +312,7 @@ async def test_recovery_empty(mock_db_pool: MagicMock) -> None:
 async def test_recovery_fresh_muscles(mock_db_pool: MagicMock) -> None:
     three_days_ago = NOW - timedelta(hours=80)
     mock_db_pool._conn.fetch.side_effect = [
-        [{"muscle_group": "Chest", "last_trained": three_days_ago, "set_count": 10}],
+        [{"muscle_group": "chest", "last_trained": three_days_ago, "set_count": 10}],
         [],  # no soreness
     ]
 
@@ -326,8 +326,8 @@ async def test_recovery_fresh_muscles(mock_db_pool: MagicMock) -> None:
 async def test_recovery_fatigued_muscles(mock_db_pool: MagicMock) -> None:
     recent = NOW - timedelta(hours=12)
     mock_db_pool._conn.fetch.side_effect = [
-        [{"muscle_group": "Quadriceps", "last_trained": recent, "set_count": 20}],
-        [{"muscle_group": "Quadriceps", "severity": 3}],
+        [{"muscle_group": "quadriceps", "last_trained": recent, "set_count": 20}],
+        [{"muscle_group": "quadriceps", "level": 3}],
     ]
 
     result = await compute_recovery(FAKE_USER_ID, mock_db_pool)

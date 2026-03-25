@@ -95,7 +95,7 @@ export function RestTimerPill({
         }
       } else {
         setRemaining(r);
-        setIsComplete(false);
+        if (isComplete) setIsComplete(false);
       }
     };
     tick();

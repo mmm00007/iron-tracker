@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { API_BASE_URL } from '@/lib/supabase';
 
 export interface FeatureFlags {
   plansEnabled: boolean;
@@ -28,8 +29,7 @@ export function useFeatureFlags(): FeatureFlags {
     queryFn: async () => {
       // Try to fetch remote flags from backend
       try {
-        const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-        const res = await fetch(`${apiBaseUrl}/api/rollout-flags`, { signal: AbortSignal.timeout(3000) });
+        const res = await fetch(`${API_BASE_URL}/api/rollout-flags`, { signal: AbortSignal.timeout(3000) });
         if (res.ok) {
           const remote = await res.json();
           return { ...DEFAULT_FLAGS, ...remote };

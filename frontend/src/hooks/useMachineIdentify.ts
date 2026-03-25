@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { supabase, API_BASE_URL } from '@/lib/supabase';
 
 export interface MachineIdentificationResult {
   exercise_names: string[];
@@ -22,7 +22,7 @@ async function identifyMachine(file: File): Promise<MachineIdentificationResult>
     throw new Error('Not authenticated');
   }
 
-  const apiBase = import.meta.env.VITE_API_URL as string ?? '';
+  const apiBase = API_BASE_URL;
 
   const formData = new FormData();
   formData.append('image', file);

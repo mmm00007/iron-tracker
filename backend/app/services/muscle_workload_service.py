@@ -17,20 +17,21 @@ from app.models.schemas import (
 # and general training volume literature.
 
 MUSCLE_BASELINES: dict[str, float] = {
-    "Chest": 1.0,
-    "Lats": 1.0,
-    "Trapezius": 0.5,
-    "Shoulders": 0.8,
-    "Biceps": 0.55,
-    "Triceps": 0.65,
-    "Quadriceps": 1.0,
-    "Hamstrings": 0.8,
-    "Glutes": 1.0,
-    "Calves": 0.5,
-    "Abdominals": 0.6,
-    "Forearms": 0.45,
-    "Lower Back": 0.5,
-    "Obliques": 0.5,
+    "chest": 1.0,
+    "lats": 1.0,
+    "traps": 0.5,
+    "shoulders": 0.8,
+    "biceps": 0.55,
+    "triceps": 0.65,
+    "quadriceps": 1.0,
+    "hamstrings": 0.8,
+    "glutes": 1.0,
+    "calves": 0.5,
+    "abs": 0.6,
+    "forearms": 0.45,
+    "lower back": 0.5,
+    "adductors": 0.6,
+    "neck": 0.4,
 }
 
 # Minimum sessions before we trust the normalized score.

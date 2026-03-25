@@ -16,17 +16,17 @@ import RemoveIcon from '@mui/icons-material/Remove';
 import { useParams } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import type { Exercise, PersonalRecord } from '@/types/database';
+import type { Exercise } from '@/types/database';
 import { useVariants } from '@/hooks/useVariants';
 import { useTodaySets, useLastSet, useLogSet, useDeleteSet } from '@/hooks/useSets';
 import { useWorkoutStore } from '@/stores/workoutStore';
+import { useAuthStore } from '@/stores/authStore';
 import { useProfile } from '@/hooks/useProfile';
+import { usePRDetection } from '@/hooks/usePRDetection';
 import { NumpadBottomSheet } from '@/components/log/NumpadBottomSheet';
 import { MetadataChips } from '@/components/log/MetadataChips';
 import { SetRow } from '@/components/log/SetRow';
 import { PRCelebration } from '@/components/log/PRCelebration';
-import { checkForPRs, filterPRsForExercise } from '@/utils/prDetection';
-import type { PRCheckResult } from '@/utils/prDetection';
 import { triggerHaptic } from '@/hooks/useSwipeToDelete';
 
 /** Returns rest duration in seconds based on exercise category.
@@ -139,8 +139,8 @@ export function SetLoggerPage() {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // PR celebration state
-  const [prCelebration, setPrCelebration] = useState<PRCheckResult | null>(null);
+  // PR detection via dedicated hook (saves PRs to database)
+  const { checkAndSavePRs, latestPRResult, clearPRResult } = usePRDetection(exerciseId, selectedVariantId);
 
   // ── Data fetching ──────────────────────────────────────────────────────────
 
@@ -223,9 +223,7 @@ export function SetLoggerPage() {
     // Close any existing "Set logged" snackbar to prevent undo targeting the wrong set
     setSnackbarOpen(false);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = useAuthStore.getState().user;
     if (!user) return;
 
     const loggedSet = await logSetMutation.mutateAsync({
@@ -247,30 +245,9 @@ export function SetLoggerPage() {
     startRestTimer(getRestDuration(exercise?.category ?? null));
     resetUserEdited();
 
-    // ── PR check ────────────────────────────────────────────────────────────
-    // Fetch existing personal records for this exercise+variant and check
-    // whether the newly logged set breaks any of them.
+    // PR check + save via dedicated hook (persists to database)
     try {
-      const { data: existingPRs } = await supabase
-        .from('personal_records')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('exercise_id', exerciseId);
-
-      if (existingPRs && exerciseId) {
-        const filtered = filterPRsForExercise(
-          existingPRs as PersonalRecord[],
-          exerciseId,
-          selectedVariantId,
-        );
-        const result = checkForPRs(
-          { weight: currentWeight, reps: currentReps, exerciseId, variantId: selectedVariantId },
-          filtered,
-        );
-        if (result.isPR) {
-          setPrCelebration(result);
-        }
-      }
+      await checkAndSavePRs(loggedSet);
     } catch {
       // PR check is best-effort — never block the happy path
     }
@@ -306,13 +283,21 @@ export function SetLoggerPage() {
     setDeleteSnackbarOpen(false);
   };
 
-  // Clean up timer on unmount
+  // On unmount: commit any pending delete instead of dropping it
+  const pendingDeleteRef = useRef(pendingDeleteId);
+  pendingDeleteRef.current = pendingDeleteId;
+
   useEffect(() => {
     return () => {
       if (deleteTimerRef.current) {
         clearTimeout(deleteTimerRef.current);
+        deleteTimerRef.current = null;
+      }
+      if (pendingDeleteRef.current) {
+        deleteSetMutation.mutate({ setId: pendingDeleteRef.current, exerciseId });
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Overflow menu handlers ────────────────────────────────────────────────
@@ -348,11 +333,11 @@ export function SetLoggerPage() {
       }}
     >
       {/* ── PR Celebration Banner ───────────────────────────────────────────── */}
-      {prCelebration && (
+      {latestPRResult?.isPR && (
         <PRCelebration
-          prResult={prCelebration}
+          prResult={latestPRResult}
           exerciseName={exercise?.name ?? 'Exercise'}
-          onDismiss={() => setPrCelebration(null)}
+          onDismiss={clearPRResult}
         />
       )}
 

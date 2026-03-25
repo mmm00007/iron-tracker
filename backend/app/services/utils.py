@@ -6,8 +6,11 @@ multiple service modules.
 
 
 def epley(weight: float, reps: int) -> float:
-    """Epley formula: weight x (1 + reps / 30). Returns estimated 1RM."""
-    if reps <= 0 or weight <= 0:
+    """Epley formula: weight x (1 + reps / 30). Returns estimated 1RM.
+
+    For 1-rep sets, returns weight directly (that IS the 1RM).
+    """
+    if reps <= 1 or weight <= 0:
         return weight
     return weight * (1 + reps / 30)
 

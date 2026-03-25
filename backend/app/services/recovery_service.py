@@ -13,20 +13,21 @@ from app.models.schemas import MuscleRecoveryEntry, RecoveryResponse
 # Recovery windows per NSCA Essentials 4th ed., Ch. 5
 
 RECOVERY_HOURS: dict[str, float] = {
-    "Quadriceps": 72,
-    "Hamstrings": 72,
-    "Glutes": 72,
-    "Lats": 72,
-    "Lower Back": 72,
-    "Chest": 56,
-    "Shoulders": 56,
-    "Trapezius": 56,
-    "Abdominals": 48,
-    "Obliques": 48,
-    "Biceps": 48,
-    "Triceps": 48,
-    "Calves": 48,
-    "Forearms": 48,
+    "quadriceps": 72,
+    "hamstrings": 72,
+    "glutes": 72,
+    "lats": 72,
+    "lower back": 72,
+    "chest": 56,
+    "shoulders": 56,
+    "traps": 56,
+    "abs": 48,
+    "biceps": 48,
+    "triceps": 48,
+    "calves": 48,
+    "forearms": 48,
+    "adductors": 56,
+    "neck": 48,
 }
 
 DEFAULT_RECOVERY_HOURS = 56.0
@@ -121,7 +122,7 @@ async def compute_recovery(
             """
             SELECT DISTINCT ON (mg.name)
                 mg.name     AS muscle_group,
-                sr.severity
+                sr.level
             FROM soreness_reports sr
             JOIN muscle_groups mg ON mg.id = sr.muscle_group_id
             WHERE sr.user_id = $1
@@ -132,7 +133,7 @@ async def compute_recovery(
             lookback,
         )
 
-    soreness_map = {row["muscle_group"]: int(row["severity"]) for row in soreness_rows}
+    soreness_map = {row["muscle_group"]: int(row["level"]) for row in soreness_rows}
 
     entries: list[MuscleRecoveryEntry] = []
     for row in training_rows:

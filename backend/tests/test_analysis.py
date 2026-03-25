@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from app.auth import get_current_user
 from app.config import Settings, get_settings
 from app.main import app
-from app.routers.ai import _rate_limit_store
+from app.routers.ai import _analyze_rate_store
 from tests.conftest import FAKE_USER_ID
 
 # ── Fixtures ─────────────────────────────────────────────────────────────────
@@ -15,9 +15,9 @@ from tests.conftest import FAKE_USER_ID
 
 @pytest.fixture(autouse=True)
 def clear_rate_limit() -> None:
-    _rate_limit_store.clear()
+    _analyze_rate_store.clear()
     yield
-    _rate_limit_store.clear()
+    _analyze_rate_store.clear()
 
 
 def _make_settings() -> Settings:
@@ -105,7 +105,7 @@ def test_analyze_rate_limit(analysis_client: TestClient) -> None:
     """Exceeding the daily rate limit should return 429."""
     # The analyze endpoint uses min(AI_RATE_LIMIT_PER_DAY, 5) = 5
     # Pre-fill the rate limit store to the limit
-    _rate_limit_store[FAKE_USER_ID] = (date.today().isoformat(), 5)
+    _analyze_rate_store[FAKE_USER_ID] = (date.today().isoformat(), 5)
 
     response = analysis_client.post(
         "/api/ai/analyze",

@@ -16,10 +16,8 @@ npm run dev
 ### Backend
 ```bash
 cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-uvicorn app.main:app --reload
+uv sync --all-extras
+uv run uvicorn app.main:app --reload
 ```
 
 ### Database

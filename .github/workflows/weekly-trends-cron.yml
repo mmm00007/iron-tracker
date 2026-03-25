@@ -8,10 +8,11 @@ on:
 jobs:
   generate-weekly-trends:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Trigger weekly trends generation
         run: |
-          curl -sf -X POST \
+          curl -sf --max-time 30 -X POST \
             "${{ secrets.API_BASE_URL }}/api/analytics/jobs/generate-weekly-trends" \
             -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json"

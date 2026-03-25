@@ -90,34 +90,30 @@ async def compute_1rm_trend(
         rows = await conn.fetch(
             """
             SELECT
-                DATE(logged_at)   AS day,
-                weight,
-                reps
+                DATE(logged_at) AS day,
+                MAX(
+                    CASE WHEN reps <= 1 THEN weight
+                         ELSE weight * (1 + reps / 30.0)
+                    END
+                ) AS best_e1rm
             FROM sets
             WHERE
                 user_id = $1
                 AND exercise_id = $2
                 AND weight > 0
                 AND reps > 0
-            ORDER BY logged_at ASC
+            GROUP BY DATE(logged_at)
+            ORDER BY day ASC
             """,
             user_id,
             exercise_id,
         )
 
-    # Compute best e1RM per day
-    day_best: dict[date, float] = {}
-    for row in rows:
-        day: date = row["day"]
-        e1rm = _epley(float(row["weight"]), int(row["reps"]))
-        if e1rm > day_best.get(day, 0.0):
-            day_best[day] = e1rm
-
     return [
         ExerciseE1RM(
             exercise_id=exercise_id,
-            date=str(day),
-            estimated_1rm=round(e1rm, 2),
+            date=str(row["day"]),
+            estimated_1rm=round(float(row["best_e1rm"]), 2),
         )
-        for day, e1rm in sorted(day_best.items())
+        for row in rows
     ]

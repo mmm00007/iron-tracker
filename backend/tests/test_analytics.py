@@ -54,9 +54,9 @@ def test_epley_zero_weight() -> None:
 
 
 def test_epley_one_rep() -> None:
-    """1 rep: 100 * (1 + 1/30) = 103.33."""
+    """1 rep is the actual 1RM — return weight directly."""
     result = _epley(100.0, 1)
-    assert round(result, 2) == 103.33
+    assert result == 100.0
 
 
 # ── Weekly summary endpoint ─────────────────────────────────────────────────
@@ -134,16 +134,15 @@ def test_compute_1rm_endpoint(
     analytics_client: TestClient,
     mock_db_pool: MagicMock,
 ) -> None:
-    """POST /api/analytics/compute-1rm should return a list of E1RM data points."""
+    """GET /api/analytics/compute-1rm should return a list of E1RM data points."""
     today = date.today()
     conn = mock_db_pool._conn
     conn.fetch.return_value = [
-        {"day": today, "weight": 100.0, "reps": 5},
-        {"day": today, "weight": 90.0, "reps": 8},
+        {"day": today, "best_e1rm": 116.67},
     ]
 
     exercise_uuid = "00000000-0000-4000-8000-000000000001"
-    response = analytics_client.post(
+    response = analytics_client.get(
         "/api/analytics/compute-1rm",
         params={"exercise_id": exercise_uuid},
     )
