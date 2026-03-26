@@ -455,7 +455,12 @@ export function LibraryPage() {
     if (muscleFilter) list = list.filter((e) =>
       e.exercise_muscles?.some((em) => em.muscle_group_id === muscleFilter)
     );
-    if (categoryFilter) list = list.filter((e) => e.exercise_type === categoryFilter);
+    if (categoryFilter) {
+      const hasOtherFilters = equipmentFilter !== 'all' || muscleFilter !== null;
+      list = list.filter((e) =>
+        e.exercise_type === categoryFilter || (hasOtherFilters && !e.exercise_type)
+      );
+    }
     return list;
   }, [exercises, search, equipmentFilter, muscleFilter, categoryFilter, viewMode, favoriteIds]);
 

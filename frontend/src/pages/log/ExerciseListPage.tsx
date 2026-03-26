@@ -244,7 +244,12 @@ export function ExerciseListPage() {
       );
     }
     if (categoryFilter) {
-      list = list.filter((e) => e.exercise_type === categoryFilter);
+      // Include exercises that match the category OR have exercise_type not set
+      // (many seed exercises lack exercise_type — don't exclude them when combined with other filters)
+      const hasOtherFilters = equipmentFilter !== null || muscleFilter !== null;
+      list = list.filter((e) =>
+        e.exercise_type === categoryFilter || (hasOtherFilters && !e.exercise_type)
+      );
     }
     return list;
   }, [exercisesQuery.data, equipmentFilter, muscleFilter, categoryFilter, showFavoritesOnly, favoriteIds]);
