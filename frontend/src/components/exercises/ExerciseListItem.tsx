@@ -1,11 +1,9 @@
+import Avatar from '@mui/material/Avatar';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemAvatar from '@mui/material/ListItemAvatar';
 import ListItemText from '@mui/material/ListItemText';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
-import SelfImprovementIcon from '@mui/icons-material/SelfImprovement';
-import SportsMartialArtsIcon from '@mui/icons-material/SportsMartialArts';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useNavigate } from '@tanstack/react-router';
 import type { Exercise } from '@/types/database';
@@ -15,44 +13,18 @@ interface ExerciseListItemProps {
   lastLoggedInfo?: string;
 }
 
-function getEquipmentIcon(equipment: string | null) {
-  if (!equipment) return <FitnessCenterIcon fontSize="small" />;
-
-  const lowerEquipment = equipment.toLowerCase();
-
-  if (
-    lowerEquipment.includes('machine') ||
-    lowerEquipment.includes('cable') ||
-    lowerEquipment.includes('barbell') ||
-    lowerEquipment.includes('dumbbell') ||
-    lowerEquipment.includes('kettlebell')
-  ) {
-    return <FitnessCenterIcon fontSize="small" />;
-  }
-
-  if (lowerEquipment.includes('body') || lowerEquipment.includes('band')) {
-    return <SportsMartialArtsIcon fontSize="small" />;
-  }
-
-  if (lowerEquipment.includes('cardio') || lowerEquipment.includes('run')) {
-    return <DirectionsRunIcon fontSize="small" />;
-  }
-
-  if (lowerEquipment.includes('stretch') || lowerEquipment.includes('foam')) {
-    return <SelfImprovementIcon fontSize="small" />;
-  }
-
-  return <FitnessCenterIcon fontSize="small" />;
-}
-
 export function ExerciseListItem({ exercise, lastLoggedInfo }: ExerciseListItemProps) {
   const navigate = useNavigate();
+  const thumbUrl = exercise.image_urls?.[0];
 
   const handleClick = () => {
     void navigate({ to: '/log/$exerciseId', params: { exerciseId: exercise.id } });
   };
 
-  const secondaryText = lastLoggedInfo ?? 'Never logged';
+  const secondaryText = [
+    exercise.equipment,
+    lastLoggedInfo,
+  ].filter(Boolean).join(' · ') || 'Never logged';
 
   return (
     <ListItem
@@ -65,7 +37,7 @@ export function ExerciseListItem({ exercise, lastLoggedInfo }: ExerciseListItemP
         onClick={handleClick}
         sx={{
           borderRadius: '12px',
-          pr: 5, // space for chevron
+          pr: 5,
           minHeight: 48,
           '&:hover': {
             backgroundColor: 'rgba(168, 199, 250, 0.08)',
@@ -75,14 +47,23 @@ export function ExerciseListItem({ exercise, lastLoggedInfo }: ExerciseListItemP
           },
         }}
       >
-        <ListItemIcon
-          sx={{
-            minWidth: 40,
-            color: 'text.secondary',
-          }}
-        >
-          {getEquipmentIcon(exercise.equipment)}
-        </ListItemIcon>
+        <ListItemAvatar sx={{ minWidth: 48 }}>
+          {thumbUrl ? (
+            <Avatar
+              src={thumbUrl}
+              variant="rounded"
+              sx={{ width: 40, height: 40 }}
+              imgProps={{ loading: 'lazy' }}
+            />
+          ) : (
+            <Avatar
+              variant="rounded"
+              sx={{ width: 40, height: 40, bgcolor: 'rgba(168, 199, 250, 0.08)' }}
+            >
+              <FitnessCenterIcon sx={{ fontSize: 20, color: 'text.disabled' }} />
+            </Avatar>
+          )}
+        </ListItemAvatar>
         <ListItemText
           primary={exercise.name}
           secondary={secondaryText}

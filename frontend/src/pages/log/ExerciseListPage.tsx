@@ -16,6 +16,15 @@ import { useNavigate } from '@tanstack/react-router';
 import { useFavoriteIds } from '@/hooks/useFavorites';
 
 const EQUIPMENT_TYPES = ['barbell', 'dumbbell', 'cable', 'machine', 'body only', 'bands', 'kettlebell'] as const;
+
+const EXERCISE_TYPE_FILTERS = [
+  { value: 'push', label: 'Push' },
+  { value: 'pull', label: 'Pull' },
+  { value: 'legs', label: 'Legs' },
+  { value: 'core', label: 'Core' },
+  { value: 'cardio', label: 'Cardio' },
+  { value: 'full_body', label: 'Full Body' },
+] as const;
 import {
   useExercises,
   useExerciseSearch,
@@ -148,7 +157,8 @@ export function ExerciseListPage() {
   const searchRef = useRef<HTMLInputElement>(null);
   const [searchInput, setSearchInput] = useState('');
   const [equipmentFilter, setEquipmentFilter] = useState<string | null>(null);
-  const [muscleFilter, setMuscleFilter] = useState<string | null>(null);
+  const [muscleFilter, setMuscleFilter] = useState<number | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const favoriteIds = useFavoriteIds();
   const debouncedSearch = useDebounce(searchInput, 200);
@@ -175,26 +185,51 @@ export function ExerciseListPage() {
     return map;
   }, [recentQuery.data]);
 
-  // Group exercises by muscle group
-  // Since we don't have per-exercise muscle group in the base exercise, we group by category
-  const exercisesByCategory = useMemo(() => {
+  // Group exercises by primary muscle group via exercise_muscles junction table
+  const exercisesByMuscleGroup = useMemo(() => {
     const exercises = exercisesQuery.data ?? [];
+    const mgLookup = new Map((muscleGroupsQuery.data ?? []).map((mg) => [mg.id, mg.name]));
     const map = new Map<string, typeof exercises>();
 
     for (const exercise of exercises) {
-      const category = exercise.category ?? 'Other';
-      const existing = map.get(category) ?? [];
-      existing.push(exercise);
-      map.set(category, existing);
+      // Find primary muscle groups for this exercise
+      const primaryMuscleIds = exercise.exercise_muscles
+        ?.filter(() => true) // all linked muscles (is_primary not in the select)
+        ?.map((em) => em.muscle_group_id) ?? [];
+
+      if (primaryMuscleIds.length === 0) {
+        // Fallback to category for exercises without muscle associations
+        const fallback = exercise.category ?? 'Other';
+        const existing = map.get(fallback) ?? [];
+        existing.push(exercise);
+        map.set(fallback, existing);
+      } else {
+        // Add to each linked muscle group (exercise may appear in multiple groups)
+        for (const mgId of primaryMuscleIds) {
+          const groupName = mgLookup.get(mgId) ?? 'Other';
+          const existing = map.get(groupName) ?? [];
+          existing.push(exercise);
+          map.set(groupName, existing);
+        }
+      }
     }
 
-    // Sort each group alphabetically
-    map.forEach((list) => list.sort((a, b) => a.name.localeCompare(b.name)));
+    // Sort each group alphabetically and deduplicate
+    map.forEach((list, key) => {
+      const seen = new Set<string>();
+      const deduped = list.filter((e) => {
+        if (seen.has(e.id)) return false;
+        seen.add(e.id);
+        return true;
+      });
+      deduped.sort((a, b) => a.name.localeCompare(b.name));
+      map.set(key, deduped);
+    });
 
     return map;
-  }, [exercisesQuery.data]);
+  }, [exercisesQuery.data, muscleGroupsQuery.data]);
 
-  // Filter exercises by equipment type, muscle group, and favorites
+  // Filter exercises by equipment type, muscle group (via junction table), and favorites
   const filteredExercises = useMemo(() => {
     let list = exercisesQuery.data ?? [];
     if (showFavoritesOnly) {
@@ -203,13 +238,19 @@ export function ExerciseListPage() {
     if (equipmentFilter) {
       list = list.filter((e) => e.equipment?.toLowerCase() === equipmentFilter);
     }
-    if (muscleFilter) {
-      list = list.filter((e) => e.category === muscleFilter);
+    if (muscleFilter !== null) {
+      list = list.filter((e) =>
+        e.exercise_muscles?.some((em) => em.muscle_group_id === muscleFilter)
+      );
+    }
+    if (categoryFilter) {
+      list = list.filter((e) => e.exercise_type === categoryFilter);
     }
     return list;
-  }, [exercisesQuery.data, equipmentFilter, muscleFilter, showFavoritesOnly, favoriteIds]);
+  }, [exercisesQuery.data, equipmentFilter, muscleFilter, categoryFilter, showFavoritesOnly, favoriteIds]);
 
-  const isFiltering = equipmentFilter !== null || muscleFilter !== null || showFavoritesOnly;
+  const isFiltering = equipmentFilter !== null || muscleFilter !== null || categoryFilter !== null || showFavoritesOnly;
+  const clearAllFilters = () => { setEquipmentFilter(null); setMuscleFilter(null); setCategoryFilter(null); setShowFavoritesOnly(false); };
 
   const hasRecentExercises = (recentQuery.data?.length ?? 0) > 0;
   const hasAnyExercises = (exercisesQuery.data?.length ?? 0) > 0;
@@ -308,6 +349,21 @@ export function ExerciseListPage() {
             ))}
           </Stack>
 
+          {/* Category filter chips (Push/Pull/Legs/Core) */}
+          <Stack direction="row" spacing={0.5} sx={{ overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, mt: 0.5 }}>
+            {EXERCISE_TYPE_FILTERS.map(({ value, label }) => (
+              <Chip
+                key={value}
+                label={label}
+                size="small"
+                onClick={() => setCategoryFilter(categoryFilter === value ? null : value)}
+                color={categoryFilter === value ? 'info' : 'default'}
+                variant={categoryFilter === value ? 'filled' : 'outlined'}
+                sx={{ fontSize: '0.7rem', height: 26, flexShrink: 0 }}
+              />
+            ))}
+          </Stack>
+
           {/* Muscle group filter chips */}
           <Stack direction="row" spacing={0.5} sx={{ overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, mt: 0.5 }}>
             {(muscleGroupsQuery.data ?? []).slice(0, 12).map((mg) => (
@@ -315,9 +371,9 @@ export function ExerciseListPage() {
                 key={mg.id}
                 label={mg.name}
                 size="small"
-                onClick={() => setMuscleFilter(muscleFilter === mg.name ? null : mg.name)}
-                color={muscleFilter === mg.name ? 'secondary' : 'default'}
-                variant={muscleFilter === mg.name ? 'filled' : 'outlined'}
+                onClick={() => setMuscleFilter(muscleFilter === mg.id ? null : mg.id)}
+                color={muscleFilter === mg.id ? 'secondary' : 'default'}
+                variant={muscleFilter === mg.id ? 'filled' : 'outlined'}
                 sx={{ fontSize: '0.65rem', height: 24, flexShrink: 0 }}
               />
             ))}
@@ -369,7 +425,7 @@ export function ExerciseListPage() {
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 No exercises match the selected filters
               </Typography>
-              <Button size="small" onClick={() => { setEquipmentFilter(null); setMuscleFilter(null); }} sx={{ mt: 1 }}>
+              <Button size="small" onClick={clearAllFilters} sx={{ mt: 1 }}>
                 Clear Filters
               </Button>
             </Box>
@@ -429,8 +485,8 @@ export function ExerciseListPage() {
             </Box>
           )}
 
-          {/* By Category (Muscle Group Sections) */}
-          {exercisesByCategory.size > 0 && (
+          {/* By Muscle Group (via exercise_muscles junction) */}
+          {exercisesByMuscleGroup.size > 0 && (
             <Box sx={{ mb: 1 }}>
               <Typography
                 variant="overline"
@@ -444,12 +500,12 @@ export function ExerciseListPage() {
                   fontSize: '0.7rem',
                 }}
               >
-                By Category
+                By Muscle Group
               </Typography>
               <Box sx={{ borderTop: '1px solid rgba(202, 196, 208, 0.08)' }}>
                 {muscleGroupsQuery.data && muscleGroupsQuery.data.length > 0
                   ? muscleGroupsQuery.data.map((muscleGroup) => {
-                      const groupExercises = exercisesByCategory.get(muscleGroup.name) ?? [];
+                      const groupExercises = exercisesByMuscleGroup.get(muscleGroup.name) ?? [];
                       if (groupExercises.length === 0) return null;
                       return (
                         <MuscleGroupSection
@@ -459,12 +515,12 @@ export function ExerciseListPage() {
                         />
                       );
                     })
-                  : Array.from(exercisesByCategory.entries()).map(([category, exercises]) => (
+                  : Array.from(exercisesByMuscleGroup.entries()).map(([groupName, exercises]) => (
                       <MuscleGroupSection
-                        key={category}
+                        key={groupName}
                         muscleGroup={{
-                          id: category.charCodeAt(0),
-                          name: category,
+                          id: groupName.charCodeAt(0),
+                          name: groupName,
                           name_latin: null,
                           is_front: false,
                           svg_path_id: null,

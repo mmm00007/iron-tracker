@@ -46,6 +46,15 @@ import type { Exercise } from '@/types/database';
 
 const EQUIPMENT_TYPES = ['all', 'barbell', 'dumbbell', 'cable', 'machine', 'body only', 'bands', 'kettlebell'] as const;
 
+const EXERCISE_TYPE_FILTERS = [
+  { value: 'push', label: 'Push' },
+  { value: 'pull', label: 'Pull' },
+  { value: 'legs', label: 'Legs' },
+  { value: 'core', label: 'Core' },
+  { value: 'cardio', label: 'Cardio' },
+  { value: 'full_body', label: 'Full Body' },
+] as const;
+
 function getEquipmentLabel(type: string): string {
   if (type === 'all') return 'All';
   if (type === 'body only') return 'Bodyweight';
@@ -99,12 +108,13 @@ function ExerciseDetailView({
 
         {/* Metadata chips */}
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
+          {exercise.exercise_type && <Chip label={exercise.exercise_type.charAt(0).toUpperCase() + exercise.exercise_type.slice(1).replace('_', ' ')} size="small" color="info" />}
+          {exercise.movement_pattern && <Chip label={exercise.movement_pattern.replace(/_/g, ' ')} size="small" color="secondary" variant="outlined" />}
           {exercise.equipment && <Chip label={exercise.equipment} size="small" variant="outlined" />}
-          {exercise.category && <Chip label={exercise.category} size="small" color="primary" variant="outlined" />}
+          {exercise.category && <Chip label={exercise.category} size="small" variant="outlined" />}
           {exercise.level && <Chip label={exercise.level} size="small" variant="outlined" />}
           {exercise.mechanic && <Chip label={exercise.mechanic} size="small" variant="outlined" />}
           {exercise.force && <Chip label={exercise.force} size="small" variant="outlined" />}
-          {exercise.movement_pattern && <Chip label={exercise.movement_pattern.replace('_', ' ')} size="small" variant="outlined" />}
         </Box>
 
         {/* Defaults */}
@@ -191,6 +201,12 @@ function ExerciseDetailView({
 
 // ─── Create/Edit Exercise Dialog ─────────────────────────────────────────────
 
+interface MuscleEntry {
+  muscle_group_id: number;
+  is_primary: boolean;
+  activation_percent: number;
+}
+
 function ExerciseFormDialog({
   open,
   onClose,
@@ -202,12 +218,38 @@ function ExerciseFormDialog({
 }) {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
+  const { data: muscleGroups } = useMuscleGroups();
   const [name, setName] = useState(exercise?.name ?? '');
   const [equipment, setEquipment] = useState(exercise?.equipment ?? '');
-  const [category, setCategory] = useState(exercise?.category ?? '');
+  const [exerciseType, setExerciseType] = useState(exercise?.exercise_type ?? '');
   const [level, setLevel] = useState(exercise?.level ?? '');
   const [notes, setNotes] = useState(exercise?.notes ?? '');
+  const [muscles, setMuscles] = useState<MuscleEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  const addMuscle = (mgId: number) => {
+    if (muscles.some((m) => m.muscle_group_id === mgId)) return;
+    const isPrimary = muscles.filter((m) => m.is_primary).length === 0;
+    setMuscles([...muscles, { muscle_group_id: mgId, is_primary: isPrimary, activation_percent: isPrimary ? 100 : 50 }]);
+  };
+
+  const removeMuscle = (mgId: number) => {
+    setMuscles(muscles.filter((m) => m.muscle_group_id !== mgId));
+  };
+
+  const toggleRole = (mgId: number) => {
+    setMuscles(muscles.map((m) =>
+      m.muscle_group_id === mgId
+        ? { ...m, is_primary: !m.is_primary, activation_percent: !m.is_primary ? 100 : 50 }
+        : m
+    ));
+  };
+
+  const setActivation = (mgId: number, pct: number) => {
+    setMuscles(muscles.map((m) =>
+      m.muscle_group_id === mgId ? { ...m, activation_percent: Math.max(1, Math.min(100, pct)) } : m
+    ));
+  };
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -217,12 +259,14 @@ function ExerciseFormDialog({
       const payload = {
         name: name.trim(),
         equipment: equipment || null,
-        category: category || null,
+        exercise_type: exerciseType || null,
         level: level || null,
         notes: notes || null,
         is_custom: true,
         created_by: user.id,
       };
+
+      let exerciseId = exercise?.id;
 
       if (exercise) {
         const { error: err } = await supabase
@@ -231,10 +275,33 @@ function ExerciseFormDialog({
           .eq('id', exercise.id);
         if (err) throw err;
       } else {
-        const { error: err } = await supabase
+        const { data, error: err } = await supabase
           .from('exercises')
-          .insert(payload);
+          .insert(payload)
+          .select('id')
+          .single();
         if (err) throw err;
+        exerciseId = data.id;
+      }
+
+      // Save muscle associations
+      if (exerciseId && muscles.length > 0) {
+        // Delete existing associations for this exercise
+        await supabase
+          .from('exercise_muscles')
+          .delete()
+          .eq('exercise_id', exerciseId);
+
+        // Insert new associations
+        const { error: emErr } = await supabase
+          .from('exercise_muscles')
+          .insert(muscles.map((m) => ({
+            exercise_id: exerciseId,
+            muscle_group_id: m.muscle_group_id,
+            is_primary: m.is_primary,
+            activation_percent: m.activation_percent,
+          })));
+        if (emErr) throw emErr;
       }
     },
     onSuccess: () => {
@@ -252,6 +319,8 @@ function ExerciseFormDialog({
     }
   };
 
+  const mgLookup = new Map((muscleGroups ?? []).map((mg) => [mg.id, mg.name]));
+
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
       <DialogTitle>{exercise ? 'Edit Exercise' : 'Create Exercise'}</DialogTitle>
@@ -268,7 +337,15 @@ function ExerciseFormDialog({
               ))}
             </Select>
           </FormControl>
-          <TextField label="Category (e.g. Chest, Back)" value={category} onChange={(e) => setCategory(e.target.value)} fullWidth />
+          <FormControl fullWidth>
+            <InputLabel>Category</InputLabel>
+            <Select value={exerciseType} label="Category" onChange={(e) => setExerciseType(e.target.value)}>
+              <MenuItem value="">None</MenuItem>
+              {EXERCISE_TYPE_FILTERS.map(({ value, label }) => (
+                <MenuItem key={value} value={value}>{label}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
           <FormControl fullWidth>
             <InputLabel>Level</InputLabel>
             <Select value={level} label="Level" onChange={(e) => setLevel(e.target.value)}>
@@ -278,6 +355,58 @@ function ExerciseFormDialog({
               <MenuItem value="expert">Expert</MenuItem>
             </Select>
           </FormControl>
+
+          {/* Muscle groups */}
+          <Box>
+            <Typography variant="subtitle2" sx={{ mb: 0.5, color: 'text.secondary' }}>Muscle Groups</Typography>
+            <Stack direction="row" spacing={0.5} sx={{ flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+              {(muscleGroups ?? []).map((mg) => {
+                const selected = muscles.some((m) => m.muscle_group_id === mg.id);
+                return (
+                  <Chip
+                    key={mg.id}
+                    label={mg.name}
+                    size="small"
+                    onClick={() => selected ? removeMuscle(mg.id) : addMuscle(mg.id)}
+                    color={selected ? 'primary' : 'default'}
+                    variant={selected ? 'filled' : 'outlined'}
+                    sx={{ fontSize: '0.7rem' }}
+                  />
+                );
+              })}
+            </Stack>
+
+            {/* Selected muscles with role toggle and activation slider */}
+            {muscles.length > 0 && (
+              <Stack spacing={1}>
+                {muscles.map((m) => (
+                  <Box key={m.muscle_group_id} sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.5, borderRadius: '8px', bgcolor: 'rgba(168, 199, 250, 0.06)' }}>
+                    <Typography variant="caption" sx={{ minWidth: 60, fontWeight: 500 }}>
+                      {mgLookup.get(m.muscle_group_id) ?? '?'}
+                    </Typography>
+                    <Chip
+                      label={m.is_primary ? 'Primary' : 'Secondary'}
+                      size="small"
+                      onClick={() => toggleRole(m.muscle_group_id)}
+                      color={m.is_primary ? 'success' : 'default'}
+                      variant="outlined"
+                      sx={{ fontSize: '0.65rem', height: 20, cursor: 'pointer' }}
+                    />
+                    <TextField
+                      type="number"
+                      value={m.activation_percent}
+                      onChange={(e) => setActivation(m.muscle_group_id, Number(e.target.value))}
+                      size="small"
+                      slotProps={{ htmlInput: { min: 1, max: 100, step: 5 } }}
+                      sx={{ width: 64, '& input': { py: 0.25, fontSize: '0.75rem', textAlign: 'center' } }}
+                    />
+                    <Typography variant="caption" sx={{ color: 'text.disabled' }}>%</Typography>
+                  </Box>
+                ))}
+              </Stack>
+            )}
+          </Box>
+
           <TextField label="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} fullWidth multiline rows={2} />
         </Stack>
       </DialogContent>
@@ -303,6 +432,7 @@ export function LibraryPage() {
   const [search, setSearch] = useState('');
   const [equipmentFilter, setEquipmentFilter] = useState<string>('all');
   const [muscleFilter, setMuscleFilter] = useState<number | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'all' | 'favorites'>('all');
 
   // Detail / CRUD state
@@ -325,8 +455,9 @@ export function LibraryPage() {
     if (muscleFilter) list = list.filter((e) =>
       e.exercise_muscles?.some((em) => em.muscle_group_id === muscleFilter)
     );
+    if (categoryFilter) list = list.filter((e) => e.exercise_type === categoryFilter);
     return list;
-  }, [exercises, search, equipmentFilter, muscleFilter, viewMode, favoriteIds]);
+  }, [exercises, search, equipmentFilter, muscleFilter, categoryFilter, viewMode, favoriteIds]);
 
   const handleToggleFavorite = (e: React.MouseEvent, exercise: Exercise) => {
     e.stopPropagation();
@@ -391,6 +522,17 @@ export function LibraryPage() {
               onClick={() => setEquipmentFilter(type)}
               color={equipmentFilter === type ? 'primary' : 'default'}
               variant={equipmentFilter === type ? 'filled' : 'outlined'}
+              sx={{ fontSize: '0.7rem', height: 26, flexShrink: 0 }}
+            />
+          ))}
+        </Stack>
+
+        <Stack direction="row" spacing={0.5} sx={{ overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, mt: 0.5 }}>
+          {EXERCISE_TYPE_FILTERS.map(({ value, label }) => (
+            <Chip key={value} label={label} size="small"
+              onClick={() => setCategoryFilter(categoryFilter === value ? null : value)}
+              color={categoryFilter === value ? 'info' : 'default'}
+              variant={categoryFilter === value ? 'filled' : 'outlined'}
               sx={{ fontSize: '0.7rem', height: 26, flexShrink: 0 }}
             />
           ))}
