@@ -1,8 +1,13 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
+import Accordion from '@mui/material/Accordion';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import AccordionSummary from '@mui/material/AccordionSummary';
 import AppBar from '@mui/material/AppBar';
+import Badge from '@mui/material/Badge';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
+import Collapse from '@mui/material/Collapse';
 import IconButton from '@mui/material/IconButton';
 import List from '@mui/material/List';
 import Skeleton from '@mui/material/Skeleton';
@@ -10,7 +15,9 @@ import Stack from '@mui/material/Stack';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import StarIcon from '@mui/icons-material/Star';
 import { useNavigate } from '@tanstack/react-router';
 import { useFavoriteIds } from '@/hooks/useFavorites';
@@ -156,6 +163,7 @@ export function ExerciseListPage() {
   const navigate = useNavigate();
   const searchRef = useRef<HTMLInputElement>(null);
   const [searchInput, setSearchInput] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [equipmentFilter, setEquipmentFilter] = useState<string | null>(null);
   const [muscleFilter, setMuscleFilter] = useState<number | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
@@ -254,7 +262,8 @@ export function ExerciseListPage() {
     return list;
   }, [exercisesQuery.data, equipmentFilter, muscleFilter, categoryFilter, showFavoritesOnly, favoriteIds]);
 
-  const isFiltering = equipmentFilter !== null || muscleFilter !== null || categoryFilter !== null || showFavoritesOnly;
+  const activeFilterCount = [equipmentFilter, muscleFilter, categoryFilter, showFavoritesOnly || null].filter(Boolean).length;
+  const isFiltering = activeFilterCount > 0;
   const clearAllFilters = () => { setEquipmentFilter(null); setMuscleFilter(null); setCategoryFilter(null); setShowFavoritesOnly(false); };
 
   const hasRecentExercises = (recentQuery.data?.length ?? 0) > 0;
@@ -328,61 +337,87 @@ export function ExerciseListPage() {
         <ExerciseSearch value={searchInput} onChange={setSearchInput} inputRef={searchRef} />
       </Box>
 
-      {/* Filter chips: equipment type */}
+      {/* Collapsible filter panel */}
       {!isLoading && hasAnyExercises && (
         <Box sx={{ px: 2, pb: 0.5 }}>
-          <Stack direction="row" spacing={0.5} sx={{ overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, pb: 0.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
+            <Button
+              size="small"
+              startIcon={
+                <Badge badgeContent={activeFilterCount} color="primary" sx={{ '& .MuiBadge-badge': { fontSize: '0.6rem', minWidth: 16, height: 16 } }}>
+                  <FilterListIcon sx={{ fontSize: 18 }} />
+                </Badge>
+              }
+              onClick={() => setFiltersOpen(!filtersOpen)}
+              sx={{ color: isFiltering ? 'primary.main' : 'text.secondary', textTransform: 'none', fontSize: '0.8rem', minWidth: 0, px: 1 }}
+            >
+              Filters
+            </Button>
+            {isFiltering && (
+              <Button size="small" onClick={clearAllFilters} sx={{ fontSize: '0.7rem', textTransform: 'none', color: 'text.disabled', minWidth: 0, px: 0.5 }}>
+                Clear
+              </Button>
+            )}
+            <Box sx={{ flex: 1 }} />
             <Chip
               icon={<StarIcon sx={{ fontSize: '14px !important', color: showFavoritesOnly ? '#FFD700' : undefined }} />}
-              label={`Favorites${favoriteIds.size > 0 ? ` (${favoriteIds.size})` : ''}`}
+              label={favoriteIds.size > 0 ? `${favoriteIds.size}` : ''}
               size="small"
               onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
               color={showFavoritesOnly ? 'warning' : 'default'}
               variant={showFavoritesOnly ? 'filled' : 'outlined'}
-              sx={{ fontSize: '0.7rem', height: 26, flexShrink: 0 }}
+              sx={{ fontSize: '0.7rem', height: 26 }}
             />
-            {EQUIPMENT_TYPES.map((type) => (
-              <Chip
-                key={type}
-                label={type === 'body only' ? 'Bodyweight' : type.charAt(0).toUpperCase() + type.slice(1)}
-                size="small"
-                onClick={() => setEquipmentFilter(equipmentFilter === type ? null : type)}
-                color={equipmentFilter === type ? 'primary' : 'default'}
-                variant={equipmentFilter === type ? 'filled' : 'outlined'}
-                sx={{ fontSize: '0.7rem', height: 26, flexShrink: 0 }}
-              />
-            ))}
-          </Stack>
+          </Box>
 
-          {/* Category filter chips (Push/Pull/Legs/Core) */}
-          <Stack direction="row" spacing={0.5} sx={{ overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, mt: 0.5 }}>
-            {EXERCISE_TYPE_FILTERS.map(({ value, label }) => (
-              <Chip
-                key={value}
-                label={label}
-                size="small"
-                onClick={() => setCategoryFilter(categoryFilter === value ? null : value)}
-                color={categoryFilter === value ? 'info' : 'default'}
-                variant={categoryFilter === value ? 'filled' : 'outlined'}
-                sx={{ fontSize: '0.7rem', height: 26, flexShrink: 0 }}
-              />
-            ))}
-          </Stack>
+          <Collapse in={filtersOpen || isFiltering}>
+            <Stack spacing={0.5} sx={{ pb: 0.5 }}>
+              {/* Equipment */}
+              <Stack direction="row" spacing={0.5} sx={{ overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
+                {EQUIPMENT_TYPES.map((type) => (
+                  <Chip
+                    key={type}
+                    label={type === 'body only' ? 'Bodyweight' : type.charAt(0).toUpperCase() + type.slice(1)}
+                    size="small"
+                    onClick={() => setEquipmentFilter(equipmentFilter === type ? null : type)}
+                    color={equipmentFilter === type ? 'primary' : 'default'}
+                    variant={equipmentFilter === type ? 'filled' : 'outlined'}
+                    sx={{ fontSize: '0.7rem', height: 26, flexShrink: 0 }}
+                  />
+                ))}
+              </Stack>
 
-          {/* Muscle group filter chips */}
-          <Stack direction="row" spacing={0.5} sx={{ overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' }, mt: 0.5 }}>
-            {(muscleGroupsQuery.data ?? []).slice(0, 12).map((mg) => (
-              <Chip
-                key={mg.id}
-                label={mg.name}
-                size="small"
-                onClick={() => setMuscleFilter(muscleFilter === mg.id ? null : mg.id)}
-                color={muscleFilter === mg.id ? 'secondary' : 'default'}
-                variant={muscleFilter === mg.id ? 'filled' : 'outlined'}
-                sx={{ fontSize: '0.65rem', height: 24, flexShrink: 0 }}
-              />
-            ))}
-          </Stack>
+              {/* Category (Push/Pull/Legs/Core) */}
+              <Stack direction="row" spacing={0.5} sx={{ overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
+                {EXERCISE_TYPE_FILTERS.map(({ value, label }) => (
+                  <Chip
+                    key={value}
+                    label={label}
+                    size="small"
+                    onClick={() => setCategoryFilter(categoryFilter === value ? null : value)}
+                    color={categoryFilter === value ? 'info' : 'default'}
+                    variant={categoryFilter === value ? 'filled' : 'outlined'}
+                    sx={{ fontSize: '0.7rem', height: 26, flexShrink: 0 }}
+                  />
+                ))}
+              </Stack>
+
+              {/* Muscle groups */}
+              <Stack direction="row" spacing={0.5} sx={{ overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
+                {(muscleGroupsQuery.data ?? []).map((mg) => (
+                  <Chip
+                    key={mg.id}
+                    label={mg.name}
+                    size="small"
+                    onClick={() => setMuscleFilter(muscleFilter === mg.id ? null : mg.id)}
+                    color={muscleFilter === mg.id ? 'secondary' : 'default'}
+                    variant={muscleFilter === mg.id ? 'filled' : 'outlined'}
+                    sx={{ fontSize: '0.65rem', height: 24, flexShrink: 0 }}
+                  />
+                ))}
+              </Stack>
+            </Stack>
+          </Collapse>
         </Box>
       )}
 
@@ -453,135 +488,127 @@ export function ExerciseListPage() {
           )}
         </Box>
       ) : (
-        /* Default sections */
-        <Box>
-          {/* Recent section */}
+        /* Default sections — collapsible */
+        <Box sx={{ pb: 2 }}>
+          {/* Recent section — expanded by default */}
           {hasRecentExercises && (
-            <Box sx={{ mb: 1 }}>
-              <Typography
-                variant="overline"
-                sx={{
-                  px: 2,
-                  pt: 1,
-                  pb: 0.75,
-                  display: 'block',
-                  color: 'text.secondary',
-                  letterSpacing: '0.08em',
-                  fontSize: '0.7rem',
-                }}
-              >
-                Recent
-              </Typography>
-              <Box
-                sx={{
-                  display: 'flex',
-                  gap: 1.5,
-                  px: 2,
-                  pb: 1.5,
-                  overflowX: 'auto',
-                  scrollbarWidth: 'none',
-                  '&::-webkit-scrollbar': { display: 'none' },
-                }}
-              >
-                {recentQuery.data?.slice(0, 8).map((exercise) => (
-                  <ExerciseCard key={exercise.id} exercise={exercise} />
-                ))}
-              </Box>
-            </Box>
+            <Accordion
+              defaultExpanded
+              disableGutters
+              elevation={0}
+              sx={{ backgroundColor: 'transparent', '&:before': { display: 'none' } }}
+            >
+              <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: 'text.secondary', fontSize: 18 }} />} sx={{ minHeight: 36, px: 2, '& .MuiAccordionSummary-content': { my: 0.5 } }}>
+                <Typography variant="overline" sx={{ color: 'text.secondary', letterSpacing: '0.08em', fontSize: '0.7rem' }}>
+                  Recent ({recentQuery.data?.length ?? 0})
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails sx={{ p: 0 }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    gap: 1.5,
+                    px: 2,
+                    pb: 1.5,
+                    overflowX: 'auto',
+                    scrollbarWidth: 'none',
+                    '&::-webkit-scrollbar': { display: 'none' },
+                  }}
+                >
+                  {recentQuery.data?.slice(0, 8).map((exercise) => (
+                    <ExerciseCard key={exercise.id} exercise={exercise} />
+                  ))}
+                </Box>
+              </AccordionDetails>
+            </Accordion>
           )}
 
-          {/* By Muscle Group (via exercise_muscles junction) */}
+          {/* By Muscle Group — collapsed by default to reduce clutter */}
           {exercisesByMuscleGroup.size > 0 && (
-            <Box sx={{ mb: 1 }}>
-              <Typography
-                variant="overline"
-                sx={{
-                  px: 2,
-                  pt: 1,
-                  pb: 0.75,
-                  display: 'block',
-                  color: 'text.secondary',
-                  letterSpacing: '0.08em',
-                  fontSize: '0.7rem',
-                }}
-              >
-                By Muscle Group
-              </Typography>
-              <Box sx={{ borderTop: '1px solid rgba(202, 196, 208, 0.08)' }}>
-                {muscleGroupsQuery.data && muscleGroupsQuery.data.length > 0
-                  ? muscleGroupsQuery.data.map((muscleGroup) => {
-                      const groupExercises = exercisesByMuscleGroup.get(muscleGroup.name) ?? [];
-                      if (groupExercises.length === 0) return null;
-                      return (
+            <Accordion
+              disableGutters
+              elevation={0}
+              sx={{ backgroundColor: 'transparent', '&:before': { display: 'none' } }}
+            >
+              <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: 'text.secondary', fontSize: 18 }} />} sx={{ minHeight: 36, px: 2, '& .MuiAccordionSummary-content': { my: 0.5 } }}>
+                <Typography variant="overline" sx={{ color: 'text.secondary', letterSpacing: '0.08em', fontSize: '0.7rem' }}>
+                  By Muscle Group
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails sx={{ p: 0 }}>
+                <Box sx={{ borderTop: '1px solid rgba(202, 196, 208, 0.08)' }}>
+                  {muscleGroupsQuery.data && muscleGroupsQuery.data.length > 0
+                    ? muscleGroupsQuery.data.map((muscleGroup) => {
+                        const groupExercises = exercisesByMuscleGroup.get(muscleGroup.name) ?? [];
+                        if (groupExercises.length === 0) return null;
+                        return (
+                          <MuscleGroupSection
+                            key={muscleGroup.id}
+                            muscleGroup={muscleGroup}
+                            exercises={groupExercises}
+                          />
+                        );
+                      })
+                    : Array.from(exercisesByMuscleGroup.entries()).map(([groupName, exercises]) => (
                         <MuscleGroupSection
-                          key={muscleGroup.id}
-                          muscleGroup={muscleGroup}
-                          exercises={groupExercises}
+                          key={groupName}
+                          muscleGroup={{
+                            id: groupName.charCodeAt(0),
+                            name: groupName,
+                            name_latin: null,
+                            is_front: false,
+                            svg_path_id: null,
+                          }}
+                          exercises={exercises}
                         />
-                      );
-                    })
-                  : Array.from(exercisesByMuscleGroup.entries()).map(([groupName, exercises]) => (
-                      <MuscleGroupSection
-                        key={groupName}
-                        muscleGroup={{
-                          id: groupName.charCodeAt(0),
-                          name: groupName,
-                          name_latin: null,
-                          is_front: false,
-                          svg_path_id: null,
-                        }}
-                        exercises={exercises}
-                      />
-                    ))}
-              </Box>
-            </Box>
+                      ))}
+                </Box>
+              </AccordionDetails>
+            </Accordion>
           )}
 
-          {/* All Exercises alphabetical list */}
+          {/* All Exercises — collapsed by default */}
           {hasAnyExercises && (
-            <Box sx={{ mb: 2 }}>
-              <Typography
-                variant="overline"
-                sx={{
-                  px: 2,
-                  pt: 1,
-                  pb: 0.75,
-                  display: 'block',
-                  color: 'text.secondary',
-                  letterSpacing: '0.08em',
-                  fontSize: '0.7rem',
-                }}
-              >
-                All Exercises
-              </Typography>
-              <Box
-                sx={{
-                  px: 1,
-                  pr: { xs: 3, md: 1 }, // extra right padding for scrubber on mobile
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
-                  gap: { xs: 0, md: 0.5 },
-                }}
-              >
-                {exercisesQuery.data?.map((exercise, idx) => {
-                  const letter = exercise.name[0]?.toUpperCase() ?? '';
-                  const prevLetter = idx > 0 ? exercisesQuery.data?.[idx - 1]?.name[0]?.toUpperCase() : '';
-                  const isFirstOfLetter = letter !== prevLetter;
-                  return (
-                    <Box key={exercise.id} id={isFirstOfLetter ? `exercise-letter-${letter}` : undefined}>
-                      <ExerciseListItem
-                        exercise={exercise}
-                        lastLoggedInfo={lastLoggedMap.get(exercise.id)}
-                      />
-                    </Box>
-                  );
-                })}
-              </Box>
-              <AlphabetScrubber
-                onLetterSelect={handleLetterSelect}
-                activeLetters={activeLetters}
-              />
-            </Box>
+            <Accordion
+              disableGutters
+              elevation={0}
+              sx={{ backgroundColor: 'transparent', '&:before': { display: 'none' } }}
+            >
+              <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: 'text.secondary', fontSize: 18 }} />} sx={{ minHeight: 36, px: 2, '& .MuiAccordionSummary-content': { my: 0.5 } }}>
+                <Typography variant="overline" sx={{ color: 'text.secondary', letterSpacing: '0.08em', fontSize: '0.7rem' }}>
+                  All Exercises ({exercisesQuery.data?.length ?? 0})
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails sx={{ p: 0 }}>
+                <Box
+                  sx={{
+                    px: 1,
+                    pr: { xs: 3, md: 1 },
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
+                    gap: { xs: 0, md: 0.5 },
+                  }}
+                >
+                  {exercisesQuery.data?.map((exercise, idx) => {
+                    const letter = exercise.name[0]?.toUpperCase() ?? '';
+                    const prevLetter = idx > 0 ? exercisesQuery.data?.[idx - 1]?.name[0]?.toUpperCase() : '';
+                    const isFirstOfLetter = letter !== prevLetter;
+                    return (
+                      <Box key={exercise.id} id={isFirstOfLetter ? `exercise-letter-${letter}` : undefined}>
+                        <ExerciseListItem
+                          exercise={exercise}
+                          lastLoggedInfo={lastLoggedMap.get(exercise.id)}
+                        />
+                      </Box>
+                    );
+                  })}
+                </Box>
+                <AlphabetScrubber
+                  onLetterSelect={handleLetterSelect}
+                  activeLetters={activeLetters}
+                />
+              </AccordionDetails>
+            </Accordion>
           )}
         </Box>
       )}
