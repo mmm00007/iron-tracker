@@ -52,8 +52,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     if not settings.ANTHROPIC_API_KEY:
         logger.warning(
-            "ANTHROPIC_API_KEY is not set — AI endpoints (machine identification, training analysis) "
-            "will fail at runtime. Set the ANTHROPIC_API_KEY environment variable to enable AI features."
+            "ANTHROPIC_API_KEY is not set — AI endpoints will fail "
+            "at runtime. Set the environment variable to enable "
+            "machine identification and training analysis."
         )
 
     yield
