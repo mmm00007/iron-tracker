@@ -15,6 +15,7 @@ from app.sentry import init_sentry
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Initialize and teardown application resources."""
+    import asyncio
     import logging
 
     import asyncpg
@@ -25,20 +26,31 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Supabase requires SSL for external connections
     ctx = _ssl.create_default_context()
 
-    try:
-        # Initialize asyncpg connection pool (direct Postgres)
-        app.state.db_pool = await asyncpg.create_pool(
-            dsn=settings.SUPABASE_DB_URL,
-            min_size=2,
-            max_size=20,
-            ssl=ctx,
-            command_timeout=30,
-            max_inactive_connection_lifetime=300,
-        )
-        logger.info("Database pool initialized")
-    except Exception as e:
-        logger.error("Failed to initialize database pool: %s", e)
-        app.state.db_pool = None
+    # Retry pool creation — handles transient failures when Supabase
+    # restarts or Render deploys before the DB is fully reachable.
+    app.state.db_pool = None
+    for attempt in range(1, 4):
+        try:
+            app.state.db_pool = await asyncpg.create_pool(
+                dsn=settings.SUPABASE_DB_URL,
+                min_size=2,
+                max_size=20,
+                ssl=ctx,
+                command_timeout=30,
+                max_inactive_connection_lifetime=300,
+            )
+            logger.info("Database pool initialized (attempt %d)", attempt)
+            break
+        except Exception as e:
+            logger.error(
+                "Failed to initialize database pool (attempt %d/3): %s",
+                attempt,
+                e,
+            )
+            if attempt < 3:
+                await asyncio.sleep(5)
+            else:
+                app.state.db_pool = None
 
     # Initialize AIService singleton for connection reuse across requests
     from app.services.ai_service import AIService
