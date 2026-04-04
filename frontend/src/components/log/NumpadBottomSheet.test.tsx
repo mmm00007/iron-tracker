@@ -47,7 +47,7 @@ describe('NumpadBottomSheet', () => {
     );
 
     await user.click(screen.getByRole('button', { name: '7' }));
-    await user.click(screen.getByRole('button', { name: '.' }));
+    await user.click(screen.getByRole('button', { name: 'Decimal point' }));
     await user.click(screen.getByRole('button', { name: '5' }));
 
     expect(screen.getByText('7.5')).toBeInTheDocument();
@@ -60,9 +60,9 @@ describe('NumpadBottomSheet', () => {
     );
 
     await user.click(screen.getByRole('button', { name: '7' }));
-    await user.click(screen.getByRole('button', { name: '.' }));
+    await user.click(screen.getByRole('button', { name: 'Decimal point' }));
     await user.click(screen.getByRole('button', { name: '5' }));
-    await user.click(screen.getByRole('button', { name: '.' })); // should be ignored
+    await user.click(screen.getByRole('button', { name: 'Decimal point' })); // should be ignored
     await user.click(screen.getByRole('button', { name: '3' }));
 
     expect(screen.getByText('7.53')).toBeInTheDocument();
