@@ -507,7 +507,9 @@ export function exercisePRs(sets: WorkoutSet[], exerciseId: string): PRRecord[] 
     // Each rep range bucket uses a windowed range to prevent 1RM from
     // dominating all buckets. E.g., 5RM only accepts sets of 4-5 reps.
     for (const repRange of PR_REP_RANGES) {
-      const [minReps, maxReps] = PR_REP_WINDOWS[repRange];
+      const window = PR_REP_WINDOWS[repRange];
+      if (!window) continue;
+      const [minReps, maxReps] = window;
       if (set.reps < minReps || set.reps > maxReps) continue;
       const e1rm = computeE1RM(set.weight, set.reps);
       const existing = records.get(repRange);
