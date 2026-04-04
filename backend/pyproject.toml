@@ -28,6 +28,7 @@ dev = [
     "httpx",
     "ruff",
     "mypy",
+    "pip-audit",
 ]
 
 [tool.hatch.build.targets.wheel]
