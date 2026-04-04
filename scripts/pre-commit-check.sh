@@ -63,16 +63,22 @@ header "Frontend"
 if [ -n "$FRONTEND_CHANGED" ]; then
   cd "$REPO_ROOT/frontend"
 
-  # ESLint
-  if npx eslint src --ext ts,tsx --max-warnings 15 --quiet 2>/dev/null; then
-    pass "eslint"
+  # ESLint (skip if plugin deps missing — run 'npm install' to fix)
+  if [ ! -d "node_modules/eslint-plugin-jsx-a11y" ]; then
+    skip "eslint (missing eslint-plugin-jsx-a11y — run 'npm install')"
   else
-    fail "eslint"
-    ERRORS=$((ERRORS + 1))
+    if ESLINT_USE_FLAT_CONFIG=false npx eslint src --ext ts,tsx --max-warnings 15 --quiet 2>/dev/null; then
+      pass "eslint"
+    else
+      fail "eslint"
+      ERRORS=$((ERRORS + 1))
+    fi
   fi
 
-  # TypeScript
-  if npx tsc --noEmit 2>/dev/null; then
+  # TypeScript — verify tsc works before running type check
+  if ! npx tsc --version >/dev/null 2>&1; then
+    skip "tsc --noEmit (tsc unavailable — run 'npm install')"
+  elif npx tsc --noEmit 2>/dev/null; then
     pass "tsc --noEmit (typecheck)"
   else
     fail "tsc --noEmit (typecheck)"

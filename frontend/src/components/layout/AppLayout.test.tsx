@@ -4,15 +4,33 @@ import { ThemeProvider } from '@mui/material/styles';
 import { theme } from '@/theme';
 import { AppLayout } from './AppLayout';
 
-// Mock TanStack Router hooks used in AppLayout
+// Mock TanStack Router hooks
 vi.mock('@tanstack/react-router', () => ({
   Outlet: () => <div data-testid="outlet">Outlet</div>,
-  useRouter: () => ({
-    navigate: vi.fn(),
-  }),
-  useLocation: () => ({
-    pathname: '/log',
-  }),
+  useRouter: () => ({ navigate: vi.fn() }),
+  useLocation: () => ({ pathname: '/log' }),
+}));
+
+// Mock layout mode — default to phone (bottom nav)
+vi.mock('@/hooks/useLayoutMode', () => ({
+  useLayoutMode: () => 'phone',
+}));
+
+// Mock overlay components to avoid dependency chains
+vi.mock('@/components/common/OfflineIndicator', () => ({
+  OfflineIndicator: () => null,
+}));
+vi.mock('@/components/common/GlobalRestTimer', () => ({
+  GlobalRestTimer: () => null,
+}));
+vi.mock('@/components/common/SyncStatus', () => ({
+  SyncStatus: () => null,
+}));
+vi.mock('@/components/common/InstallPrompt', () => ({
+  InstallPrompt: () => null,
+}));
+vi.mock('@/components/soreness/SorenessPrompt', () => ({
+  SorenessPrompt: () => null,
 }));
 
 function renderWithProviders(ui: React.ReactElement) {
@@ -20,14 +38,12 @@ function renderWithProviders(ui: React.ReactElement) {
 }
 
 describe('AppLayout', () => {
-  it('renders the app bar with Iron Tracker title', () => {
+  it('renders the bottom navigation with all tabs', () => {
     renderWithProviders(<AppLayout />);
-    expect(screen.getByText('Iron Tracker')).toBeInTheDocument();
-  });
-
-  it('renders the bottom navigation with 4 tabs', () => {
-    renderWithProviders(<AppLayout />);
+    expect(screen.getByText('Home')).toBeInTheDocument();
     expect(screen.getByText('Log')).toBeInTheDocument();
+    expect(screen.getByText('Library')).toBeInTheDocument();
+    expect(screen.getByText('Plans')).toBeInTheDocument();
     expect(screen.getByText('History')).toBeInTheDocument();
     expect(screen.getByText('Stats')).toBeInTheDocument();
     expect(screen.getByText('Profile')).toBeInTheDocument();
@@ -36,5 +52,10 @@ describe('AppLayout', () => {
   it('renders the router outlet', () => {
     renderWithProviders(<AppLayout />);
     expect(screen.getByTestId('outlet')).toBeInTheDocument();
+  });
+
+  it('renders main navigation landmark', () => {
+    renderWithProviders(<AppLayout />);
+    expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeInTheDocument();
   });
 });

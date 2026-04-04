@@ -12,6 +12,21 @@ vi.mock('@/hooks/useAnalytics', () => ({
   useWeeklySnapshot: () => mockUseWeeklySnapshot(),
 }));
 
+// Mock MiniBarChart — Recharts doesn't render in jsdom
+vi.mock('@/components/common/MiniBarChart', () => ({
+  MiniBarChart: () => <div data-testid="mini-bar-chart" />,
+}));
+
+// Mock recharts — ResponsiveContainer has no layout in jsdom
+vi.mock('recharts', () => ({
+  BarChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Bar: () => null,
+  XAxis: () => null,
+  YAxis: () => null,
+  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Tooltip: () => null,
+}));
+
 function renderWithProviders(ui: React.ReactElement) {
   return render(<ThemeProvider theme={theme}>{ui}</ThemeProvider>);
 }
@@ -99,7 +114,7 @@ describe('WeeklySnapshotCard', () => {
 
     renderWithProviders(<WeeklySnapshotCard />);
 
-    // When delta is null, DeltaBadge shows "—"
+    // When delta is null, DeltaBadge shows em-dash
     const dashes = screen.getAllByText('\u2014');
     expect(dashes.length).toBe(3);
   });
