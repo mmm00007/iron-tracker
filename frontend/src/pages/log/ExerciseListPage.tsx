@@ -489,32 +489,34 @@ export function ExerciseListPage() {
               </Button>
             </Box>
           ) : (
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
-                gap: { xs: 0, md: 0.5 },
-              }}
-            >
-              {filteredExercises.slice(0, visibleCount).map((exercise) => (
-                <ExerciseListItem
-                  key={exercise.id}
-                  exercise={exercise}
-                  lastLoggedInfo={lastLoggedMap.get(exercise.id)}
-                />
-              ))}
-            </Box>
-            {filteredExercises.length > visibleCount && (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-                <Button
-                  size="small"
-                  onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-                  sx={{ textTransform: 'none' }}
-                >
-                  Show more ({filteredExercises.length - visibleCount} remaining)
-                </Button>
+            <>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(3, 1fr)' },
+                  gap: { xs: 0, md: 0.5 },
+                }}
+              >
+                {filteredExercises.slice(0, visibleCount).map((exercise) => (
+                  <ExerciseListItem
+                    key={exercise.id}
+                    exercise={exercise}
+                    lastLoggedInfo={lastLoggedMap.get(exercise.id)}
+                  />
+                ))}
               </Box>
-            )}
+              {filteredExercises.length > visibleCount && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                  <Button
+                    size="small"
+                    onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                    sx={{ textTransform: 'none' }}
+                  >
+                    Show more ({filteredExercises.length - visibleCount} remaining)
+                  </Button>
+                </Box>
+              )}
+            </>
           )}
         </Box>
       ) : (
