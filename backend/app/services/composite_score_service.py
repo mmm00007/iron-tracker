@@ -269,7 +269,8 @@ async def compute_composite_score(
         # Score: % of muscles hitting their per-muscle MEV threshold
         weekly_sets = {m: s / weeks for m, s in muscle_sets.items()}
         above_mev = sum(
-            1 for m, s in weekly_sets.items()
+            1
+            for m, s in weekly_sets.items()
             if s >= VOLUME_LANDMARKS.get(m, DEFAULT_LANDMARKS)["MEV"]
         )
         volume_score = round(above_mev / max(len(weekly_sets), 1) * 100)
