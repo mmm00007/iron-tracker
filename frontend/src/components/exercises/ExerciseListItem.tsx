@@ -22,10 +22,12 @@ export const ExerciseListItem = memo(function ExerciseListItem({ exercise, lastL
     void navigate({ to: '/log/$exerciseId', params: { exerciseId: exercise.id } });
   };
 
-  const secondaryText = [
-    exercise.equipment,
+  const secondaryParts = [
+    exercise.exercise_type ? exercise.exercise_type.charAt(0).toUpperCase() + exercise.exercise_type.slice(1).replace('_', ' ') : null,
+    exercise.equipment?.replace(/_/g, ' '),
     lastLoggedInfo,
-  ].filter(Boolean).join(' · ') || 'Never logged';
+  ].filter(Boolean);
+  const secondaryText = secondaryParts.length > 0 ? secondaryParts.join(' · ') : 'Never logged';
 
   return (
     <ListItem

@@ -33,7 +33,6 @@ DISCLAIMER = (
 _SQL_REST_BY_TYPE = """
 SELECT
     COALESCE(e.mechanic, 'unknown') AS mechanic,
-    COALESCE(e.exercise_type, 'unknown') AS exercise_type,
     s.set_type,
     COUNT(*) AS set_count,
     AVG(s.rest_seconds) AS avg_rest,
@@ -47,7 +46,7 @@ WHERE s.user_id = $1
   AND s.rest_seconds IS NOT NULL
   AND s.rest_seconds BETWEEN 15 AND 600
   AND s.set_type = 'working'
-GROUP BY COALESCE(e.mechanic, 'unknown'), COALESCE(e.exercise_type, 'unknown'), s.set_type
+GROUP BY COALESCE(e.mechanic, 'unknown'), s.set_type
 ORDER BY avg_rest DESC
 """
 

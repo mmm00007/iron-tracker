@@ -108,10 +108,8 @@ export function useLogSet() {
     networkMode: 'offlineFirst',
 
     mutationFn: async (newSet: NewSet) => {
-      // Strip user_id — let Supabase DEFAULT auth.uid() set it server-side.
-      // Defense-in-depth: prevents attribution to other users if RLS is ever misconfigured.
-      const { user_id: _dropped, ...safeSet } = newSet;
-      const { data, error } = await supabase.from('sets').insert(safeSet).select().single();
+      // Send user_id — the RLS policy (WITH CHECK user_id = auth.uid()) validates it server-side.
+      const { data, error } = await supabase.from('sets').insert(newSet).select().single();
       if (error) throw error;
       return data as WorkoutSet;
     },

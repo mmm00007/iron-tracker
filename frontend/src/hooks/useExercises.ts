@@ -10,8 +10,14 @@ export interface ExerciseWithLastSet extends Exercise {
   lastLoggedAt?: string;
 }
 
+export interface ExerciseMuscleEntry {
+  muscle_group_id: number;
+  is_primary: boolean;
+  activation_percent: number | null;
+}
+
 export interface ExerciseWithMuscles extends Exercise {
-  exercise_muscles: { muscle_group_id: number }[];
+  exercise_muscles: ExerciseMuscleEntry[];
 }
 
 export function useExercises() {
@@ -20,7 +26,7 @@ export function useExercises() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('exercises')
-        .select('*, exercise_muscles(muscle_group_id)')
+        .select('*, exercise_muscles(muscle_group_id, is_primary, activation_percent)')
         .order('name', { ascending: true });
 
       if (error) throw error;
@@ -50,39 +56,40 @@ export function useExercisesByMuscle(muscleGroupId: number) {
 export function useExerciseSearch(query: string) {
   const queryClient = useQueryClient();
 
-  // Ensure the exercises cache is populated before searching
-  const exercisesState = queryClient.getQueryState(['exercises']);
-  const isCacheReady = exercisesState?.status === 'success';
-
-  return useQuery<Exercise[]>({
+  return useQuery<ExerciseWithMuscles[]>({
     queryKey: ['exercises', 'search', query],
     queryFn: async () => {
       const trimmed = query.trim();
       if (!trimmed) return [];
 
-      // If cache is not populated, fetch exercises first
-      let cached = queryClient.getQueryData<Exercise[]>(['exercises']);
+      // Ensure the exercises cache is populated (fetchQuery is a no-op if fresh)
+      let cached = queryClient.getQueryData<ExerciseWithMuscles[]>(['exercises']);
       if (!cached || cached.length === 0) {
         cached = await queryClient.fetchQuery({
           queryKey: ['exercises'],
           queryFn: async () => {
             const { data, error } = await supabase
               .from('exercises')
-              .select('*, exercise_muscles(muscle_group_id)')
+              .select('*, exercise_muscles(muscle_group_id, is_primary, activation_percent)')
               .order('name', { ascending: true });
             if (error) throw error;
-            return (data ?? []) as Exercise[];
+            return (data ?? []) as ExerciseWithMuscles[];
           },
         });
       }
 
       const lower = trimmed.toLowerCase();
       const results = (cached ?? [])
-        .filter((e) => e.name.toLowerCase().includes(lower))
+        .filter((e) =>
+          e.name.toLowerCase().includes(lower) ||
+          e.aliases?.some((a) => a.toLowerCase().includes(lower)) ||
+          e.exercise_type?.includes(lower) ||
+          e.movement_pattern?.replace(/_/g, ' ').includes(lower)
+        )
         .slice(0, 50);
       return results;
     },
-    enabled: query.trim().length > 0 && isCacheReady,
+    enabled: query.trim().length > 0,
     staleTime: Infinity, // derived from cached exercise list — no expiry needed
   });
 }

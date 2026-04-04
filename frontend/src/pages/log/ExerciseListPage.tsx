@@ -245,7 +245,7 @@ export function ExerciseListPage() {
       list = list.filter((e) => favoriteIds.has(e.id));
     }
     if (equipmentFilter) {
-      list = list.filter((e) => e.equipment?.toLowerCase() === equipmentFilter);
+      list = list.filter((e) => e.equipment?.toLowerCase().replace(/_/g, ' ') === equipmentFilter);
     }
     if (muscleFilter !== null) {
       list = list.filter((e) =>

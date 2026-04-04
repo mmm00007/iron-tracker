@@ -157,14 +157,15 @@ async def compute_exercise_variety(
         rows = await conn.fetch(
             """
             SELECT
-                e.name          AS exercise_name,
-                COUNT(*)        AS set_count,
+                e.name              AS exercise_name,
+                e.movement_pattern  AS db_movement_pattern,
+                COUNT(*)            AS set_count,
                 COUNT(DISTINCT DATE(s.logged_at)) AS sessions
             FROM sets s
             JOIN exercises e ON e.id = s.exercise_id
             WHERE s.user_id = $1
               AND s.logged_at >= $2
-            GROUP BY e.name
+            GROUP BY e.name, e.movement_pattern
             ORDER BY COUNT(*) DESC
             """,
             user_id,
@@ -198,10 +199,10 @@ async def compute_exercise_variety(
     else:
         variety_label = "narrow"
 
-    # Movement pattern analysis
+    # Movement pattern analysis — prefer DB column, fall back to keyword matcher
     pattern_data: dict[str, dict[str, Any]] = {}
     for row in rows:
-        pattern = _classify_movement_pattern(row["exercise_name"])
+        pattern = row["db_movement_pattern"] or _classify_movement_pattern(row["exercise_name"])
         if pattern not in pattern_data:
             pattern_data[pattern] = {
                 "sets": 0,

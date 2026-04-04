@@ -42,7 +42,13 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { useExercises, useMuscleGroups } from '@/hooks/useExercises';
 import { useFavoriteIds, useToggleFavorite } from '@/hooks/useFavorites';
+import Slider from '@mui/material/Slider';
+import LinearProgress from '@mui/material/LinearProgress';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import TimerIcon from '@mui/icons-material/Timer';
+import SpeedIcon from '@mui/icons-material/Speed';
 import type { Exercise } from '@/types/database';
+import type { ExerciseWithMuscles } from '@/hooks/useExercises';
 
 const EQUIPMENT_TYPES = ['all', 'barbell', 'dumbbell', 'cable', 'machine', 'body only', 'bands', 'kettlebell'] as const;
 
@@ -63,47 +69,56 @@ function getEquipmentLabel(type: string): string {
 
 // ─── Exercise Detail View ────────────────────────────────────────────────────
 
+const DIFFICULTY_LABELS = ['', 'Beginner', 'Novice', 'Intermediate', 'Advanced', 'Elite'] as const;
+const DIFFICULTY_COLORS = ['', '#4caf50', '#8bc34a', '#ff9800', '#f44336', '#9c27b0'] as const;
+
 function ExerciseDetailView({
   exercise,
+  muscleGroups,
   onBack,
   onEdit,
   onDelete,
 }: {
-  exercise: Exercise;
+  exercise: ExerciseWithMuscles;
+  muscleGroups: { id: number; name: string }[];
   onBack: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const [imgError, setImgError] = useState(false);
+  const mgLookup = new Map(muscleGroups.map((mg) => [mg.id, mg.name]));
+  const primaryMuscles = (exercise.exercise_muscles ?? []).filter((m) => m.is_primary);
+  const secondaryMuscles = (exercise.exercise_muscles ?? []).filter((m) => !m.is_primary);
+
   return (
     <Box sx={{ pb: { xs: 10, md: 2 } }}>
       <AppBar position="static" elevation={0} color="transparent">
         <Toolbar sx={{ px: 1, minHeight: '56px !important' }}>
           <IconButton onClick={onBack}><ArrowBackIcon /></IconButton>
           <Typography variant="h6" fontWeight={700} sx={{ flex: 1, ml: 1 }} noWrap>{exercise.name}</Typography>
+          <IconButton onClick={onEdit}><EditIcon /></IconButton>
           {exercise.is_custom && (
-            <>
-              <IconButton onClick={onEdit}><EditIcon /></IconButton>
-              <IconButton onClick={onDelete} sx={{ color: 'error.main' }}><DeleteIcon /></IconButton>
-            </>
+            <IconButton onClick={onDelete} sx={{ color: 'error.main' }}><DeleteIcon /></IconButton>
           )}
         </Toolbar>
       </AppBar>
 
       <Box sx={{ px: 2 }}>
-        {/* Thumbnail */}
-        {exercise.image_urls?.[0] && (
-          <Box
-            sx={{
-              width: '100%',
-              height: { xs: 160, md: 240 },
-              borderRadius: '16px',
-              overflow: 'hidden',
-              mb: 2,
-              backgroundImage: `url(${exercise.image_urls[0]})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
-          />
+        {/* Thumbnail with fallback */}
+        {exercise.image_urls?.[0] && !imgError ? (
+          <Box sx={{ width: '100%', height: { xs: 160, md: 240 }, borderRadius: '16px', overflow: 'hidden', mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(168, 199, 250, 0.06)' }}>
+            <img
+              src={exercise.image_urls[0]}
+              alt={exercise.name}
+              onError={() => setImgError(true)}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              loading="lazy"
+            />
+          </Box>
+        ) : (
+          <Box sx={{ width: '100%', height: 80, borderRadius: '16px', mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(168, 199, 250, 0.06)' }}>
+            <FitnessCenterIcon sx={{ fontSize: 40, color: 'text.disabled' }} />
+          </Box>
         )}
 
         {/* Metadata chips */}
@@ -111,20 +126,93 @@ function ExerciseDetailView({
           {exercise.exercise_type && <Chip label={exercise.exercise_type.charAt(0).toUpperCase() + exercise.exercise_type.slice(1).replace('_', ' ')} size="small" color="info" />}
           {exercise.movement_pattern && <Chip label={exercise.movement_pattern.replace(/_/g, ' ')} size="small" color="secondary" variant="outlined" />}
           {exercise.equipment && <Chip label={exercise.equipment} size="small" variant="outlined" />}
-          {exercise.category && <Chip label={exercise.category} size="small" variant="outlined" />}
           {exercise.level && <Chip label={exercise.level} size="small" variant="outlined" />}
           {exercise.mechanic && <Chip label={exercise.mechanic} size="small" variant="outlined" />}
-          {exercise.force && <Chip label={exercise.force} size="small" variant="outlined" />}
+          {exercise.laterality && <Chip label={exercise.laterality} size="small" variant="outlined" />}
         </Box>
 
-        {/* Defaults */}
-        {(exercise.default_weight > 0 || exercise.default_reps > 0) && (
+        {/* Quick stats row */}
+        <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+          {exercise.difficulty_level != null && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <SpeedIcon sx={{ fontSize: 16, color: DIFFICULTY_COLORS[exercise.difficulty_level] }} />
+              <Typography variant="caption" sx={{ color: DIFFICULTY_COLORS[exercise.difficulty_level], fontWeight: 600 }}>
+                {DIFFICULTY_LABELS[exercise.difficulty_level]}
+              </Typography>
+            </Box>
+          )}
+          {exercise.default_rest_seconds != null && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <TimerIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+              <Typography variant="caption" color="text.secondary">
+                {exercise.default_rest_seconds >= 60 ? `${Math.floor(exercise.default_rest_seconds / 60)}m ${exercise.default_rest_seconds % 60 ? `${exercise.default_rest_seconds % 60}s` : ''}` : `${exercise.default_rest_seconds}s`} rest
+              </Typography>
+            </Box>
+          )}
+          {exercise.is_compound != null && (
+            <Typography variant="caption" color="text.secondary">
+              {exercise.is_compound ? 'Compound' : 'Isolation'}
+            </Typography>
+          )}
+        </Box>
+
+        {/* Muscle groups */}
+        {(primaryMuscles.length > 0 || secondaryMuscles.length > 0) && (
           <Card sx={{ mb: 2 }}>
             <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-              <Typography variant="subtitle2" fontWeight={600} gutterBottom>Defaults</Typography>
-              <Typography variant="body2" color="text.secondary">
-                {exercise.default_weight > 0 ? `${exercise.default_weight} kg` : ''} {exercise.default_reps > 0 ? `× ${exercise.default_reps} reps` : ''}
-              </Typography>
+              <Typography variant="subtitle2" fontWeight={600} gutterBottom>Target Muscles</Typography>
+              {primaryMuscles.length > 0 && (
+                <Box sx={{ mb: 1 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>Primary</Typography>
+                  <Stack spacing={0.5}>
+                    {primaryMuscles.map((m) => (
+                      <Box key={m.muscle_group_id} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body2" sx={{ minWidth: 80, fontWeight: 500 }}>
+                          {mgLookup.get(m.muscle_group_id) ?? 'Unknown'}
+                        </Typography>
+                        {m.activation_percent != null && (
+                          <>
+                            <LinearProgress
+                              variant="determinate"
+                              value={m.activation_percent}
+                              aria-label={`${mgLookup.get(m.muscle_group_id) ?? 'muscle'} activation ${m.activation_percent}%`}
+                              sx={{ flex: 1, height: 6, borderRadius: 3, bgcolor: 'rgba(168, 199, 250, 0.1)', '& .MuiLinearProgress-bar': { bgcolor: 'primary.main', borderRadius: 3 } }}
+                            />
+                            <Typography variant="caption" color="text.secondary" sx={{ minWidth: 30, textAlign: 'right' }}>{m.activation_percent}%</Typography>
+                          </>
+                        )}
+                      </Box>
+                    ))}
+                  </Stack>
+                </Box>
+              )}
+              {secondaryMuscles.length > 0 && (
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>Secondary</Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {secondaryMuscles.map((m) => (
+                      <Chip key={m.muscle_group_id} label={mgLookup.get(m.muscle_group_id) ?? '?'} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} />
+                    ))}
+                  </Box>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Contraindications */}
+        {exercise.contraindications && exercise.contraindications.length > 0 && (
+          <Card sx={{ mb: 2, border: '1px solid', borderColor: 'warning.dark' }}>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                <WarningAmberIcon sx={{ fontSize: 16, color: 'warning.main' }} />
+                <Typography variant="subtitle2" fontWeight={600} color="warning.main">Contraindications</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {exercise.contraindications.map((c, i) => (
+                  <Chip key={i} label={c.replace(/_/g, ' ')} size="small" color="warning" variant="outlined" sx={{ fontSize: '0.7rem' }} />
+                ))}
+              </Box>
             </CardContent>
           </Card>
         )}
@@ -161,13 +249,13 @@ function ExerciseDetailView({
           </Card>
         )}
 
-        {/* Variations */}
-        {exercise.variations && exercise.variations.length > 0 && (
+        {/* Aliases */}
+        {exercise.aliases && exercise.aliases.length > 0 && (
           <Card sx={{ mb: 2 }}>
             <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-              <Typography variant="subtitle2" fontWeight={600} gutterBottom>Variations</Typography>
+              <Typography variant="subtitle2" fontWeight={600} gutterBottom>Also Known As</Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {exercise.variations.map((v, i) => <Chip key={i} label={v} size="small" variant="outlined" />)}
+                {exercise.aliases.map((a, i) => <Chip key={i} label={a} size="small" variant="outlined" />)}
               </Box>
             </CardContent>
           </Card>
@@ -187,7 +275,6 @@ function ExerciseDetailView({
         {exercise.video_url && (
           <Card sx={{ mb: 2 }}>
             <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-              <Typography variant="subtitle2" fontWeight={600} gutterBottom>Video</Typography>
               <Button variant="outlined" size="small" href={exercise.video_url} target="_blank" rel="noopener">
                 Watch Form Video
               </Button>
@@ -214,7 +301,7 @@ function ExerciseFormDialog({
 }: {
   open: boolean;
   onClose: () => void;
-  exercise?: Exercise | null;
+  exercise?: ExerciseWithMuscles | null;
 }) {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
@@ -224,7 +311,19 @@ function ExerciseFormDialog({
   const [exerciseType, setExerciseType] = useState(exercise?.exercise_type ?? '');
   const [level, setLevel] = useState(exercise?.level ?? '');
   const [notes, setNotes] = useState(exercise?.notes ?? '');
-  const [muscles, setMuscles] = useState<MuscleEntry[]>([]);
+  const [movementPattern, setMovementPattern] = useState(exercise?.movement_pattern ?? '');
+  const [laterality, setLaterality] = useState(exercise?.laterality ?? '');
+  const [difficultyLevel, setDifficultyLevel] = useState<number>(exercise?.difficulty_level ?? 0);
+  const [defaultRestSeconds, setDefaultRestSeconds] = useState<number>(exercise?.default_rest_seconds ?? 0);
+  const [instructionsText, setInstructionsText] = useState((exercise?.instructions ?? []).join('\n'));
+  const [formTipsText, setFormTipsText] = useState((exercise?.form_tips ?? []).join('\n'));
+  const [muscles, setMuscles] = useState<MuscleEntry[]>(() =>
+    (exercise?.exercise_muscles ?? []).map((m) => ({
+      muscle_group_id: m.muscle_group_id,
+      is_primary: m.is_primary,
+      activation_percent: m.activation_percent ?? (m.is_primary ? 100 : 50),
+    }))
+  );
   const [error, setError] = useState<string | null>(null);
 
   const addMuscle = (mgId: number) => {
@@ -256,25 +355,49 @@ function ExerciseFormDialog({
       if (!user) throw new Error('Not authenticated');
       if (!name.trim()) throw new Error('Name is required');
 
-      const payload = {
+      const instructions = instructionsText.trim() ? instructionsText.split('\n').filter((s) => s.trim()) : null;
+      const formTips = formTipsText.trim() ? formTipsText.split('\n').filter((s) => s.trim()) : null;
+
+      const payload: Record<string, unknown> = {
         name: name.trim(),
         equipment: equipment || null,
         exercise_type: exerciseType || null,
         level: level || null,
         notes: notes || null,
-        is_custom: true,
-        created_by: user.id,
+        movement_pattern: movementPattern || null,
+        laterality: laterality || null,
+        difficulty_level: difficultyLevel > 0 ? difficultyLevel : null,
+        default_rest_seconds: defaultRestSeconds > 0 ? defaultRestSeconds : null,
+        instructions,
+        form_tips: formTips,
       };
 
       let exerciseId = exercise?.id;
+      const isEditingSeed = exercise && !exercise.is_custom;
 
-      if (exercise) {
+      if (isEditingSeed) {
+        // Copy-on-write: clone seed exercise as a new custom exercise
+        // This preserves the original seed data while letting the user customize
+        payload.is_custom = true;
+        payload.created_by = user.id;
+        const { data, error: err } = await supabase
+          .from('exercises')
+          .insert(payload)
+          .select('id')
+          .single();
+        if (err) throw err;
+        exerciseId = data.id;
+      } else if (exercise) {
+        // Editing own custom exercise — update in place
         const { error: err } = await supabase
           .from('exercises')
           .update(payload)
           .eq('id', exercise.id);
         if (err) throw err;
       } else {
+        // Creating a brand new exercise
+        payload.is_custom = true;
+        payload.created_by = user.id;
         const { data, error: err } = await supabase
           .from('exercises')
           .insert(payload)
@@ -356,6 +479,53 @@ function ExerciseFormDialog({
             </Select>
           </FormControl>
 
+          <FormControl fullWidth>
+            <InputLabel>Movement Pattern</InputLabel>
+            <Select value={movementPattern} label="Movement Pattern" onChange={(e) => setMovementPattern(e.target.value)}>
+              <MenuItem value="">None</MenuItem>
+              {['squat', 'hip_hinge', 'lunge', 'horizontal_push', 'vertical_push', 'horizontal_pull', 'vertical_pull', 'carry', 'rotation', 'isolation', 'single_leg_squat', 'lateral_raise', 'elbow_flexion', 'incline_press', 'other'].map((p) => (
+                <MenuItem key={p} value={p}>{p.replace(/_/g, ' ')}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <FormControl fullWidth>
+            <InputLabel>Laterality</InputLabel>
+            <Select value={laterality} label="Laterality" onChange={(e) => setLaterality(e.target.value)}>
+              <MenuItem value="">None</MenuItem>
+              <MenuItem value="bilateral">Bilateral</MenuItem>
+              <MenuItem value="unilateral">Unilateral</MenuItem>
+              <MenuItem value="both">Both</MenuItem>
+            </Select>
+          </FormControl>
+          <Box>
+            <Typography variant="subtitle2" sx={{ mb: 0.5, color: 'text.secondary' }}>
+              Difficulty: {difficultyLevel > 0 ? DIFFICULTY_LABELS[difficultyLevel as 1|2|3|4|5] : 'Not set'}
+            </Typography>
+            <Slider value={difficultyLevel} onChange={(_, v) => setDifficultyLevel(v as number)} min={0} max={5} step={1} marks={[{ value: 0, label: '-' }, { value: 1, label: '1' }, { value: 2, label: '2' }, { value: 3, label: '3' }, { value: 4, label: '4' }, { value: 5, label: '5' }]} sx={{ mx: 1 }} />
+          </Box>
+          <TextField
+            label="Rest between sets (seconds)"
+            type="number"
+            value={defaultRestSeconds || ''}
+            onChange={(e) => setDefaultRestSeconds(Number(e.target.value))}
+            fullWidth
+            slotProps={{ htmlInput: { min: 0, max: 600, step: 15 } }}
+          />
+          <TextField
+            label="Instructions (one step per line)"
+            value={instructionsText}
+            onChange={(e) => setInstructionsText(e.target.value)}
+            fullWidth multiline rows={4}
+            placeholder="Stand with feet shoulder-width apart&#10;Grip the bar with an overhand grip&#10;..."
+          />
+          <TextField
+            label="Form Tips (one tip per line)"
+            value={formTipsText}
+            onChange={(e) => setFormTipsText(e.target.value)}
+            fullWidth multiline rows={3}
+            placeholder="Keep your core braced throughout&#10;Avoid rounding your lower back&#10;..."
+          />
+
           {/* Muscle groups */}
           <Box>
             <Typography variant="subtitle2" sx={{ mb: 0.5, color: 'text.secondary' }}>Muscle Groups</Typography>
@@ -436,9 +606,9 @@ export function LibraryPage() {
   const [viewMode, setViewMode] = useState<'all' | 'favorites'>('all');
 
   // Detail / CRUD state
-  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const [selectedExercise, setSelectedExercise] = useState<ExerciseWithMuscles | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [editExercise, setEditExercise] = useState<Exercise | null>(null);
+  const [editExercise, setEditExercise] = useState<ExerciseWithMuscles | null>(null);
 
   const filtered = useMemo(() => {
     let list = exercises ?? [];
@@ -448,10 +618,13 @@ export function LibraryPage() {
       list = list.filter((e) =>
         e.name.toLowerCase().includes(q) ||
         e.equipment?.toLowerCase().includes(q) ||
-        e.category?.toLowerCase().includes(q)
+        e.category?.toLowerCase().includes(q) ||
+        e.movement_pattern?.replace(/_/g, ' ').includes(q) ||
+        e.exercise_type?.includes(q) ||
+        e.aliases?.some((a) => a.toLowerCase().includes(q))
       );
     }
-    if (equipmentFilter !== 'all') list = list.filter((e) => e.equipment?.toLowerCase() === equipmentFilter);
+    if (equipmentFilter !== 'all') list = list.filter((e) => e.equipment?.toLowerCase().replace(/_/g, ' ') === equipmentFilter);
     if (muscleFilter) list = list.filter((e) =>
       e.exercise_muscles?.some((em) => em.muscle_group_id === muscleFilter)
     );
@@ -489,6 +662,7 @@ export function LibraryPage() {
     return (
       <ExerciseDetailView
         exercise={selectedExercise}
+        muscleGroups={muscleGroups ?? []}
         onBack={() => setSelectedExercise(null)}
         onEdit={() => { setEditExercise(selectedExercise); setShowForm(true); }}
         onDelete={() => void handleDelete(selectedExercise)}

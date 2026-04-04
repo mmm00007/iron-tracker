@@ -30,7 +30,9 @@ export type MovementPattern =
   | 'squat' | 'hip_hinge' | 'lunge'
   | 'horizontal_push' | 'vertical_push'
   | 'horizontal_pull' | 'vertical_pull'
-  | 'carry' | 'rotation' | 'isolation' | 'other';
+  | 'carry' | 'rotation' | 'isolation' | 'other'
+  // Extended in migration 035
+  | 'single_leg_squat' | 'lateral_raise' | 'elbow_flexion' | 'incline_press';
 
 export type ExerciseType = 'push' | 'pull' | 'legs' | 'core' | 'cardio' | 'full_body';
 

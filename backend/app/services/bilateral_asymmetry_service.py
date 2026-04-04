@@ -81,6 +81,7 @@ async def compute_bilateral_asymmetry(
               AND s.side IS NOT NULL
               AND s.estimated_1rm > 0
               AND s.reps > 0
+              AND COALESCE(e.laterality, 'both') IN ('unilateral', 'both')
             GROUP BY s.exercise_id, e.name, e.laterality, s.side
             ORDER BY s.exercise_id, s.side
             """,
