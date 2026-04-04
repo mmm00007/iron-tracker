@@ -49,6 +49,9 @@ import TimerIcon from '@mui/icons-material/Timer';
 import SpeedIcon from '@mui/icons-material/Speed';
 import type { Exercise } from '@/types/database';
 import type { ExerciseWithMuscles } from '@/hooks/useExercises';
+import { useExerciseSubstitutions } from '@/hooks/useExercises';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 
 const EQUIPMENT_TYPES = ['all', 'barbell', 'dumbbell', 'cable', 'machine', 'body only', 'bands', 'kettlebell'] as const;
 
@@ -86,6 +89,7 @@ function ExerciseDetailView({
   onDelete: () => void;
 }) {
   const [imgError, setImgError] = useState(false);
+  const { data: substitutions } = useExerciseSubstitutions(exercise.id);
   const mgLookup = new Map(muscleGroups.map((mg) => [mg.id, mg.name]));
   const primaryMuscles = (exercise.exercise_muscles ?? []).filter((m) => m.is_primary);
   const secondaryMuscles = (exercise.exercise_muscles ?? []).filter((m) => !m.is_primary);
@@ -260,6 +264,67 @@ function ExerciseDetailView({
             </CardContent>
           </Card>
         )}
+
+        {/* Alternatives & Progressions */}
+        {substitutions && substitutions.length > 0 && (() => {
+          const alternatives = substitutions.filter((s) => s.substitution_type === 'same_pattern' || s.substitution_type === 'same_muscles');
+          const progressions = substitutions.filter((s) => s.substitution_type === 'progression');
+          const regressions = substitutions.filter((s) => s.substitution_type === 'regression');
+          return (
+            <Card sx={{ mb: 2 }}>
+              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                {alternatives.length > 0 && (
+                  <Box sx={{ mb: progressions.length > 0 || regressions.length > 0 ? 1.5 : 0 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                      <SwapHorizIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Typography variant="subtitle2" fontWeight={600}>Alternatives</Typography>
+                    </Box>
+                    <Stack spacing={0.5}>
+                      {alternatives.map((s) => (
+                        <Box key={s.id} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="body2" sx={{ flex: 1 }}>
+                            {(s.target_exercise as { name: string }).name}
+                          </Typography>
+                          <Chip label={`${s.similarity_score}%`} size="small" variant="outlined" sx={{ fontSize: '0.65rem', height: 20 }} />
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Box>
+                )}
+                {progressions.length > 0 && (
+                  <Box sx={{ mb: regressions.length > 0 ? 1.5 : 0 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                      <TrendingUpIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                      <Typography variant="subtitle2" fontWeight={600} color="success.main">Progress To</Typography>
+                    </Box>
+                    <Stack spacing={0.5}>
+                      {progressions.sort((a, b) => (a.progression_order ?? 0) - (b.progression_order ?? 0)).map((s) => (
+                        <Box key={s.id}>
+                          <Typography variant="body2">
+                            {(s.target_exercise as { name: string }).name}
+                          </Typography>
+                          {s.notes && <Typography variant="caption" color="text.secondary">{s.notes}</Typography>}
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Box>
+                )}
+                {regressions.length > 0 && (
+                  <Box>
+                    <Typography variant="subtitle2" fontWeight={600} color="text.secondary" sx={{ mb: 0.5 }}>Easier Alternatives</Typography>
+                    <Stack spacing={0.5}>
+                      {regressions.map((s) => (
+                        <Typography key={s.id} variant="body2">
+                          {(s.target_exercise as { name: string }).name}
+                        </Typography>
+                      ))}
+                    </Stack>
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* Notes */}
         {exercise.notes && (

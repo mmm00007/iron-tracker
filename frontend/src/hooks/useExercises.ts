@@ -183,3 +183,32 @@ export function useMuscleGroups() {
     staleTime: 30 * 60 * 1000, // 30 minutes — muscle groups are static
   });
 }
+
+export interface ExerciseSubstitution {
+  id: string;
+  target_exercise_id: string;
+  substitution_type: 'same_pattern' | 'same_muscles' | 'regression' | 'progression';
+  similarity_score: number;
+  progression_order: number | null;
+  notes: string | null;
+  target_exercise: { id: string; name: string; equipment: string | null; level: string | null };
+}
+
+export function useExerciseSubstitutions(exerciseId: string | null) {
+  return useQuery<ExerciseSubstitution[]>({
+    queryKey: ['exercise-substitutions', exerciseId],
+    queryFn: async () => {
+      if (!exerciseId) return [];
+      const { data, error } = await supabase
+        .from('exercise_substitutions')
+        .select('id, target_exercise_id, substitution_type, similarity_score, progression_order, notes, target_exercise:exercises!target_exercise_id(id, name, equipment, level)')
+        .eq('source_exercise_id', exerciseId)
+        .order('substitution_type')
+        .order('similarity_score', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as ExerciseSubstitution[];
+    },
+    enabled: !!exerciseId,
+    staleTime: 10 * 60 * 1000,
+  });
+}
