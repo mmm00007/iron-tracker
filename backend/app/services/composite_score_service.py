@@ -29,6 +29,8 @@ from app.models.schemas import (
     CompositeScoreResponse,
     ScoreDimension,
 )
+from app.services.recovery_service import RECOVERY_HOURS
+from app.services.volume_landmarks_service import DEFAULT_LANDMARKS, VOLUME_LANDMARKS
 
 # Dimension weights (must sum to 1.0)
 _WEIGHTS = {
@@ -265,8 +267,6 @@ async def compute_composite_score(
             muscle_sets[name] = muscle_sets.get(name, 0) + int(row["set_count"]) * factor
 
         # Score: % of muscles hitting their per-muscle MEV threshold
-        from app.services.volume_landmarks_service import VOLUME_LANDMARKS, DEFAULT_LANDMARKS
-
         weekly_sets = {m: s / weeks for m, s in muscle_sets.items()}
         above_mev = sum(
             1 for m, s in weekly_sets.items()
@@ -286,8 +286,6 @@ async def compute_composite_score(
     # ── Recovery (0-100) ─────────────────────────────────────────────────
     if recovery_rows:
         # Use canonical recovery hours from recovery_service (lowercase keys matching DB)
-        from app.services.recovery_service import RECOVERY_HOURS
-
         adequate = 0
         total_muscles = 0
         for row in recovery_rows:
