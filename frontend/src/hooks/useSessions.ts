@@ -39,7 +39,6 @@ async function fetchSetsWithNames(
         ? (row.exercises as { name: string }).name
         : undefined;
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { exercises: _exercises, ...setFields } = row as typeof row & { exercises: unknown };
 
     return {
