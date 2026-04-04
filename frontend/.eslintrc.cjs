@@ -20,5 +20,6 @@ module.exports = {
     '@typescript-eslint/consistent-type-imports': 'error',
     'react-hooks/rules-of-hooks': 'error',
     'react-hooks/exhaustive-deps': 'warn',
+    'jsx-a11y/no-autofocus': ['warn', { ignoreNonDOM: true }],
   },
 };
