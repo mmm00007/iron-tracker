@@ -120,7 +120,7 @@ describe('WeeklySnapshotCard', () => {
     expect(dashes.length).toBe(3);
   });
 
-  it('displays last week summary text', () => {
+  it('displays this week metric values', () => {
     const snapshot: WeeklySnapshotResult = {
       thisWeek: { sets: 15, volume: 8000, trainingDays: 3 },
       lastWeek: { sets: 12, volume: 6000, trainingDays: 3 },
@@ -135,9 +135,10 @@ describe('WeeklySnapshotCard', () => {
 
     renderWithProviders(<WeeklySnapshotCard />);
 
-    // Last week summary may split across elements — check individual values
-    expect(screen.getByText('12')).toBeInTheDocument();
-    expect(screen.getByText('3')).toBeInTheDocument();
+    // This week's values are rendered as prominent metrics
+    expect(screen.getByText('15')).toBeInTheDocument(); // sets
+    expect(screen.getByText('8.0k')).toBeInTheDocument(); // volume
+    expect(screen.getByText('3')).toBeInTheDocument(); // training days
   });
 
   it('shows volume below 1000 as rounded integer', () => {
