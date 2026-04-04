@@ -15,11 +15,11 @@ from app.services.periodization_service import (
 )
 from app.services.progressive_overload_service import (
     _detect_plateau,
-    _linear_regression,
     compute_progressive_overload,
 )
 from app.services.recovery_service import compute_recovery
 from app.services.session_quality_service import compute_session_quality
+from app.services.utils import linear_regression as _linear_regression
 from app.services.volume_landmarks_service import compute_volume_landmarks
 from tests.conftest import FAKE_USER_ID
 
