@@ -23,12 +23,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger = logging.getLogger(__name__)
     settings = get_settings()
 
-    # Supabase requires SSL for external connections
+    # Supabase pooler uses a self-signed certificate chain.
+    # Require SSL but skip certificate verification for the pooler endpoint.
     ctx = _ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = _ssl.CERT_NONE
 
     # Retry pool creation — handles transient failures when Supabase
     # restarts or Render deploys before the DB is fully reachable.
     app.state.db_pool = None
+    app.state.db_pool_error = ""
     for attempt in range(1, 4):
         try:
             app.state.db_pool = await asyncpg.create_pool(
@@ -40,8 +44,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                 max_inactive_connection_lifetime=300,
             )
             logger.info("Database pool initialized (attempt %d)", attempt)
+            app.state.db_pool_error = ""
             break
         except Exception as e:
+            app.state.db_pool_error = f"attempt {attempt}/3: {e}"
             logger.error(
                 "Failed to initialize database pool (attempt %d/3): %s",
                 attempt,
@@ -109,7 +115,11 @@ def create_app() -> FastAPI:
 
         db_pool = getattr(request.app.state, "db_pool", None)
         if db_pool is None:
-            raise HTTPException(status_code=503, detail="Database unavailable")
+            err = getattr(request.app.state, "db_pool_error", "unknown")
+            raise HTTPException(
+                status_code=503,
+                detail=f"Database unavailable — {err}",
+            )
         try:
             async with db_pool.acquire() as conn:
                 await conn.fetchval("SELECT 1")
