@@ -35,7 +35,7 @@ async def analyze_training(
         rows = await conn.fetch(
             """
             SELECT s.weight, s.reps, s.rpe, s.set_type, s.logged_at, s.weight_unit,
-                   e.name AS exercise_name, e.category
+                   e.name AS exercise_name, e.category, e.form_tips, e.movement_pattern
             FROM sets s
             JOIN exercises e ON s.exercise_id = e.id
             WHERE s.user_id = $1
@@ -75,7 +75,13 @@ async def analyze_training(
     for r in rows:
         name = r["exercise_name"]
         if name not in exercises:
-            exercises[name] = {"sets": 0, "volume": 0, "category": r["category"]}
+            exercises[name] = {
+                "sets": 0,
+                "volume": 0,
+                "category": r["category"],
+                "form_tips": r["form_tips"] or [],
+                "movement_pattern": r["movement_pattern"],
+            }
         exercises[name]["sets"] += 1
         exercises[name]["volume"] += r["weight"] * r["reps"]
 
@@ -118,7 +124,20 @@ async def analyze_training(
         safe_cat = "".join(c for c in str(data["category"]) if c.isprintable() and c not in "\n\r")[
             :50
         ]
-        context += f"- {safe_name} ({safe_cat}): {data['sets']} sets, {data['volume']:.0f} volume\n"
+        pattern = data.get("movement_pattern") or ""
+        context += f"- {safe_name} ({safe_cat}, {pattern}): {data['sets']} sets, {data['volume']:.0f} volume\n"
+        # Include form tips for the top exercises (limit to top 5 by volume to control prompt size)
+    top_exercises_with_tips = [
+        (name, data)
+        for name, data in sorted(exercises.items(), key=lambda x: -x[1]["volume"])
+        if data.get("form_tips")
+    ][:5]
+    if top_exercises_with_tips:
+        context += "\nKey form cues for your most-trained exercises:\n"
+        for name, data in top_exercises_with_tips:
+            safe_name = "".join(c for c in name if c.isprintable() and c not in "\n\r")[:100]
+            tips = [t[:150] for t in data["form_tips"][:3]]  # max 3 tips, 150 chars each
+            context += f"- {safe_name}: {'; '.join(tips)}\n"
 
     # Enrich with advanced analytics (fault-tolerant)
     try:

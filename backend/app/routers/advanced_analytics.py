@@ -41,6 +41,7 @@ from app.models.schemas import (
     SorenessPatternsResponse,
     StalenessResponse,
     StrengthStandardsResponse,
+    SubstitutionPatternsResponse,
     TempoAnalysisResponse,
     TimePerformanceResponse,
     TrainingDensityResponse,
@@ -75,6 +76,7 @@ from app.services.sleep_performance_service import compute_sleep_performance
 from app.services.soreness_patterns_service import compute_soreness_patterns
 from app.services.staleness_service import compute_staleness
 from app.services.strength_standards_service import compute_strength_standards
+from app.services.substitution_patterns_service import compute_substitution_patterns
 from app.services.tempo_analysis_service import compute_tempo_analysis
 from app.services.time_performance_service import compute_time_performance
 from app.services.training_density_service import compute_training_density
@@ -281,6 +283,21 @@ async def get_exercise_variety(
     missing patterns for balanced programming.
     """
     return await compute_exercise_variety(user_id, db_pool, period_days=period)
+
+
+@router.get("/substitution-patterns", response_model=SubstitutionPatternsResponse)
+async def get_substitution_patterns(
+    period: int = Query(default=90, ge=28, le=365, description="Period in days"),
+    user_id: str = Depends(get_current_user),
+    db_pool: asyncpg.Pool = Depends(_get_db_pool),
+) -> SubstitutionPatternsResponse:
+    """Exercise substitution and progression readiness analysis.
+
+    Shows which exercise substitutions the user has trained, performance
+    ratios between pairs, and which progressions the user is ready for
+    based on their current strength levels.
+    """
+    return await compute_substitution_patterns(user_id, db_pool, period_days=period)
 
 
 @router.get("/performance-forecast", response_model=PerformanceForecastResponse)
