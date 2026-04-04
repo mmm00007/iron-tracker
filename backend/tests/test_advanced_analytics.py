@@ -81,9 +81,8 @@ def test_linear_regression_flat_line() -> None:
 
 
 def test_linear_regression_single_point() -> None:
-    slope, intercept = _linear_regression([1], [10])
-    assert slope == 0.0
-    assert intercept == 10.0
+    result = _linear_regression([1], [10])
+    assert result == (None, None)
 
 
 def test_linear_regression_two_points() -> None:
@@ -257,14 +256,14 @@ async def test_volume_landmarks_empty(mock_db_pool: MagicMock) -> None:
 
 async def test_volume_landmarks_productive(mock_db_pool: MagicMock) -> None:
     mock_db_pool._conn.fetch.return_value = [
-        {"muscle_group": "Chest", "is_primary": True, "set_count": 12},
+        {"muscle_group": "chest", "is_primary": True, "set_count": 12},
     ]
 
     result = await compute_volume_landmarks(FAKE_USER_ID, mock_db_pool)
 
     assert len(result.muscles) == 1
     entry = result.muscles[0]
-    assert entry.muscle_group == "Chest"
+    assert entry.muscle_group == "chest"
     assert entry.current_sets == 12.0
     assert entry.status == "productive"
     assert entry.mev == 8
@@ -304,8 +303,8 @@ async def test_recovery_empty(mock_db_pool: MagicMock) -> None:
     mock_db_pool._conn.fetch.side_effect = [[], []]
     result = await compute_recovery(FAKE_USER_ID, mock_db_pool)
 
-    assert result.readiness_score == 100
-    assert result.readiness_label == "ready"
+    assert result.readiness_score == 50
+    assert result.readiness_label == "fatigued"
     assert result.disclaimer != ""
 
 
@@ -488,16 +487,16 @@ async def test_body_part_balance_empty(mock_db_pool: MagicMock) -> None:
 
 async def test_body_part_balance_push_dominant(mock_db_pool: MagicMock) -> None:
     mock_db_pool._conn.fetch.return_value = [
-        {"muscle_group": "Chest", "is_primary": True, "set_volume": 5000, "training_date": TODAY},
+        {"muscle_group": "chest", "is_primary": True, "set_volume": 5000, "training_date": TODAY},
         {
-            "muscle_group": "Shoulders",
+            "muscle_group": "shoulders",
             "is_primary": True,
             "set_volume": 3000,
             "training_date": TODAY,
         },
-        {"muscle_group": "Triceps", "is_primary": True, "set_volume": 2000, "training_date": TODAY},
-        {"muscle_group": "Lats", "is_primary": True, "set_volume": 2000, "training_date": TODAY},
-        {"muscle_group": "Biceps", "is_primary": True, "set_volume": 1000, "training_date": TODAY},
+        {"muscle_group": "triceps", "is_primary": True, "set_volume": 2000, "training_date": TODAY},
+        {"muscle_group": "lats", "is_primary": True, "set_volume": 2000, "training_date": TODAY},
+        {"muscle_group": "biceps", "is_primary": True, "set_volume": 1000, "training_date": TODAY},
     ]
 
     result = await compute_body_part_balance(FAKE_USER_ID, mock_db_pool, period_days=7)
@@ -510,10 +509,10 @@ async def test_body_part_balance_push_dominant(mock_db_pool: MagicMock) -> None:
 
 async def test_body_part_balance_optimal(mock_db_pool: MagicMock) -> None:
     mock_db_pool._conn.fetch.return_value = [
-        {"muscle_group": "Chest", "is_primary": True, "set_volume": 3000, "training_date": TODAY},
-        {"muscle_group": "Lats", "is_primary": True, "set_volume": 3500, "training_date": TODAY},
+        {"muscle_group": "chest", "is_primary": True, "set_volume": 3000, "training_date": TODAY},
+        {"muscle_group": "lats", "is_primary": True, "set_volume": 3500, "training_date": TODAY},
         {
-            "muscle_group": "Quadriceps",
+            "muscle_group": "quadriceps",
             "is_primary": True,
             "set_volume": 4000,
             "training_date": TODAY,
@@ -593,7 +592,7 @@ def test_recovery_endpoint(
     assert response.status_code == 200
 
     data = response.json()
-    assert data["readiness_score"] == 100
+    assert data["readiness_score"] == 50
     assert "disclaimer" in data
 
 

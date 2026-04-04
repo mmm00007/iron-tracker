@@ -33,5 +33,8 @@ def test_client() -> TestClient:
     """FastAPI TestClient with auth dependency overridden."""
     app.dependency_overrides[get_current_user] = override_get_current_user
     with TestClient(app, raise_server_exceptions=True) as client:
+        mock_pool = MagicMock()
+        mock_pool.close = AsyncMock()
+        app.state.db_pool = mock_pool
         yield client
     app.dependency_overrides.clear()

@@ -610,10 +610,10 @@ def test_acwr_score_low() -> None:
 
 
 def test_acwr_score_high() -> None:
-    """ACWR above 1.3 should scale down."""
+    """ACWR above 1.3 should scale down (exponential penalty)."""
     score, detail = _acwr_score(1.65)
     assert score is not None
-    assert score == 50
+    assert score == 17
     assert "spike" in detail.lower() or "elevated" in detail.lower()
 
 

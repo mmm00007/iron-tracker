@@ -40,13 +40,13 @@ def test_epley_formula() -> None:
 
 
 def test_epley_zero_reps() -> None:
-    """Weight with 0 reps should return the weight unchanged."""
-    assert _epley(100.0, 0) == 100.0
+    """0 reps is invalid input — Epley returns 0."""
+    assert _epley(100.0, 0) == 0.0
 
 
 def test_epley_negative_reps() -> None:
-    """Negative reps should return the weight unchanged."""
-    assert _epley(80.0, -1) == 80.0
+    """Negative reps is invalid input — Epley returns 0."""
+    assert _epley(80.0, -1) == 0.0
 
 
 def test_epley_zero_weight() -> None:
