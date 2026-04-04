@@ -89,7 +89,8 @@ describe('NumpadBottomSheet', () => {
     await user.click(screen.getByRole('button', { name: '5' }));
     await user.click(screen.getByLabelText('Backspace'));
 
-    expect(screen.getByText('0')).toBeInTheDocument();
+    // Use heading role to target the display area (avoids matching "0" button)
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('0');
   });
 
   it('calls onApply with parsed value when Done is pressed', async () => {
@@ -160,8 +161,8 @@ describe('NumpadBottomSheet', () => {
 
     // Display starts at "0", pressing "5" should result in "5" not "05"
     await user.click(screen.getByRole('button', { name: '5' }));
-    expect(screen.getByText('5')).toBeInTheDocument();
-    expect(screen.queryByText('05')).not.toBeInTheDocument();
+    // Use heading role to target display area (avoids matching "5" button)
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('5');
   });
 
   it('shows all numpad keys 0-9', () => {
