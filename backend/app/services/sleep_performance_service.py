@@ -1,6 +1,7 @@
 """Sleep-performance correlation analysis using Spearman rank correlation."""
 
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import asyncpg
 
@@ -69,7 +70,7 @@ def _spearman(xs: list[float], ys: list[float]) -> float | None:
     dy = sum((b - my) ** 2 for b in ry) ** 0.5
     if dx == 0 or dy == 0:
         return 0.0
-    return round(num / (dx * dy), 3)
+    return float(round(num / (dx * dy), 3))
 
 
 def _correlation_label(rho: float | None) -> str:
@@ -98,7 +99,7 @@ def _aggregate_buckets(
     rows: list[asyncpg.Record],
 ) -> list[SleepBucketEntry]:
     """Group rows into sleep buckets and compute per-bucket averages."""
-    accum: dict[str, dict] = {}
+    accum: dict[str, dict[str, Any]] = {}
     for b in SLEEP_BUCKETS:
         accum[str(b["name"])] = {
             "label": str(b["label"]),

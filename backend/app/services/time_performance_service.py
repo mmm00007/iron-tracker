@@ -9,6 +9,7 @@ and the confounders too many for causal claims.
 """
 
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import asyncpg
 
@@ -104,7 +105,7 @@ async def compute_time_performance(
     # ── Bucket hourly rows into windows ───────────────────────────────────
 
     # Accumulate per-window totals
-    window_data: dict[str, dict] = {
+    window_data: dict[str, dict[str, Any]] = {
         w: {
             "session_count": 0,
             "e1rm_sum": 0.0,
@@ -163,8 +164,9 @@ async def compute_time_performance(
             continue
 
         avg_e1rm_pct: float | None = None
-        if avg_e1rms[w] is not None and best_e1rm:
-            avg_e1rm_pct = round((avg_e1rms[w] / best_e1rm) * 100, 1)
+        e1rm_val = avg_e1rms[w]
+        if e1rm_val is not None and best_e1rm:
+            avg_e1rm_pct = round((e1rm_val / best_e1rm) * 100, 1)
 
         avg_rpe: float | None = None
         if wd["rpe_count"] > 0:

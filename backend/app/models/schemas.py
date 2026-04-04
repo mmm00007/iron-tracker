@@ -1,5 +1,5 @@
 import re
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -197,7 +197,7 @@ class SessionQualityResponse(BaseModel):
 class PeriodizationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    weekly_volumes: list[dict]
+    weekly_volumes: list[dict[str, Any]]
     monotony: float | None
     strain: float | None
     monotony_status: str
@@ -212,7 +212,7 @@ class BodyPartBalanceResponse(BaseModel):
     push_pull_status: str
     upper_lower_ratio: float | None
     upper_lower_status: str
-    muscle_frequencies: list[dict]
+    muscle_frequencies: list[dict[str, Any]]
     imbalances: list[str]
 
 
@@ -358,7 +358,7 @@ class ExerciseVarietyResponse(BaseModel):
     unique_exercises: int
     movement_patterns: list[MovementPatternEntry]
     missing_patterns: list[str]
-    top_exercises: list[dict]
+    top_exercises: list[dict[str, Any]]
     period_days: int
 
 

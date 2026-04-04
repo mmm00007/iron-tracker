@@ -16,6 +16,7 @@ References:
 """
 
 from datetime import UTC, date, datetime, timedelta
+from typing import Any
 
 import asyncpg
 
@@ -123,7 +124,7 @@ async def compute_performance_forecast(
 
     # Group by exercise, best daily e1RM (uses DB-computed estimated_1rm
     # for consistency with strength_standards_service and the sets trigger).
-    exercise_data: dict[str, dict] = {}
+    exercise_data: dict[str, dict[str, Any]] = {}
     for row in rows:
         eid = str(row["exercise_id"])
         if eid not in exercise_data:

@@ -22,6 +22,7 @@ Cold-start: dimensions with insufficient data are excluded from the average
 
 import math
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import asyncpg
 
@@ -230,7 +231,7 @@ async def compute_composite_score(
     # ── Progressive Overload (0-100) ────────────────────────────────────
     if overload_rows:
         # Group by exercise, check if latest e1RM > earliest
-        exercise_progress: dict[str, dict] = {}
+        exercise_progress: dict[str, dict[str, Any]] = {}
         for row in overload_rows:
             eid = str(row["exercise_id"])
             if eid not in exercise_progress:
@@ -420,7 +421,7 @@ async def compute_composite_score(
     composite = round(min(100, max(0, composite)))
 
     return CompositeScoreResponse(
-        score=composite,
+        score=int(composite),
         label=_label(composite),
         dimensions=dimensions,
         available_dimensions=len(dimensions),

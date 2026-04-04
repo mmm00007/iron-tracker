@@ -1,4 +1,5 @@
 from datetime import UTC, date, datetime, timedelta
+from typing import Any
 
 import asyncpg
 
@@ -45,7 +46,7 @@ async def compute_weekly_summary(
             this_week_start,
         )
 
-    stats: dict[str, dict] = {"this": {}, "last": {}}
+    stats: dict[str, dict[str, Any]] = {"this": {}, "last": {}}
     for row in rows:
         period = row["period"]
         stats[period] = {

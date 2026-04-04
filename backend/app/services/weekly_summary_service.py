@@ -2,6 +2,7 @@ import json
 import logging
 import uuid
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import asyncpg
 
@@ -68,7 +69,7 @@ async def _generate_user_summary(
     total_volume = sum(r["weight"] * r["reps"] for r in rows)
     training_days = len(set(r["logged_at"].strftime("%Y-%m-%d") for r in rows))
 
-    exercises: dict[str, dict] = {}
+    exercises: dict[str, dict[str, Any]] = {}
     for r in rows:
         name = r["exercise_name"]
         if name not in exercises:

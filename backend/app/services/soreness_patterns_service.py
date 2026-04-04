@@ -1,6 +1,7 @@
 """Soreness pattern analysis: per-muscle trends, red flags, and volume correlation."""
 
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import asyncpg
 
@@ -83,13 +84,13 @@ def _spearman(xs: list[float], ys: list[float]) -> float | None:
     dy = sum((b - my) ** 2 for b in ry) ** 0.5
     if dx == 0 or dy == 0:
         return 0.0
-    return round(num / (dx * dy), 3)
+    return float(round(num / (dx * dy), 3))
 
 
 # ─── Trend detection ─────────────────────────────────────────────────────────
 
 
-def _compute_trend(levels: list[float], dates: list, period_midpoint) -> str:
+def _compute_trend(levels: list[float], dates: list[Any], period_midpoint: Any) -> str:
     """Compare average level from first half vs second half of the period.
 
     Returns 'worsening', 'improving', or 'stable'.
@@ -117,7 +118,7 @@ def _compute_trend(levels: list[float], dates: list, period_midpoint) -> str:
 
 
 def _detect_red_flags(
-    muscle_reports: dict[str, list[dict]],
+    muscle_reports: dict[str, list[dict[str, Any]]],
     muscle_names: dict[int, str],
 ) -> list[str]:
     """Detect red flags in soreness data.
@@ -197,7 +198,7 @@ async def compute_soreness_patterns(
 
     # ── Group soreness data by muscle ─────────────────────────────────────
     # muscle_id -> list of report dicts
-    muscle_reports: dict[str, list[dict]] = {}
+    muscle_reports: dict[str, list[dict[str, Any]]] = {}
     muscle_names: dict[int, str] = {}
 
     for row in soreness_rows:
@@ -257,14 +258,14 @@ async def compute_soreness_patterns(
 
     # ── Volume-soreness correlation ───────────────────────────────────────
     # Build a map of training_date -> total volume
-    volume_by_date: dict = {}
+    volume_by_date: dict[Any, float] = {}
     for row in volume_rows:
         td = row["training_date"]
         vol = float(row["volume_kg"]) if row["volume_kg"] is not None else 0.0
         volume_by_date[td] = vol
 
     # Build a map of training_date -> max soreness level
-    soreness_by_date: dict = {}
+    soreness_by_date: dict[Any, int] = {}
     for row in soreness_rows:
         td = row["training_date"]
         level = int(row["level"])

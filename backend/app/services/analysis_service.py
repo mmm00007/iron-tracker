@@ -2,6 +2,7 @@ import json
 import logging
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
 import anthropic
 import asyncpg
@@ -22,7 +23,7 @@ async def analyze_training(
     scope_end: str,
     goals: list[str],
     client: anthropic.AsyncAnthropic | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """Generate AI training analysis for a date range.
 
     Enriches the Claude prompt with computed analytics metrics (muscle workload,
@@ -70,7 +71,7 @@ async def analyze_training(
     avg_rpe = round(sum(rpe_values) / len(rpe_values), 1) if rpe_values else None
     effective_sets = sum(1 for r in rows if r["rpe"] is not None and float(r["rpe"]) >= 7)
 
-    exercises: dict[str, dict] = {}
+    exercises: dict[str, dict[str, Any]] = {}
     for r in rows:
         name = r["exercise_name"]
         if name not in exercises:

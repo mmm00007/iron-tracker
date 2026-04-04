@@ -20,6 +20,7 @@ a trend value.
 """
 
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import asyncpg
 
@@ -85,7 +86,7 @@ async def compute_equipment_efficiency(
         )
 
     # ── Group rows by variant ────────────────────────────────────────────
-    variant_data: dict[str, dict] = {}
+    variant_data: dict[str, dict[str, Any]] = {}
     for row in rows:
         vid = row["variant_id"]
         if vid not in variant_data:

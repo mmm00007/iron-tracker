@@ -16,6 +16,7 @@ Domain expert validations:
 """
 
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import asyncpg
 
@@ -126,7 +127,7 @@ async def compute_body_measurements(
 
     # --- Group by (site, side) for per-site trend analysis ---
     # Key: (site, side_or_none) -> list of (ts, value_cm, original_value, unit, type)
-    site_data: dict[tuple[str, str | None], list[dict]] = {}
+    site_data: dict[tuple[str, str | None], list[dict[str, Any]]] = {}
     for row in trend_rows:
         key = (row["site"], row["side"])
         if key not in site_data:
@@ -143,7 +144,7 @@ async def compute_body_measurements(
     # --- Build per-site entries (collapse left/right into one site key) ---
     # For sites with sides, we merge data points and use the latest from either
     # side for the headline value. For sites without sides, use directly.
-    site_entries_map: dict[str, dict] = {}
+    site_entries_map: dict[str, dict[str, Any]] = {}
 
     for (site, side), records in site_data.items():
         if site not in site_entries_map:
@@ -190,7 +191,7 @@ async def compute_body_measurements(
     bilateral: list[BilateralMeasurementEntry] = []
 
     # Group bilateral rows by site, expecting left + right pairs
-    bilateral_by_site: dict[str, dict[str, dict]] = {}
+    bilateral_by_site: dict[str, dict[str, dict[str, Any]]] = {}
     for row in bilateral_rows:
         site = row["site"]
         side = row["side"]

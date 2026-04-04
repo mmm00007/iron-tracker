@@ -1,6 +1,7 @@
 import ssl as _ssl
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -105,7 +106,7 @@ def create_app() -> FastAPI:
         return HealthResponse(status="ok")
 
     @app.get("/api/rollout-flags", tags=["config"])
-    async def rollout_flags() -> dict:
+    async def rollout_flags() -> dict[str, Any]:
         return {
             "plansEnabled": settings.FLAG_PLANS,
             "analysisEnabled": settings.FLAG_ANALYSIS,

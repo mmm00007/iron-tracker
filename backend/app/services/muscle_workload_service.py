@@ -2,6 +2,7 @@
 
 import math
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import asyncpg
 
@@ -102,7 +103,7 @@ async def compute_muscle_workload(
         )
 
     # Aggregate per muscle group
-    muscle_data: dict[str, dict] = {}
+    muscle_data: dict[str, dict[str, Any]] = {}
     for row in rows:
         name = row["muscle_group"]
         if name not in muscle_data:

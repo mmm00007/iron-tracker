@@ -23,6 +23,7 @@ Movement patterns based on Boyle's "New Functional Training" taxonomy:
 
 import math
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import asyncpg
 
@@ -198,7 +199,7 @@ async def compute_exercise_variety(
         variety_label = "narrow"
 
     # Movement pattern analysis
-    pattern_data: dict[str, dict] = {}
+    pattern_data: dict[str, dict[str, Any]] = {}
     for row in rows:
         pattern = _classify_movement_pattern(row["exercise_name"])
         if pattern not in pattern_data:

@@ -1,6 +1,7 @@
 """Progressive overload tracking with plateau detection."""
 
 from datetime import UTC, date, datetime, timedelta
+from typing import Any
 
 import asyncpg
 
@@ -76,7 +77,7 @@ async def compute_progressive_overload(
         )
 
     # Group by exercise, compute best daily e1RM
-    exercise_data: dict[str, dict] = {}
+    exercise_data: dict[str, dict[str, Any]] = {}
     for row in rows:
         eid = str(row["exercise_id"])
         if eid not in exercise_data:

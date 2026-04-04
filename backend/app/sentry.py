@@ -1,5 +1,7 @@
 """Sentry initialization for the FastAPI backend."""
 
+from typing import Any
+
 import sentry_sdk
 from sentry_sdk.integrations.asyncpg import AsyncPGIntegration
 from sentry_sdk.integrations.fastapi import FastApiIntegration
@@ -29,7 +31,7 @@ def init_sentry() -> None:
     )
 
 
-def _before_send(event: dict, hint: dict) -> dict | None:
+def _before_send(event: dict[str, Any], hint: dict[str, Any]) -> dict[str, Any] | None:
     # Don't send health check errors
     if event.get("request", {}).get("url", "").endswith("/health"):
         return None

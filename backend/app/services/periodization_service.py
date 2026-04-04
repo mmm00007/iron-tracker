@@ -2,6 +2,7 @@
 
 import math
 from datetime import UTC, date, datetime, timedelta
+from typing import Any
 
 import asyncpg
 
@@ -74,7 +75,7 @@ async def compute_periodization(
         current += timedelta(days=1)
 
     # Weekly aggregation
-    weekly_volumes: list[dict] = []
+    weekly_volumes: list[dict[str, Any]] = []
     today = date.today()
     for w in range(weeks):
         week_start = today - timedelta(days=today.weekday() + 7 * (weeks - 1 - w))
@@ -200,7 +201,7 @@ async def compute_body_part_balance(
 
     # Aggregate volume per muscle group
     muscle_volume: dict[str, float] = {}
-    muscle_dates: dict[str, set] = {}
+    muscle_dates: dict[str, set[Any]] = {}
     for row in rows:
         name = row["muscle_group"]
         factor = 1.0 if row["is_primary"] else 0.5
@@ -273,7 +274,8 @@ async def compute_body_part_balance(
 
     # Check individual muscle frequency
     for mf in muscle_frequencies:
-        if mf["sessions_per_week"] >= 5 and period_days >= 7:
+        spw = mf["sessions_per_week"]
+        if isinstance(spw, (int, float)) and spw >= 5 and period_days >= 7:
             imbalances.append(
                 f"{mf['muscle_group']} trained {mf['sessions_per_week']}x/week — "
                 "may exceed recovery capacity."

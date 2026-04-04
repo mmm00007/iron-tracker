@@ -17,7 +17,8 @@ Domain expert validations:
   - Data science: Body weight interpolation strategy, trend aggregation
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
+from typing import Any
 
 import asyncpg
 
@@ -83,7 +84,7 @@ def _to_kg(weight: float, unit: str) -> float:
 
 def _interpolate_bw(
     target_date: str,
-    bw_entries: list[dict],
+    bw_entries: list[dict[str, Any]],
 ) -> float | None:
     """Return the closest body weight (kg) to *target_date* from sorted entries.
 
@@ -93,7 +94,7 @@ def _interpolate_bw(
     if not bw_entries:
         return None
 
-    best: dict | None = None
+    best: dict[str, Any] | None = None
     best_delta: int | None = None
     for entry in bw_entries:
         delta = abs((entry["day"] - _parse_date(target_date)).days)
@@ -103,7 +104,7 @@ def _interpolate_bw(
     return best["weight_kg"] if best else None
 
 
-def _parse_date(date_str: str):
+def _parse_date(date_str: str) -> date:
     """Parse a YYYY-MM-DD string into a date object."""
     from datetime import date as _date
 

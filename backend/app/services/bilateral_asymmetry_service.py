@@ -20,6 +20,7 @@ from single-session variation.
 
 from datetime import UTC, datetime, timedelta
 from itertools import groupby
+from typing import Any
 
 import asyncpg
 
@@ -102,7 +103,7 @@ async def compute_bilateral_asymmetry(
     exercises: list[AsymmetryExerciseEntry] = []
 
     for exercise_id, group in groupby(rows, key=lambda r: r["exercise_id"]):
-        sides: dict[str, dict] = {}
+        sides: dict[str, dict[str, Any]] = {}
         for row in group:
             sides[row["side"].lower()] = {
                 "e1rm": float(row["best_e1rm"]),

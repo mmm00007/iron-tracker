@@ -9,6 +9,7 @@ Cold start: requires at least 1 mesocycle with >= 2 weeks of training data.
 
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import asyncpg
 
@@ -16,7 +17,7 @@ from app.models.schemas import MesocycleEffectivenessResponse, MesocycleEntry
 
 # ─── Phase ideal profiles ────────────────────────────────────────────────────
 
-_PHASE_IDEAL: dict[str, dict | None] = {
+_PHASE_IDEAL: dict[str, dict[str, Any] | None] = {
     "hypertrophy": {"rpe_range": (6, 8), "volume_trend": "high"},
     "strength": {"rpe_range": (7, 9.5), "volume_trend": "moderate"},
     "peaking": {"rpe_range": (8, 10), "volume_trend": "low"},
@@ -150,7 +151,7 @@ async def compute_mesocycle_effectiveness(
 
     # ── Group rows by mesocycle ───────────────────────────────────────────────
 
-    meso_data: dict[str, dict] = {}
+    meso_data: dict[str, dict[str, Any]] = {}
     for row in rows:
         mid = row["mesocycle_id"]
         if mid not in meso_data:

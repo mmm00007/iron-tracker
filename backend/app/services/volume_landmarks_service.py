@@ -42,7 +42,7 @@ VOLUME_LANDMARKS: dict[str, dict[str, float]] = {
     "adductors": {"MV": 0, "MEV": 2, "MAV": 12, "MRV": 16},
 }
 
-DEFAULT_LANDMARKS = {"MV": 4, "MEV": 6, "MAV": 14, "MRV": 20}
+DEFAULT_LANDMARKS: dict[str, float] = {"MV": 4, "MEV": 6, "MAV": 14, "MRV": 20}
 
 
 def _classify_volume(sets: float, landmarks: dict[str, float]) -> tuple[str, str]:

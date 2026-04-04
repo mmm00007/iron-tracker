@@ -167,8 +167,8 @@ async def compute_rest_analysis(
     if by_type:
         async with db_pool.acquire() as conn:
             for entry in by_type:
-                low = entry.optimal_range_low
-                high = entry.optimal_range_high
+                opt_low = entry.optimal_range_low
+                opt_high = entry.optimal_range_high
                 mechanic_val = entry.mechanic if entry.mechanic else "unknown"
                 compliant = await conn.fetchval(
                     """
@@ -186,8 +186,8 @@ async def compute_rest_analysis(
                     user_id,
                     since,
                     mechanic_val,
-                    low,
-                    high,
+                    opt_low,
+                    opt_high,
                 )
                 entry.compliance_pct = (
                     round(compliant / entry.set_count * 100, 1) if entry.set_count > 0 else 0.0

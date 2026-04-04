@@ -1,5 +1,6 @@
 import hmac
 import uuid as _uuid
+from typing import Any
 
 import asyncpg
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
@@ -53,7 +54,7 @@ async def generate_weekly_trends(
     x_cron_secret: str = Header(..., alias="X-Cron-Secret"),
     settings: Settings = Depends(get_settings),
     db_pool: asyncpg.Pool = Depends(get_db_pool),
-) -> dict:
+) -> dict[str, Any]:
     """Generate weekly training summaries for all active users.
 
     Designed to be called by a cron job (e.g., Monday 6 AM UTC).

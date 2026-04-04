@@ -7,6 +7,7 @@ computed server-side from the user's training history.
 import asyncio
 import logging
 import time
+from typing import Any, cast
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -644,7 +645,7 @@ async def get_dashboard(
             return_exceptions=True,
         )
 
-        defaults: list = [
+        defaults: list[Any] = [
             MuscleWorkloadResponse(
                 muscles=[],
                 balance_index=0,
@@ -705,37 +706,37 @@ async def get_dashboard(
         ]
 
         dashboard = AdvancedAnalyticsDashboard(
-            muscle_workload=resolved[0],
-            progressive_overload=resolved[1],
-            volume_landmarks=resolved[2],
-            recovery=resolved[3],
-            session_quality=resolved[4],
-            periodization=resolved[5],
-            body_part_balance=resolved[6],
-            acwr=resolved[7],
-            consistency=resolved[8],
-            strength_standards=resolved[9],
-            exercise_variety=resolved[10],
-            performance_forecast=resolved[11],
-            fitness_fatigue=resolved[12],
-            composite_score=resolved[13],
-            muscle_frequency=resolved[14],
-            staleness=resolved[15],
-            load_distribution=resolved[16],
-            bilateral_asymmetry=resolved[17],
-            body_composition=resolved[18],
-            training_density=resolved[19],
-            sleep_performance=resolved[20],
-            time_performance=resolved[21],
-            rest_analysis=resolved[22],
-            relative_strength=resolved[23],
-            plan_adherence=resolved[24],
-            antagonist_balance=resolved[25],
-            tempo_analysis=resolved[26],
-            soreness_patterns=resolved[27],
-            equipment_efficiency=resolved[28],
-            milestone_velocity=resolved[29],
-            training_readiness=resolved[30],
+            muscle_workload=cast(MuscleWorkloadResponse, resolved[0]),
+            progressive_overload=cast(ProgressiveOverloadResponse, resolved[1]),
+            volume_landmarks=cast(VolumeLandmarksResponse, resolved[2]),
+            recovery=cast(RecoveryResponse, resolved[3]),
+            session_quality=cast(SessionQualityResponse, resolved[4]),
+            periodization=cast(PeriodizationResponse, resolved[5]),
+            body_part_balance=cast(BodyPartBalanceResponse, resolved[6]),
+            acwr=cast(ACWRResponse | None, resolved[7]),
+            consistency=cast(ConsistencyResponse | None, resolved[8]),
+            strength_standards=cast(StrengthStandardsResponse | None, resolved[9]),
+            exercise_variety=cast(ExerciseVarietyResponse | None, resolved[10]),
+            performance_forecast=cast(PerformanceForecastResponse | None, resolved[11]),
+            fitness_fatigue=cast(FitnessFatigueResponse | None, resolved[12]),
+            composite_score=cast(CompositeScoreResponse | None, resolved[13]),
+            muscle_frequency=cast(MuscleFrequencyResponse | None, resolved[14]),
+            staleness=cast(StalenessResponse | None, resolved[15]),
+            load_distribution=cast(LoadDistributionResponse | None, resolved[16]),
+            bilateral_asymmetry=cast(BilateralAsymmetryResponse | None, resolved[17]),
+            body_composition=cast(BodyCompositionResponse | None, resolved[18]),
+            training_density=cast(TrainingDensityResponse | None, resolved[19]),
+            sleep_performance=cast(SleepPerformanceResponse | None, resolved[20]),
+            time_performance=cast(TimePerformanceResponse | None, resolved[21]),
+            rest_analysis=cast(RestAnalysisResponse | None, resolved[22]),
+            relative_strength=cast(RelativeStrengthResponse | None, resolved[23]),
+            plan_adherence=cast(PlanAdherenceResponse | None, resolved[24]),
+            antagonist_balance=cast(AntagonistBalanceResponse | None, resolved[25]),
+            tempo_analysis=cast(TempoAnalysisResponse | None, resolved[26]),
+            soreness_patterns=cast(SorenessPatternsResponse | None, resolved[27]),
+            equipment_efficiency=cast(EquipmentEfficiencyResponse | None, resolved[28]),
+            milestone_velocity=cast(MilestoneVelocityResponse | None, resolved[29]),
+            training_readiness=cast(TrainingReadinessResponse | None, resolved[30]),
         )
 
         _set_cached_dashboard(user_id, period, dashboard)
