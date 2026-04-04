@@ -24,7 +24,7 @@ from app.models.schemas import ACWRResponse, ACWRWeeklyEntry
 
 # EWMA decay constants (Williams et al. 2017)
 # Lambda = 2 / (N + 1) where N is the time window in days
-_ACUTE_LAMBDA = 2 / (7 + 1)   # 7-day window
+_ACUTE_LAMBDA = 2 / (7 + 1)  # 7-day window
 _CHRONIC_LAMBDA = 2 / (28 + 1)  # 28-day window
 
 
@@ -42,7 +42,11 @@ def _classify_acwr(ratio: float) -> str:
 
 def _risk_label(zone: str) -> str:
     labels = {
-        "under_prepared": "Undertrained — fitness is declining; gradually increase load",
+        "under_prepared": (
+            "Undertrained — recent load is below your baseline. "
+            "If intentional (rest/recovery), this is fine. "
+            "Otherwise, gradually rebuild volume."
+        ),
         "optimal": "Sweet spot — training load well matched to fitness",
         "caution": "Moderate spike — monitor closely for signs of overreaching",
         "danger": "High spike risk — consider reducing load to prevent injury",
@@ -136,16 +140,10 @@ async def compute_acwr(
         week_end = today - timedelta(days=today.weekday() + 7 * (7 - w))
         week_start = week_end - timedelta(days=6)
         # Find closest day in our data to the week end
-        week_entries = [
-            (d, a, c, r) for d, a, c, r in daily_acwr
-            if week_start <= d <= week_end
-        ]
+        week_entries = [(d, a, c, r) for d, a, c, r in daily_acwr if week_start <= d <= week_end]
         if week_entries:
             last_entry = week_entries[-1]
-            week_vol = sum(
-                day_volumes.get(week_start + timedelta(days=i), 0.0)
-                for i in range(7)
-            )
+            week_vol = sum(day_volumes.get(week_start + timedelta(days=i), 0.0) for i in range(7))
             weekly_trend.append(
                 ACWRWeeklyEntry(
                     week_start=str(week_start),

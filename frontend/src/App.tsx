@@ -56,6 +56,17 @@ function AppProviders() {
         persister: indexedDBPersister,
         maxAge: PERSIST_MAX_AGE,
         buster: '', // bump this string to invalidate the persisted cache on deploys
+        dehydrateOptions: {
+          shouldDehydrateQuery: (query) => {
+            // Only persist essential data offline; skip large analytics payloads
+            const key = query.queryKey[0];
+            const persistKeys = new Set([
+              'exercises', 'muscleGroups', 'profile', 'sets', 'sessions',
+              'variants', 'favorites', 'featureFlags',
+            ]);
+            return typeof key === 'string' && persistKeys.has(key) && query.state.status === 'success';
+          },
+        },
       }}
       onSuccess={() => {
         if (import.meta.env.DEV) {

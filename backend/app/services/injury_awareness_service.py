@@ -62,8 +62,7 @@ def _detect_red_flags(active_injuries: list[InjuryEntry]) -> list[str]:
             )
         if inj.sets_while_injured > 0 and inj.pain_level >= 5:
             red_flags.append(
-                f"Training through significant pain ({inj.pain_level}/10) "
-                f"in {inj.body_area}"
+                f"Training through significant pain ({inj.pain_level}/10) in {inj.body_area}"
             )
 
     return red_flags
@@ -129,17 +128,11 @@ async def compute_injury_awareness(
     resolved_count = len(resolved_injuries)
 
     # ── Recovery trajectory ───────────────────────────────────────────────
-    recovery_days = [
-        inj.days_active for inj in resolved_injuries if inj.days_active is not None
-    ]
-    avg_recovery_days = (
-        round(sum(recovery_days) / len(recovery_days), 1) if recovery_days else None
-    )
+    recovery_days = [inj.days_active for inj in resolved_injuries if inj.days_active is not None]
+    avg_recovery_days = round(sum(recovery_days) / len(recovery_days), 1) if recovery_days else None
 
     # ── Training-through-injury flag ──────────────────────────────────────
-    training_through_injury = any(
-        inj.sets_while_injured > 0 for inj in active_injuries
-    )
+    training_through_injury = any(inj.sets_while_injured > 0 for inj in active_injuries)
 
     # ── Red flag detection ────────────────────────────────────────────────
     red_flags = _detect_red_flags(active_injuries)

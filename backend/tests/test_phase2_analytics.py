@@ -9,7 +9,7 @@ Services tested:
 """
 
 from datetime import UTC, date, datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -126,11 +126,13 @@ async def test_composite_score_with_data(mock_db_pool: MagicMock) -> None:
     # 2. Overload data
     overload_data = []
     for i in range(6):
-        overload_data.append({
-            "exercise_id": "ex1",
-            "day": TODAY - timedelta(days=24 - i * 4),
-            "best_e1rm": 80.0 + i * 2.0,
-        })
+        overload_data.append(
+            {
+                "exercise_id": "ex1",
+                "day": TODAY - timedelta(days=24 - i * 4),
+                "best_e1rm": 80.0 + i * 2.0,
+            }
+        )
 
     # 3. Muscle volume
     muscle_data = [
@@ -153,7 +155,11 @@ async def test_composite_score_with_data(mock_db_pool: MagicMock) -> None:
     ]
 
     mock_db_pool._conn.fetch.side_effect = [
-        training_days, overload_data, muscle_data, recovery_data, quality_data,
+        training_days,
+        overload_data,
+        muscle_data,
+        recovery_data,
+        quality_data,
     ]
 
     result = await compute_composite_score(FAKE_USER_ID, mock_db_pool)
@@ -182,11 +188,13 @@ async def test_muscle_frequency_optimal(mock_db_pool: MagicMock) -> None:
     for w in range(4):
         for d in [0, 3]:  # Monday and Thursday
             day = TODAY - timedelta(days=TODAY.weekday() + 7 * (3 - w)) + timedelta(days=d)
-            rows.append({
-                "muscle_group": "Chest",
-                "is_primary": True,
-                "training_date": day,
-            })
+            rows.append(
+                {
+                    "muscle_group": "Chest",
+                    "is_primary": True,
+                    "training_date": day,
+                }
+            )
 
     mock_db_pool._conn.fetch.return_value = rows
     result = await compute_muscle_frequency(FAKE_USER_ID, mock_db_pool, weeks=4)
@@ -296,11 +304,13 @@ async def test_load_distribution_with_data(mock_db_pool: MagicMock) -> None:
     for i in range(14):
         day = TODAY - timedelta(days=13 - i)
         if day.weekday() in (0, 2, 4):  # Mon, Wed, Fri
-            rows.append({
-                "day": day,
-                "dow": (day.weekday() + 1) % 7,  # PG DOW (0=Sun)
-                "daily_volume": 5000.0,
-            })
+            rows.append(
+                {
+                    "day": day,
+                    "dow": (day.weekday() + 1) % 7,  # PG DOW (0=Sun)
+                    "daily_volume": 5000.0,
+                }
+            )
 
     mock_db_pool._conn.fetch.return_value = rows
     result = await compute_load_distribution(FAKE_USER_ID, mock_db_pool)
@@ -344,7 +354,8 @@ def test_load_distribution_endpoint(adv_client: TestClient, mock_db_pool: MagicM
 
 
 def test_dashboard_includes_phase2_metrics(
-    adv_client: TestClient, mock_db_pool: MagicMock,
+    adv_client: TestClient,
+    mock_db_pool: MagicMock,
 ) -> None:
     """Dashboard should now include all 17 metrics."""
     mock_db_pool._conn.fetch.return_value = []

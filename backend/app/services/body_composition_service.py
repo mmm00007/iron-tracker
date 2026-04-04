@@ -96,12 +96,16 @@ async def compute_body_composition(
     since = datetime.now(UTC) - timedelta(days=period_days)
 
     async with db_pool.acquire() as conn:
+        # Deduplicate to one entry per day (latest weigh-in wins).
+        # Multiple weigh-ins per day would each count as a separate EMA step,
+        # making the smoothed trend more volatile than intended.
         weight_rows = await conn.fetch(
             """
-            SELECT weight, weight_unit, body_fat_pct, logged_at::date AS day
+            SELECT DISTINCT ON (logged_at::date)
+                   weight, weight_unit, body_fat_pct, logged_at::date AS day
             FROM body_weight_log
             WHERE user_id = $1 AND logged_at >= $2
-            ORDER BY logged_at ASC
+            ORDER BY logged_at::date ASC, logged_at DESC
             """,
             user_id,
             since,
@@ -185,15 +189,13 @@ async def compute_body_composition(
         latest_ema = trend[-1].ema_kg
         weight_change_kg = round(latest_ema - earliest_ema, 2)
         if earliest_ema > 0:
-            weight_change_pct = round(
-                (weight_change_kg / earliest_ema) * 100, 1
-            )
+            weight_change_pct = round((weight_change_kg / earliest_ema) * 100, 1)
 
     # --- BMI ---
     bmi: float | None = None
     bmi_label: str | None = None
     if height_m and height_m > 0:
-        bmi = round(latest_weight_kg / (height_m ** 2), 1)
+        bmi = round(latest_weight_kg / (height_m**2), 1)
         bmi_label = _classify_bmi(bmi)
 
     # --- FFMI (requires body fat percentage and height) ---
@@ -204,7 +206,7 @@ async def compute_body_composition(
 
     if latest_bf_pct is not None and height_m and height_m > 0:
         lean_mass_kg = round(latest_weight_kg * (1 - latest_bf_pct / 100), 2)
-        ffmi_raw = lean_mass_kg / (height_m ** 2)
+        ffmi_raw = lean_mass_kg / (height_m**2)
         ffmi = round(ffmi_raw, 1)
         ffmi_norm = ffmi_raw + 6.1 * (1.8 - height_m)
         ffmi_normalized = round(ffmi_norm, 1)

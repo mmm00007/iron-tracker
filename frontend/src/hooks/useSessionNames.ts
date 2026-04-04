@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
 
 interface SessionName {
   id: string;
@@ -18,9 +19,7 @@ export function useSessionName(sessionStart: string | undefined) {
   return useQuery<SessionName | null>({
     queryKey: sessionNameKey(sessionStart ?? ''),
     queryFn: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = useAuthStore.getState().user;
       if (!user || !sessionStart) return null;
 
       const { data, error } = await supabase
@@ -46,9 +45,7 @@ export function useAllSessionNames() {
   return useQuery<Map<string, string>>({
     queryKey: allSessionNamesKey(),
     queryFn: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = useAuthStore.getState().user;
       if (!user) return new Map();
 
       const { data, error } = await supabase
@@ -83,9 +80,7 @@ export function useRenameSession() {
       sessionEnd: string;
       name: string;
     }) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = useAuthStore.getState().user;
       if (!user) throw new Error('Not authenticated');
 
       const { error } = await supabase.from('user_session_names').upsert(

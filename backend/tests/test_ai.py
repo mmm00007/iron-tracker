@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.models.schemas import MachineIdentificationResponse, TargetMuscles
-from app.routers.ai import _image_cache, _identify_rate_store, _analyze_rate_store
+from app.routers.ai import _analyze_rate_store, _identify_rate_store, _image_cache
 
 FAKE_IDENTIFICATION = MachineIdentificationResponse(
     exercise_names=["Leg Press"],

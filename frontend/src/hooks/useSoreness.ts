@@ -205,23 +205,25 @@ export function usePendingSoreness() {
       const oneDayAgo = new Date();
       oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
-      const { data: sets } = await supabase
+      const { data: sets, error: setsErr } = await supabase
         .from('sets')
         .select('logged_at')
         .eq('user_id', user.id)
         .gte('logged_at', threeDaysAgo.toISOString())
         .lte('logged_at', oneDayAgo.toISOString());
+      if (setsErr) throw setsErr;
 
       if (!sets || sets.length === 0) return [];
 
       const trainingDates = [...new Set(sets.map((s) => s.logged_at.slice(0, 10)))];
 
       // Check which dates already have soreness reports
-      const { data: existing } = await supabase
+      const { data: existing, error: existErr } = await supabase
         .from('soreness_reports')
         .select('training_date')
         .eq('user_id', user.id)
         .in('training_date', trainingDates);
+      if (existErr) throw existErr;
 
       const reportedDates = new Set((existing ?? []).map((r) => r.training_date));
       return trainingDates.filter((d) => !reportedDates.has(d));

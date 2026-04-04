@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
@@ -14,7 +15,7 @@ interface MuscleGroupSectionProps {
   exercises: Exercise[];
 }
 
-export function MuscleGroupSection({ muscleGroup, exercises }: MuscleGroupSectionProps) {
+export const MuscleGroupSection = memo(function MuscleGroupSection({ muscleGroup, exercises }: MuscleGroupSectionProps) {
   return (
     <Accordion
       defaultExpanded={false}
@@ -88,4 +89,4 @@ export function MuscleGroupSection({ muscleGroup, exercises }: MuscleGroupSectio
       </AccordionDetails>
     </Accordion>
   );
-}
+});

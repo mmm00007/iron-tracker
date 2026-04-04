@@ -24,21 +24,22 @@ from app.models.schemas import (
 # and Schoenfeld meta-analyses on dose-response for hypertrophy.
 # Volume landmarks per Israetel et al., RP Hypertrophy Guide (2023)
 
+# Keys MUST match muscle_groups.name from DB exactly (lowercase, from wger seed).
 VOLUME_LANDMARKS: dict[str, dict[str, float]] = {
-    "Chest": {"MV": 6, "MEV": 8, "MAV": 16, "MRV": 22},
-    "Lats": {"MV": 6, "MEV": 8, "MAV": 18, "MRV": 25},
-    "Trapezius": {"MV": 0, "MEV": 4, "MAV": 12, "MRV": 20},
-    "Shoulders": {"MV": 4, "MEV": 8, "MAV": 16, "MRV": 22},
-    "Biceps": {"MV": 4, "MEV": 6, "MAV": 14, "MRV": 20},
-    "Triceps": {"MV": 4, "MEV": 6, "MAV": 14, "MRV": 18},
-    "Quadriceps": {"MV": 6, "MEV": 8, "MAV": 16, "MRV": 20},
-    "Hamstrings": {"MV": 4, "MEV": 6, "MAV": 14, "MRV": 18},
-    "Glutes": {"MV": 0, "MEV": 4, "MAV": 16, "MRV": 20},
-    "Calves": {"MV": 6, "MEV": 8, "MAV": 14, "MRV": 20},
-    "Abdominals": {"MV": 0, "MEV": 4, "MAV": 16, "MRV": 20},
-    "Forearms": {"MV": 0, "MEV": 2, "MAV": 10, "MRV": 16},
-    "Lower Back": {"MV": 0, "MEV": 2, "MAV": 10, "MRV": 14},
-    "Obliques": {"MV": 0, "MEV": 2, "MAV": 12, "MRV": 16},
+    "chest": {"MV": 6, "MEV": 8, "MAV": 16, "MRV": 22},
+    "lats": {"MV": 6, "MEV": 10, "MAV": 18, "MRV": 25},
+    "traps": {"MV": 0, "MEV": 4, "MAV": 12, "MRV": 20},
+    "shoulders": {"MV": 6, "MEV": 8, "MAV": 16, "MRV": 22},
+    "biceps": {"MV": 4, "MEV": 6, "MAV": 14, "MRV": 20},
+    "triceps": {"MV": 4, "MEV": 6, "MAV": 14, "MRV": 18},
+    "quadriceps": {"MV": 6, "MEV": 10, "MAV": 16, "MRV": 20},
+    "hamstrings": {"MV": 4, "MEV": 6, "MAV": 14, "MRV": 18},
+    "glutes": {"MV": 0, "MEV": 4, "MAV": 12, "MRV": 20},
+    "calves": {"MV": 6, "MEV": 8, "MAV": 14, "MRV": 20},
+    "abs": {"MV": 0, "MEV": 4, "MAV": 16, "MRV": 20},
+    "forearms": {"MV": 0, "MEV": 2, "MAV": 10, "MRV": 16},
+    "lower back": {"MV": 0, "MEV": 2, "MAV": 10, "MRV": 14},
+    "adductors": {"MV": 0, "MEV": 2, "MAV": 12, "MRV": 16},
 }
 
 DEFAULT_LANDMARKS = {"MV": 4, "MEV": 6, "MAV": 14, "MRV": 20}

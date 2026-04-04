@@ -11,6 +11,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import CloseIcon from '@mui/icons-material/Close';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
 import type { WorkoutSet } from '@/types/database';
 import { checkDeloadNeeded, deriveWeeklyVolumes } from '@/utils/deloadDetection';
 import type { DeloadRecommendation } from '@/utils/deloadDetection';
@@ -264,9 +265,7 @@ export function DeloadBanner({ onStartDeload }: DeloadBannerProps) {
   const { data: recommendation } = useQuery<DeloadRecommendation | null>({
     queryKey: ['deloadCheck'],
     queryFn: async (): Promise<DeloadRecommendation | null> => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = useAuthStore.getState().user;
       if (!user) return null;
 
       const cutoff = new Date();

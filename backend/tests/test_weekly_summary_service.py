@@ -1,6 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock
-
-import pytest
+from unittest.mock import MagicMock
 
 from app.services.weekly_summary_service import generate_weekly_summaries
 

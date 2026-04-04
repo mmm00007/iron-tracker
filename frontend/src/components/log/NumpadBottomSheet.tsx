@@ -78,6 +78,9 @@ export function NumpadBottomSheet({
       open={open}
       onClose={onClose}
       PaperProps={{
+        role: 'dialog',
+        'aria-modal': true,
+        'aria-label': `Enter ${label}`,
         sx: {
           borderTopLeftRadius: 24,
           borderTopRightRadius: 24,
@@ -109,6 +112,8 @@ export function NumpadBottomSheet({
         </Typography>
         <Typography
           variant="h2"
+          aria-live="polite"
+          aria-atomic="true"
           sx={{
             color: 'text.primary',
             fontWeight: 700,
@@ -153,17 +158,17 @@ export function NumpadBottomSheet({
       )}
 
       {/* Numpad */}
-      <Box sx={{ px: 2, pb: 2 }}>
+      <Box sx={{ px: 2, pb: 2 }} role="group" aria-label={`Numpad for ${label}`}>
         {numpadRows.map((row, rowIdx) => (
           <Box
-            key={rowIdx}
+            key={row.join('-')}
             sx={{ display: 'flex', gap: 1, mb: rowIdx < numpadRows.length - 1 ? 1 : 0 }}
           >
-            {row.map((key, keyIdx) => {
+            {row.map((key) => {
               if (key === 'back') {
                 return (
                   <IconButton
-                    key={keyIdx}
+                    key="back"
                     onClick={handleBackspace}
                     sx={{
                       flex: 1,
@@ -182,14 +187,15 @@ export function NumpadBottomSheet({
 
               if (key === '') {
                 return (
-                  <Box key={keyIdx} sx={{ flex: 1, height: 56 }} />
+                  <Box key="empty" aria-hidden="true" sx={{ flex: 1, height: 56 }} />
                 );
               }
 
               return (
                 <Button
-                  key={keyIdx}
+                  key={key}
                   onClick={() => handleDigit(key)}
+                  aria-label={key === '.' ? 'Decimal point' : undefined}
                   sx={{
                     flex: 1,
                     height: 56,

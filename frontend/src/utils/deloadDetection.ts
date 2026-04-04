@@ -47,8 +47,9 @@ function groupByWeek(sets: WorkoutSet[]): Map<string, WorkoutSet[]> {
 /**
  * Determine whether the user should deload based on recent training data.
  *
- * Error on the side of caution — false positives (unnecessary deloads) are
- * worse than false negatives for most intermediate lifters.
+ * Error on the side of caution — requires 2+ triggers to recommend a deload.
+ * False negatives (missing a needed deload) carry injury risk, so we prefer
+ * slightly over-triggering to under-triggering.
  *
  * @param recentSets      All sets from the last 4–6 weeks
  * @param weeklyVolumes   Pre-computed weekly volume array (oldest → newest).
@@ -79,12 +80,22 @@ export function checkDeloadNeeded(
   const weekCount = sortedWeeks.length;
   const weeksByKey = groupByWeek(recentSets);
 
-  // ── Trigger 1: 4+ consecutive weeks of increasing volume ─────────────────────
+  // ── Trigger 1: 4+ consecutive calendar weeks of increasing volume ────────────
+  // Verify weeks are actually consecutive ISO weeks (differ by exactly 1 week).
+  // A gap (rest week) breaks the streak even if volume increases on either side.
   let consecutiveIncreases = 0;
   for (let i = weekCount - 1; i >= 1; i--) {
-    const curr = sortedWeeks[i]!.volume;
-    const prev = sortedWeeks[i - 1]!.volume;
-    if (curr > prev) {
+    const curr = sortedWeeks[i]!;
+    const prev = sortedWeeks[i - 1]!;
+
+    // Check that weeks are adjacent ISO weeks
+    const [currYr, currWk] = curr.week.split('-W').map(Number) as [number, number];
+    const [prevYr, prevWk] = prev.week.split('-W').map(Number) as [number, number];
+    const isConsecutive =
+      (currYr === prevYr && currWk === prevWk + 1) ||
+      (currYr === prevYr + 1 && currWk === 1 && prevWk >= 52);
+
+    if (isConsecutive && curr.volume > prev.volume) {
       consecutiveIncreases++;
     } else {
       break;
@@ -103,8 +114,8 @@ export function checkDeloadNeeded(
   if (week1Sets.length > 0 && week2Sets.length > 0) {
     const maxWeightWeek1 = Math.max(...week1Sets.map((s) => s.weight));
     const maxWeightWeek2 = Math.max(...week2Sets.map((s) => s.weight));
-    // Consider decline only if it's more than 3%
-    decliningPerformance = maxWeightWeek2 < maxWeightWeek1 * 0.97;
+    // 5% threshold accounts for day-to-day variance and Epley error (~5-10%)
+    decliningPerformance = maxWeightWeek2 < maxWeightWeek1 * 0.95;
   }
 
   // ── Trigger 3: Average RPE > 8.5 over last 2 weeks ───────────────────────────
@@ -173,7 +184,7 @@ export function checkDeloadNeeded(
       severity: 'moderate',
       reasoning: reasoningText,
       suggestion: {
-        volumeReduction: 0.45,
+        volumeReduction: 0.4,
         intensityReduction: 0.1,
         durationWeeks: 1,
       },

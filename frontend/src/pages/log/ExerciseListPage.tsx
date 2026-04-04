@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import Accordion from '@mui/material/Accordion';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import AccordionSummary from '@mui/material/AccordionSummary';
@@ -22,6 +22,7 @@ import StarIcon from '@mui/icons-material/Star';
 import { useNavigate } from '@tanstack/react-router';
 import { useFavoriteIds } from '@/hooks/useFavorites';
 
+const PAGE_SIZE = 50;
 const EQUIPMENT_TYPES = ['barbell', 'dumbbell', 'cable', 'machine', 'body only', 'bands', 'kettlebell'] as const;
 
 const EXERCISE_TYPE_FILTERS = [
@@ -262,6 +263,14 @@ export function ExerciseListPage() {
     return list;
   }, [exercisesQuery.data, equipmentFilter, muscleFilter, categoryFilter, showFavoritesOnly, favoriteIds]);
 
+  // Progressive loading — show PAGE_SIZE at a time to avoid rendering 800+ items
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  // Reset visible count when filters change
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [equipmentFilter, muscleFilter, categoryFilter, showFavoritesOnly]);
+
   const activeFilterCount = [equipmentFilter, muscleFilter, categoryFilter, showFavoritesOnly || null].filter(Boolean).length;
   const isFiltering = activeFilterCount > 0;
   const clearAllFilters = () => { setEquipmentFilter(null); setMuscleFilter(null); setCategoryFilter(null); setShowFavoritesOnly(false); };
@@ -269,7 +278,8 @@ export function ExerciseListPage() {
   const hasRecentExercises = (recentQuery.data?.length ?? 0) > 0;
   const hasAnyExercises = (exercisesQuery.data?.length ?? 0) > 0;
 
-  const isFirstTimeUser = !isLoading && !hasAnyExercises && !hasRecentExercises;
+  // Show onboarding if user has never logged a set (800+ exercises are seeded for everyone)
+  const isFirstTimeUser = !isLoading && !hasRecentExercises;
 
   // Compute active letters for the alphabet scrubber
   const activeLetters = useMemo(() => {
@@ -366,7 +376,7 @@ export function ExerciseListPage() {
               onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
               color={showFavoritesOnly ? 'warning' : 'default'}
               variant={showFavoritesOnly ? 'filled' : 'outlined'}
-              sx={{ fontSize: '0.7rem', height: 26 }}
+              sx={{ fontSize: '0.75rem', height: 32 }}
             />
           </Box>
 
@@ -382,7 +392,7 @@ export function ExerciseListPage() {
                     onClick={() => setEquipmentFilter(equipmentFilter === type ? null : type)}
                     color={equipmentFilter === type ? 'primary' : 'default'}
                     variant={equipmentFilter === type ? 'filled' : 'outlined'}
-                    sx={{ fontSize: '0.7rem', height: 26, flexShrink: 0 }}
+                    sx={{ fontSize: '0.75rem', height: 32, flexShrink: 0 }}
                   />
                 ))}
               </Stack>
@@ -397,7 +407,7 @@ export function ExerciseListPage() {
                     onClick={() => setCategoryFilter(categoryFilter === value ? null : value)}
                     color={categoryFilter === value ? 'info' : 'default'}
                     variant={categoryFilter === value ? 'filled' : 'outlined'}
-                    sx={{ fontSize: '0.7rem', height: 26, flexShrink: 0 }}
+                    sx={{ fontSize: '0.75rem', height: 32, flexShrink: 0 }}
                   />
                 ))}
               </Stack>
@@ -412,7 +422,7 @@ export function ExerciseListPage() {
                     onClick={() => setMuscleFilter(muscleFilter === mg.id ? null : mg.id)}
                     color={muscleFilter === mg.id ? 'secondary' : 'default'}
                     variant={muscleFilter === mg.id ? 'filled' : 'outlined'}
-                    sx={{ fontSize: '0.65rem', height: 24, flexShrink: 0 }}
+                    sx={{ fontSize: '0.7rem', height: 28, flexShrink: 0 }}
                   />
                 ))}
               </Stack>
@@ -424,6 +434,15 @@ export function ExerciseListPage() {
       {/* Content */}
       {isLoading ? (
         <LoadingSkeleton />
+      ) : exercisesQuery.isError ? (
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 6, gap: 2 }}>
+          <Typography variant="body1" color="error">
+            Couldn't load exercises
+          </Typography>
+          <Button variant="outlined" size="small" onClick={() => void exercisesQuery.refetch()}>
+            Retry
+          </Button>
+        </Box>
       ) : isFirstTimeUser ? (
         <EmptyState onSearchFocus={() => searchRef.current?.focus()} />
       ) : isSearching ? (
@@ -477,7 +496,7 @@ export function ExerciseListPage() {
                 gap: { xs: 0, md: 0.5 },
               }}
             >
-              {filteredExercises.map((exercise) => (
+              {filteredExercises.slice(0, visibleCount).map((exercise) => (
                 <ExerciseListItem
                   key={exercise.id}
                   exercise={exercise}
@@ -485,6 +504,17 @@ export function ExerciseListPage() {
                 />
               ))}
             </Box>
+            {filteredExercises.length > visibleCount && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                <Button
+                  size="small"
+                  onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                  sx={{ textTransform: 'none' }}
+                >
+                  Show more ({filteredExercises.length - visibleCount} remaining)
+                </Button>
+              </Box>
+            )}
           )}
         </Box>
       ) : (
@@ -589,7 +619,7 @@ export function ExerciseListPage() {
                     gap: { xs: 0, md: 0.5 },
                   }}
                 >
-                  {exercisesQuery.data?.map((exercise, idx) => {
+                  {exercisesQuery.data?.slice(0, visibleCount).map((exercise, idx) => {
                     const letter = exercise.name[0]?.toUpperCase() ?? '';
                     const prevLetter = idx > 0 ? exercisesQuery.data?.[idx - 1]?.name[0]?.toUpperCase() : '';
                     const isFirstOfLetter = letter !== prevLetter;
@@ -602,6 +632,17 @@ export function ExerciseListPage() {
                       </Box>
                     );
                   })}
+                  {(exercisesQuery.data?.length ?? 0) > visibleCount && (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 2, gridColumn: '1 / -1' }}>
+                      <Button
+                        size="small"
+                        onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                        sx={{ textTransform: 'none' }}
+                      >
+                        Show more ({(exercisesQuery.data?.length ?? 0) - visibleCount} remaining)
+                      </Button>
+                    </Box>
+                  )}
                 </Box>
                 <AlphabetScrubber
                   onLetterSelect={handleLetterSelect}

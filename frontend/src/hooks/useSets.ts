@@ -40,9 +40,7 @@ export function useTodaySets(exerciseId: string, dayStartHour = 4) {
   return useQuery<WorkoutSet[]>({
     queryKey: todaySetsKey(exerciseId),
     queryFn: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = useAuthStore.getState().user;
       if (!user) return [];
 
       const cutoff = trainingDayStart(dayStartHour);
@@ -70,9 +68,7 @@ export function useLastSet(exerciseId: string, variantId: string | null) {
   return useQuery<WorkoutSet | null>({
     queryKey: lastSetKey(exerciseId, variantId),
     queryFn: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = useAuthStore.getState().user;
       if (!user) return null;
 
       let query = supabase
@@ -112,7 +108,10 @@ export function useLogSet() {
     networkMode: 'offlineFirst',
 
     mutationFn: async (newSet: NewSet) => {
-      const { data, error } = await supabase.from('sets').insert(newSet).select().single();
+      // Strip user_id — let Supabase DEFAULT auth.uid() set it server-side.
+      // Defense-in-depth: prevents attribution to other users if RLS is ever misconfigured.
+      const { user_id: _dropped, ...safeSet } = newSet;
+      const { data, error } = await supabase.from('sets').insert(safeSet).select().single();
       if (error) throw error;
       return data as WorkoutSet;
     },
@@ -126,7 +125,7 @@ export function useLogSet() {
       // Optimistic placeholder — real id provided after server response
       const optimisticSet: WorkoutSet = {
         ...newSet,
-        id: `optimistic-${Date.now()}`,
+        id: crypto.randomUUID(),
         synced_at: null,
         estimated_1rm: null,
         tempo: null,

@@ -157,25 +157,35 @@ def _find_standard(
     # Choose the correct tables based on sex
     if bodyweight and bodyweight > 0:
         bw_table = _FEMALE_BW_RATIOS if sex == "female" else _MALE_BW_RATIOS
-        # Try BW-relative first
+        # Try BW-relative first: exact match, then longest substring match
         ratios = bw_table.get(lower)
         if ratios is None:
-            for key, r in bw_table.items():
-                if key in lower or lower in key:
-                    ratios = r
-                    break
+            ratios = _best_substring_match(lower, bw_table)
         if ratios:
             return [round(r * bodyweight, 1) for r in ratios]
 
-    # Fall back to absolute standards
+    # Fall back to absolute standards: exact match, then longest substring match
     abs_table = _FEMALE_STANDARDS if sex == "female" else _MALE_STANDARDS
 
     if lower in abs_table:
         return abs_table[lower]
-    for key, standards in abs_table.items():
-        if key in lower or lower in key:
-            return standards
-    return None
+    return _best_substring_match(lower, abs_table)
+
+
+def _best_substring_match(name: str, table: dict[str, list[float]]) -> list[float] | None:
+    """Find the best substring match, preferring the longest matching key.
+
+    Only matches when the standard key is a substring of the exercise name
+    (not the reverse — prevents "press" from matching "bench press").
+    Longest-key-wins avoids "press" beating "bench press" for "barbell bench press".
+    """
+    best_key: str | None = None
+    best_val: list[float] | None = None
+    for key, val in table.items():
+        if key in name and (best_key is None or len(key) > len(best_key)):
+            best_key = key
+            best_val = val
+    return best_val
 
 
 async def compute_strength_standards(

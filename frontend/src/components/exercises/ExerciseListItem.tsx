@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import Avatar from '@mui/material/Avatar';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -13,7 +14,7 @@ interface ExerciseListItemProps {
   lastLoggedInfo?: string;
 }
 
-export function ExerciseListItem({ exercise, lastLoggedInfo }: ExerciseListItemProps) {
+export const ExerciseListItem = memo(function ExerciseListItem({ exercise, lastLoggedInfo }: ExerciseListItemProps) {
   const navigate = useNavigate();
   const thumbUrl = exercise.image_urls?.[0];
 
@@ -35,6 +36,7 @@ export function ExerciseListItem({ exercise, lastLoggedInfo }: ExerciseListItemP
     >
       <ListItemButton
         onClick={handleClick}
+        aria-label={`Log ${exercise.name}`}
         sx={{
           borderRadius: '12px',
           pr: 5,
@@ -86,4 +88,4 @@ export function ExerciseListItem({ exercise, lastLoggedInfo }: ExerciseListItemP
       </ListItemButton>
     </ListItem>
   );
-}
+});

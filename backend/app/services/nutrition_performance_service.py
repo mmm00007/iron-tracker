@@ -139,16 +139,8 @@ def _aggregate_protein_buckets(
         if count == 0:
             continue
         avg_vol = round(sum(data["volumes"]) / count, 1)
-        avg_e1rm = (
-            round(sum(data["e1rms"]) / len(data["e1rms"]), 1)
-            if data["e1rms"]
-            else None
-        )
-        avg_rpe = (
-            round(sum(data["rpes"]) / len(data["rpes"]), 1)
-            if data["rpes"]
-            else None
-        )
+        avg_e1rm = round(sum(data["e1rms"]) / len(data["e1rms"]), 1) if data["e1rms"] else None
+        avg_rpe = round(sum(data["rpes"]) / len(data["rpes"]), 1) if data["rpes"] else None
         entries.append(
             NutritionBucketEntry(
                 bucket=name,

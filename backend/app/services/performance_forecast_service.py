@@ -26,9 +26,7 @@ from app.models.schemas import (
 )
 
 
-def _linear_regression_with_r2(
-    xs: list[float], ys: list[float]
-) -> tuple[float, float, float]:
+def _linear_regression_with_r2(xs: list[float], ys: list[float]) -> tuple[float, float, float]:
     """OLS regression returning (slope, intercept, r_squared)."""
     n = len(xs)
     if n < 2:

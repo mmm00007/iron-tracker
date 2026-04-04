@@ -9,10 +9,10 @@ from app.models.schemas import BodyPartBalanceResponse, PeriodizationResponse
 
 # ─── Push/pull muscle classification ─────────────────────────────────────────
 
-PUSH_MUSCLES = {"Chest", "Shoulders", "Triceps"}
-PULL_MUSCLES = {"Lats", "Biceps", "Forearms", "Trapezius", "Lower Back"}
-UPPER_MUSCLES = {"Chest", "Shoulders", "Triceps", "Lats", "Biceps", "Forearms", "Trapezius"}
-LOWER_MUSCLES = {"Quadriceps", "Hamstrings", "Glutes", "Calves"}
+PUSH_MUSCLES = {"chest", "shoulders", "triceps"}
+PULL_MUSCLES = {"lats", "biceps", "forearms", "traps", "lower back"}
+UPPER_MUSCLES = {"chest", "shoulders", "triceps", "lats", "biceps", "forearms", "traps"}
+LOWER_MUSCLES = {"quadriceps", "hamstrings", "glutes", "calves"}
 
 
 # ─── Periodization ──────────────────────────────────────────────────────────
@@ -99,7 +99,7 @@ async def compute_periodization(
         last_7.insert(0, 0.0)
 
     mean_vol = sum(last_7) / len(last_7)
-    variance = sum((v - mean_vol) ** 2 for v in last_7) / len(last_7)
+    variance = sum((v - mean_vol) ** 2 for v in last_7) / max(len(last_7) - 1, 1)
     std_vol = math.sqrt(variance) if variance > 0 else 0.0
 
     monotony = round(mean_vol / std_vol, 2) if std_vol > 0 else None

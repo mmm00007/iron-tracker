@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
 import type { Exercise, MuscleGroup } from '@/types/database';
 
 export interface ExerciseWithLastSet extends Exercise {
@@ -90,9 +91,7 @@ export function useRecentExercises() {
   return useQuery<ExerciseWithLastSet[]>({
     queryKey: ['exercises', 'recent'],
     queryFn: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = useAuthStore.getState().user;
 
       if (!user) return [];
 

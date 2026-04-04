@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
 import type { WorkoutSet, PersonalRecord, Exercise } from '@/types/database';
 import {
   weeklySnapshot,
@@ -22,9 +23,7 @@ type Period = 'week' | 'month' | '3months' | 'all';
 const ANALYTICS_COLUMNS = 'id,user_id,exercise_id,variant_id,weight,weight_unit,reps,rpe,rir,set_type,estimated_1rm,logged_at' as const;
 
 async function fetchUserSets(since?: Date, exerciseId?: string, limit = 2000): Promise<WorkoutSet[]> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = useAuthStore.getState().user;
   if (!user) return [];
 
   let query = supabase
@@ -107,9 +106,7 @@ export function useRecentPRs(period?: Period) {
   return useQuery<RecentPR[]>({
     queryKey: ['analytics', 'recentPRs', period ?? 'all'],
     queryFn: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = useAuthStore.getState().user;
       if (!user) return [];
 
       const since = period ? periodCutoff(period) : undefined;
@@ -181,9 +178,7 @@ export function useMuscleDistribution(period: Period) {
   return useQuery<MuscleDistributionEntry[]>({
     queryKey: ['analytics', 'muscleDistribution', period],
     queryFn: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = useAuthStore.getState().user;
       if (!user) return [];
 
       const since = periodCutoff(period);
@@ -384,9 +379,7 @@ export function useMuscleBalance(period: Period) {
   return useQuery<MuscleBalanceEntry[]>({
     queryKey: ['analytics', 'muscleBalance', period],
     queryFn: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = useAuthStore.getState().user;
       if (!user) return [];
 
       const since = periodCutoff(period);
@@ -400,14 +393,16 @@ export function useMuscleBalance(period: Period) {
 
       // Fetch exercise-muscle mappings
       const exerciseIds = [...new Set(sets.map((s) => s.exercise_id))];
-      const { data: muscles } = await supabase
+      const { data: muscles, error: muscleErr } = await supabase
         .from('exercise_muscles')
         .select('exercise_id, muscle_group_id, is_primary')
         .in('exercise_id', exerciseIds);
+      if (muscleErr) throw muscleErr;
 
-      const { data: muscleGroups } = await supabase
+      const { data: muscleGroups, error: mgErr } = await supabase
         .from('muscle_groups')
         .select('id, name');
+      if (mgErr) throw mgErr;
 
       const muscleGroupMap = new Map<number, string>(
         (muscleGroups ?? []).map((mg) => [mg.id, mg.name]),
@@ -513,9 +508,7 @@ export function useExerciseHistory(exerciseId: string, variantId?: string | null
   return useQuery<ExerciseHistorySet[]>({
     queryKey: ['analytics', 'exerciseHistory', exerciseId, variantId ?? 'all'],
     queryFn: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = useAuthStore.getState().user;
       if (!user) return [];
 
       let query = supabase
@@ -539,10 +532,11 @@ export function useExerciseHistory(exerciseId: string, variantId?: string | null
       let variantNameMap = new Map<string, string>();
 
       if (variantIds.length > 0) {
-        const { data: variants } = await supabase
+        const { data: variants, error: varErr } = await supabase
           .from('equipment_variants')
           .select('id, name')
           .in('id', variantIds);
+        if (varErr) throw varErr;
 
         if (variants) {
           variantNameMap = new Map(variants.map((v) => [v.id, v.name]));

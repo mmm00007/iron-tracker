@@ -193,9 +193,7 @@ async def compute_mesocycle_effectiveness(
 
     # ── Find global max volume for normalization ─────────────────────────────
 
-    all_total_volumes = [
-        sum(d["volumes"]) for d in meso_data.values() if d["volumes"]
-    ]
+    all_total_volumes = [sum(d["volumes"]) for d in meso_data.values() if d["volumes"]]
     global_max_volume = max(all_total_volumes) if all_total_volumes else 1.0
 
     # ── Build entries ─────────────────────────────────────────────────────────

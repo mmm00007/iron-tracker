@@ -130,16 +130,8 @@ def _aggregate_buckets(
         if count == 0:
             continue
         avg_vol = round(sum(data["volumes"]) / count, 1)
-        avg_e1rm = (
-            round(sum(data["e1rms"]) / len(data["e1rms"]), 1)
-            if data["e1rms"]
-            else None
-        )
-        avg_rpe = (
-            round(sum(data["rpes"]) / len(data["rpes"]), 1)
-            if data["rpes"]
-            else None
-        )
+        avg_e1rm = round(sum(data["e1rms"]) / len(data["e1rms"]), 1) if data["e1rms"] else None
+        avg_rpe = round(sum(data["rpes"]) / len(data["rpes"]), 1) if data["rpes"] else None
         entries.append(
             SleepBucketEntry(
                 bucket=name,
@@ -224,21 +216,12 @@ async def compute_sleep_performance(
     # ── Extract parallel arrays ───────────────────────────────────────────
     sleep_vals: list[float] = [float(r["sleep_hours"]) for r in rows]
     volume_vals: list[float] = [
-        float(r["session_volume_kg"]) if r["session_volume_kg"] is not None else 0.0
-        for r in rows
+        float(r["session_volume_kg"]) if r["session_volume_kg"] is not None else 0.0 for r in rows
     ]
-    e1rm_vals: list[float] = [
-        float(r["best_e1rm"]) for r in rows if r["best_e1rm"] is not None
-    ]
-    e1rm_sleep: list[float] = [
-        float(r["sleep_hours"]) for r in rows if r["best_e1rm"] is not None
-    ]
-    rpe_vals: list[float] = [
-        float(r["session_rpe"]) for r in rows if r["session_rpe"] is not None
-    ]
-    rpe_sleep: list[float] = [
-        float(r["sleep_hours"]) for r in rows if r["session_rpe"] is not None
-    ]
+    e1rm_vals: list[float] = [float(r["best_e1rm"]) for r in rows if r["best_e1rm"] is not None]
+    e1rm_sleep: list[float] = [float(r["sleep_hours"]) for r in rows if r["best_e1rm"] is not None]
+    rpe_vals: list[float] = [float(r["session_rpe"]) for r in rows if r["session_rpe"] is not None]
+    rpe_sleep: list[float] = [float(r["sleep_hours"]) for r in rows if r["session_rpe"] is not None]
 
     # ── Spearman correlations ─────────────────────────────────────────────
     corr_volume = _spearman(sleep_vals, volume_vals)

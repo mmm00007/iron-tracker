@@ -24,7 +24,7 @@ docs/              → Design docs (PRD, Design Doc, UI/UX Spec, Implementation 
 
 | Layer | Tech |
 |-------|------|
-| Frontend | React 18, Vite, TypeScript, MUI v6 (MD3 theme), TanStack Router + Query, Zustand, Recharts, Nivo |
+| Frontend | React 18, Vite, TypeScript, MUI v6 (MD3 theme), TanStack Router + Query, Zustand, Recharts |
 | Backend | Python 3.12, FastAPI, Pydantic v2, asyncpg, httpx, pytest |
 | Database | Supabase PostgreSQL 15 + Auth + RLS |
 | AI | Claude Sonnet via FastAPI proxy (machine photo ID, coaching) |

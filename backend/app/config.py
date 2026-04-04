@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,6 +16,14 @@ class Settings(BaseSettings):
     AI_RATE_LIMIT_PER_DAY: int = 10
     DEBUG: bool = False
     CRON_SECRET: str = ""
+
+    @field_validator("CRON_SECRET")
+    @classmethod
+    def validate_cron_secret(cls, v: str) -> str:
+        """Require minimum 32 non-whitespace chars when set."""
+        if v and (len(v.strip()) < 32):
+            raise ValueError("CRON_SECRET must be at least 32 non-whitespace characters when set")
+        return v
 
     # Feature flags (all default to True; set to "false" via env var to disable)
     FLAG_PLANS: bool = True

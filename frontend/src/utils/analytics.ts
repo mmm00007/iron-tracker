@@ -18,8 +18,10 @@ import type { WorkoutSet } from '@/types/database';
 export function computeE1RM(weight: number, reps: number): number {
   if (weight <= 0 || reps <= 0) return 0;
   if (reps === 1) return weight;
-  // Epley: weight × (1 + reps/30)
-  return weight * (1 + reps / 30);
+  // Epley: weight × (1 + reps/30). Unreliable above 12 reps (Mayhew 1995)
+  // — clamp to 12 to avoid nonsensical estimates from high-rep sets.
+  const effectiveReps = Math.min(reps, 12);
+  return weight * (1 + effectiveReps / 30);
 }
 
 // ─── ISO week helpers ──────────────────────────────────────────────────────────
@@ -346,6 +348,16 @@ export interface PRRecord {
 
 const PR_REP_RANGES = [1, 3, 5, 8, 10];
 
+// Each rep range bucket accepts sets within a window, preventing a 1RM from
+// dominating all buckets. E.g., a 3RM bucket only accepts sets of 2-3 reps.
+const PR_REP_WINDOWS: Record<number, [number, number]> = {
+  1: [1, 1],
+  3: [2, 3],
+  5: [4, 5],
+  8: [6, 8],
+  10: [9, 12],
+};
+
 /**
  * Returns personal records across rep ranges for a given exercise.
  */
@@ -371,7 +383,9 @@ export function computeStreak(sets: WorkoutSet[]): TrainingStreakResult {
   // Unique training days, sorted ascending
   const days = [...new Set(sets.map((s) => s.logged_at.slice(0, 10)))].sort();
   const today = new Date().toISOString().slice(0, 10);
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const _yd = new Date();
+  _yd.setDate(_yd.getDate() - 1);
+  const yesterday = _yd.toISOString().slice(0, 10);
 
   // Current day streak — count backwards from today or yesterday
   let dayStreak = 0;
@@ -422,10 +436,12 @@ export function computeStreak(sets: WorkoutSet[]): TrainingStreakResult {
         const yr = Number(parts[0]);
         const wk = Number(parts[1]);
         if (wk === 1) {
-          weekCursor = `${yr - 1}-W52`;
-          if (!weeks.includes(weekCursor)) {
-            weekCursor = `${yr - 1}-W53`;
-          }
+          // Determine the last ISO week of the prior year using the Dec 28
+          // method: Dec 28 is always in the last ISO week of its year.
+          const priorYear = yr - 1;
+          const dec28 = new Date(Date.UTC(priorYear, 11, 28));
+          const lastWeek = Number(isoWeek(dec28).split('-W')[1]);
+          weekCursor = `${priorYear}-W${String(lastWeek).padStart(2, '0')}`;
         } else {
           weekCursor = `${yr}-W${String(wk - 1).padStart(2, '0')}`;
         }
@@ -488,12 +504,14 @@ export function exercisePRs(sets: WorkoutSet[], exerciseId: string): PRRecord[] 
   const records = new Map<number, PRRecord>();
 
   for (const set of filtered) {
-    // For each rep range, check if this set qualifies (reps ≤ repRange)
+    // Each rep range bucket uses a windowed range to prevent 1RM from
+    // dominating all buckets. E.g., 5RM only accepts sets of 4-5 reps.
     for (const repRange of PR_REP_RANGES) {
-      if (set.reps > repRange) continue;
+      const [minReps, maxReps] = PR_REP_WINDOWS[repRange];
+      if (set.reps < minReps || set.reps > maxReps) continue;
       const e1rm = computeE1RM(set.weight, set.reps);
       const existing = records.get(repRange);
-      if (!existing || set.weight > existing.weight) {
+      if (!existing || e1rm > existing.e1rm) {
         records.set(repRange, {
           repRange,
           weight: set.weight,

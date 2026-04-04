@@ -75,7 +75,7 @@ function StepperBtn({ label, onClick, secondary = false, disabled = false }: Ste
       disabled={disabled}
       sx={{
         minWidth: 52,
-        height: 44,
+        height: 48,
         borderRadius: '12px',
         fontSize: '0.8rem',
         fontWeight: 600,
@@ -134,6 +134,9 @@ export function SetLoggerPage() {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [lastLoggedSetId, setLastLoggedSetId] = useState<string | null>(null);
 
+  // Snackbar state — error feedback
+  const [errorSnackbarOpen, setErrorSnackbarOpen] = useState(false);
+
   // Snackbar state — "Set deleted" undo (soft delete)
   const [deleteSnackbarOpen, setDeleteSnackbarOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -141,6 +144,10 @@ export function SetLoggerPage() {
 
   // PR detection via dedicated hook (saves PRs to database)
   const { checkAndSavePRs, latestPRResult, clearPRResult } = usePRDetection(exerciseId, selectedVariantId);
+
+  // Synchronous guard against double-submission (covers the 1-2 frame gap
+  // before React re-renders with isPending: true)
+  const isSubmittingRef = useRef(false);
 
   // ── Data fetching ──────────────────────────────────────────────────────────
 
@@ -220,36 +227,45 @@ export function SetLoggerPage() {
   // ── Log set handler ───────────────────────────────────────────────────────
 
   const handleLogSet = async () => {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+
     // Close any existing "Set logged" snackbar to prevent undo targeting the wrong set
     setSnackbarOpen(false);
 
     const user = useAuthStore.getState().user;
-    if (!user) return;
+    if (!user) { isSubmittingRef.current = false; return; }
 
-    const loggedSet = await logSetMutation.mutateAsync({
-      user_id: user.id,
-      exercise_id: exerciseId,
-      variant_id: selectedVariantId,
-      weight: currentWeight,
-      weight_unit: weightUnit,
-      reps: currentReps,
-      rpe: currentRpe,
-      set_type: currentSetType,
-      notes: currentNotes || null,
-      logged_at: new Date().toISOString(),
-    });
-
-    setLastLoggedSetId(loggedSet.id);
-    setSnackbarOpen(true);
-    triggerHaptic(50);
-    startRestTimer(getRestDuration(exercise?.category ?? null));
-    resetUserEdited();
-
-    // PR check + save via dedicated hook (persists to database)
     try {
-      await checkAndSavePRs(loggedSet);
+      const loggedSet = await logSetMutation.mutateAsync({
+        user_id: user.id,
+        exercise_id: exerciseId,
+        variant_id: selectedVariantId,
+        weight: currentWeight,
+        weight_unit: weightUnit,
+        reps: currentReps,
+        rpe: currentRpe,
+        set_type: currentSetType,
+        notes: currentNotes || null,
+        logged_at: new Date().toISOString(),
+      });
+
+      setLastLoggedSetId(loggedSet.id);
+      setSnackbarOpen(true);
+      triggerHaptic(50);
+      startRestTimer(getRestDuration(exercise?.category ?? null));
+      resetUserEdited();
+
+      // PR check + save via dedicated hook (persists to database)
+      try {
+        await checkAndSavePRs(loggedSet);
+      } catch {
+        // PR check is best-effort — never block the happy path
+      }
     } catch {
-      // PR check is best-effort — never block the happy path
+      setErrorSnackbarOpen(true);
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 
@@ -778,6 +794,31 @@ export function SetLoggerPage() {
             sx={{ color: 'primary.light', fontWeight: 700 }}
           >
             Undo
+          </Button>
+        }
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ bottom: { xs: 80 } }}
+      />
+
+      {/* ── Error Snackbar ─────────────────────────────────────────────────── */}
+      <Snackbar
+        open={errorSnackbarOpen}
+        autoHideDuration={5000}
+        onClose={(_event, reason) => {
+          if (reason === 'clickaway') return;
+          setErrorSnackbarOpen(false);
+        }}
+        message="Couldn't save set — please try again"
+        action={
+          <Button
+            size="small"
+            onClick={() => {
+              setErrorSnackbarOpen(false);
+              void handleLogSet();
+            }}
+            sx={{ color: 'error.light', fontWeight: 700 }}
+          >
+            Retry
           </Button>
         }
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}

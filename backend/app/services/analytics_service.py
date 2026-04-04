@@ -3,8 +3,6 @@ from datetime import UTC, date, datetime, timedelta
 import asyncpg
 
 from app.models.schemas import ExerciseE1RM, WeeklySummary
-from app.services.utils import epley as _epley
-
 
 # ─── Weekly summary ───────────────────────────────────────────────────────────
 

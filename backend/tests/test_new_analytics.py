@@ -10,7 +10,7 @@ Services tested:
 """
 
 from datetime import UTC, date, datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -344,9 +344,7 @@ def test_regression_with_r2_perfect_line() -> None:
 
 
 def test_regression_with_r2_noisy() -> None:
-    slope, _, r2 = _linear_regression_with_r2(
-        [0.0, 1.0, 2.0, 3.0], [10.0, 15.0, 11.0, 14.0]
-    )
+    slope, _, r2 = _linear_regression_with_r2([0.0, 1.0, 2.0, 3.0], [10.0, 15.0, 11.0, 14.0])
     assert r2 < 0.5  # Noisy data should have low R²
 
 
@@ -373,12 +371,14 @@ async def test_forecast_with_progression(mock_db_pool: MagicMock) -> None:
         day = base + timedelta(weeks=i)
         weight = 80.0 + i * 2.5
         e1rm = weight * (1 + 5 / 30)  # Epley for 5 reps
-        rows.append({
-            "exercise_id": "ex-bench",
-            "exercise_name": "Bench Press",
-            "estimated_1rm": e1rm,
-            "day": day,
-        })
+        rows.append(
+            {
+                "exercise_id": "ex-bench",
+                "exercise_name": "Bench Press",
+                "estimated_1rm": e1rm,
+                "day": day,
+            }
+        )
 
     mock_db_pool._conn.fetch.return_value = rows
     result = await compute_performance_forecast(FAKE_USER_ID, mock_db_pool)
@@ -402,12 +402,14 @@ async def test_forecast_milestones(mock_db_pool: MagicMock) -> None:
         day = base + timedelta(weeks=i)
         weight = 70.0 + i * 2.5
         e1rm = weight * (1 + 5 / 30)  # Epley for 5 reps
-        rows.append({
-            "exercise_id": "ex-bench",
-            "exercise_name": "Bench Press",
-            "estimated_1rm": e1rm,
-            "day": day,
-        })
+        rows.append(
+            {
+                "exercise_id": "ex-bench",
+                "exercise_name": "Bench Press",
+                "estimated_1rm": e1rm,
+                "day": day,
+            }
+        )
 
     mock_db_pool._conn.fetch.return_value = rows
     result = await compute_performance_forecast(FAKE_USER_ID, mock_db_pool)
@@ -554,9 +556,7 @@ def test_fitness_fatigue_endpoint(adv_client: TestClient, mock_db_pool: MagicMoc
     assert "preparedness" in data
 
 
-def test_dashboard_includes_new_metrics(
-    adv_client: TestClient, mock_db_pool: MagicMock
-) -> None:
+def test_dashboard_includes_new_metrics(adv_client: TestClient, mock_db_pool: MagicMock) -> None:
     """Dashboard should now include all 13 metrics (7 original + 6 new)."""
     mock_db_pool._conn.fetch.return_value = []
     mock_db_pool._conn.fetch.side_effect = None

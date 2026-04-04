@@ -7,6 +7,7 @@ export function BottomNav({ activeTab, onChange }: NavProps) {
   return (
     <Box
       component="nav"
+      aria-label="Main navigation"
       sx={{
         position: 'fixed',
         bottom: 0,
@@ -22,6 +23,7 @@ export function BottomNav({ activeTab, onChange }: NavProps) {
             label={tab.label}
             value={tab.value}
             icon={tab.icon}
+            aria-current={activeTab === tab.value ? 'page' : undefined}
             sx={{
               '&.Mui-selected': {
                 '& .MuiBottomNavigationAction-label': { color: 'primary.main' },

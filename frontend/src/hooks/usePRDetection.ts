@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
 import type { PersonalRecord, WorkoutSet } from '@/types/database';
 import {
   checkForPRs,
@@ -20,9 +21,7 @@ const prQueryKey = (exerciseId: string, variantId: string | null) => [
 // ─── Fetch PRs from Supabase ──────────────────────────────────────────────────
 
 async function fetchPRs(exerciseId: string, variantId: string | null): Promise<PersonalRecord[]> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = useAuthStore.getState().user;
   if (!user) return [];
 
   let query = supabase
@@ -112,9 +111,7 @@ export function usePRDetection(
 
   const checkAndSavePRs = useCallback(
     async (set: WorkoutSet): Promise<PRCheckResult> => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = useAuthStore.getState().user;
 
       // Filter to the right exercise+variant (defensive, should already be filtered)
       const relevantPRs = filterPRsForExercise(existingPRs, exerciseId, variantId);
@@ -131,6 +128,14 @@ export function usePRDetection(
 
       if (result.isPR && user) {
         try {
+          const prRows = buildPRRows(result, {
+            userId: user.id,
+            exerciseId: set.exercise_id,
+            variantId: set.variant_id,
+            setId: set.id,
+            achievedAt: set.logged_at,
+          });
+
           await savePRs(result, {
             userId: user.id,
             exerciseId: set.exercise_id,
@@ -138,7 +143,30 @@ export function usePRDetection(
             setId: set.id,
             achievedAt: set.logged_at,
           });
-          // Invalidate to keep the PR list fresh
+
+          // Optimistically update the local PR cache so rapid back-to-back
+          // set logs see the freshly saved PR instead of a stale closure value.
+          queryClient.setQueryData<PersonalRecord[]>(
+            prQueryKey(exerciseId, variantId),
+            (old = []) => {
+              const updated = [...old];
+              for (const row of prRows) {
+                const idx = updated.findIndex(
+                  (pr) =>
+                    pr.record_type === row.record_type &&
+                    pr.rep_count === row.rep_count,
+                );
+                if (idx >= 0) {
+                  updated[idx] = { ...updated[idx]!, ...row } as PersonalRecord;
+                } else {
+                  updated.push(row as PersonalRecord);
+                }
+              }
+              return updated;
+            },
+          );
+
+          // Background refetch to sync with server
           void queryClient.invalidateQueries({
             queryKey: prQueryKey(exerciseId, variantId),
           });

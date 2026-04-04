@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
 import type { WorkoutSet } from '@/types/database';
 import { groupSetsIntoSessions } from '@/utils/sessionGrouping';
 import type { SessionGroup } from '@/utils/sessionGrouping';
@@ -58,9 +59,7 @@ export function useSessions(page = 0) {
   return useQuery<SessionGroup[]>({
     queryKey: ['sessions', page],
     queryFn: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = useAuthStore.getState().user;
       if (!user) return [];
 
       const sets = await fetchSetsWithNames(user.id, page);
@@ -78,9 +77,7 @@ export function useSessionSets(startedAt: string, endedAt: string) {
   return useQuery<SetWithExerciseName[]>({
     queryKey: ['session-sets', startedAt, endedAt],
     queryFn: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = useAuthStore.getState().user;
       if (!user) return [];
 
       const { data, error } = await supabase

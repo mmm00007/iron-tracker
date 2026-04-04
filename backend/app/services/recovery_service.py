@@ -17,7 +17,7 @@ RECOVERY_HOURS: dict[str, float] = {
     "hamstrings": 72,
     "glutes": 72,
     "lats": 72,
-    "lower back": 72,
+    "lower back": 96,
     "chest": 56,
     "shoulders": 56,
     "traps": 56,
@@ -65,13 +65,23 @@ def _recovery_status(hours_since: float, expected_hours: float, soreness: int | 
 
 
 def _readiness_score(muscles: list[MuscleRecoveryEntry]) -> int:
-    """Compute overall readiness score (0-100)."""
+    """Compute overall readiness score (0-100).
+
+    Returns -1 when no training data exists, signaling that the recovery
+    dimension should be marked as unavailable in the composite score.
+    """
     if not muscles:
-        return 100  # No data = assume fresh
+        return -1  # No data — dimension unavailable
 
     status_scores = {"fresh": 100, "recovered": 70, "fatigued": 30, "at_risk": 10}
+    # Use minimum-takes-precedence for at_risk: one injured muscle should
+    # dominate the score rather than being averaged away.
+    has_at_risk = any(m.recovery_status == "at_risk" for m in muscles)
     total = sum(status_scores.get(m.recovery_status, 50) for m in muscles)
-    return min(100, max(0, round(total / len(muscles))))
+    score = min(100, max(0, round(total / len(muscles))))
+    if has_at_risk:
+        score = min(score, 40)  # Cap at "fatigued" when any muscle is at_risk
+    return score
 
 
 def _readiness_label(score: int) -> str:
@@ -157,7 +167,10 @@ async def compute_recovery(
     status_order = {"at_risk": 0, "fatigued": 1, "recovered": 2, "fresh": 3}
     entries.sort(key=lambda e: status_order.get(e.recovery_status, 4))
 
-    score = _readiness_score(entries)
+    raw_score = _readiness_score(entries)
+    # -1 means no data — default to neutral for display, but the composite
+    # score service checks len(muscles) to mark the dimension unavailable.
+    score = raw_score if raw_score >= 0 else 50
 
     return RecoveryResponse(
         readiness_score=score,

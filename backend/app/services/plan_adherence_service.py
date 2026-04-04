@@ -14,10 +14,9 @@ beyond the plan, which may indicate poor autoregulation or plan mismatch.
 """
 
 from datetime import UTC, datetime, timedelta
+from functools import partial
 
 import asyncpg
-
-from functools import partial
 
 from app.models.schemas import AdherenceWeekEntry, PlanAdherenceResponse
 from app.services.utils import linear_regression
@@ -112,9 +111,7 @@ async def compute_plan_adherence(
     # Linear regression on weekly adherence ratios
     xs = list(range(len(week_entries)))
     ys = [w.avg_adherence for w in week_entries]
-    slope, _intercept = _linear_regression(
-        [float(x) for x in xs], ys
-    )
+    slope, _intercept = _linear_regression([float(x) for x in xs], ys)
     trend_direction = _classify_trend(slope)
 
     # Burnout risk: steep decline + high recent RPE

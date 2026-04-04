@@ -1,7 +1,7 @@
 """Tests for advanced analytics services and endpoints."""
 
 from datetime import UTC, date, datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -377,7 +377,14 @@ async def test_session_quality_with_data(mock_db_pool: MagicMock) -> None:
             "reps": 5,
             "estimated_1rm": 100,
         },
-        {"set_type": "amrap", "rpe": 9.0, "rir": 1.0, "weight": 90, "reps": 3, "estimated_1rm": 100},
+        {
+            "set_type": "amrap",
+            "rpe": 9.0,
+            "rir": 1.0,
+            "weight": 90,
+            "reps": 3,
+            "estimated_1rm": 100,
+        },
         {
             "set_type": "working",
             "rpe": 4.0,

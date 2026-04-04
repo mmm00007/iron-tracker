@@ -21,6 +21,15 @@ export interface PRCheckResult {
 /** Rep counts for rep_max PR tracking */
 const REP_MAX_COUNTS = [1, 3, 5, 8, 10] as const;
 
+/** Windowed rep ranges — matches exercisePRs() in analytics.ts */
+const REP_WINDOWS: Record<number, [number, number]> = {
+  1: [1, 1],
+  3: [2, 3],
+  5: [4, 5],
+  8: [6, 8],
+  10: [9, 12],
+};
+
 // ─── Core check ────────────────────────────────────────────────────────────────
 
 /**
@@ -76,8 +85,11 @@ export function checkForPRs(
 
   // ── 2. Rep-max at specific rep counts ─────────────────────────────────────────
   for (const repCount of REP_MAX_COUNTS) {
-    // A set at exactly `repCount` reps (strict) qualifies as a rep-max for that count
-    if (newSet.reps === repCount) {
+    // Windowed rep ranges — a set must fall within the bucket's range.
+    // E.g., 5RM bucket only accepts 4-5 rep sets. Prevents 1RM from
+    // dominating all buckets. Matches exercisePRs() in analytics.ts.
+    const [minReps, maxReps] = REP_WINDOWS[repCount];
+    if (newSet.reps >= minReps && newSet.reps <= maxReps) {
       const prevRepMax = findExisting('rep_max', repCount);
       if (prevRepMax === null || newSet.weight > prevRepMax) {
         records.push({

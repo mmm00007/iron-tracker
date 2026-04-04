@@ -155,9 +155,7 @@ async def compute_bilateral_asymmetry(
     flagged = [e for e in exercises if e.asymmetry_pct >= 8]
     normal = [e for e in exercises if e.asymmetry_pct < 8]
     avg_asymmetry = (
-        round(sum(e.asymmetry_pct for e in exercises) / len(exercises), 1)
-        if exercises
-        else None
+        round(sum(e.asymmetry_pct for e in exercises) / len(exercises), 1) if exercises else None
     )
 
     return BilateralAsymmetryResponse(

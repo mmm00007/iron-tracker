@@ -8,7 +8,7 @@ export const DATA_LARGE = { fontFamily: DATA_FONT, fontSize: 'clamp(1.25rem, 4vw
 export const DATA_SMALL = { fontFamily: DATA_FONT, fontSize: 'clamp(0.6875rem, 2vw, 0.875rem)', fontWeight: 600 } as const;
 
 // ─── Chart axis color (WCAG AA on card surfaces) ───────────────────────────
-export const CHART_AXIS_COLOR = '#8E96A4';
+export const CHART_AXIS_COLOR = '#A0AAB8';
 
 // ─── Chart color palette (consistent across all visualizations) ──────────────
 export const CHART_COLORS = {
@@ -83,16 +83,18 @@ const darkPalette = {
     main: '#F9A825',
     light: '#FBC02D',
     dark: '#F57F17',
+    contrastText: '#1A1400',
   },
   success: {
     main: '#5BEAA2',
     light: '#8AF0BF',
     dark: '#2DBD75',
+    contrastText: '#003822',
   },
   text: {
     primary: '#EAEEF4',
     secondary: '#A0AAB8',
-    disabled: '#8E96A4',
+    disabled: '#9CA5B4',
   },
   divider: 'rgba(160, 170, 184, 0.10)',
   prGold: {
@@ -147,7 +149,7 @@ const lightPalette = {
   text: {
     primary: '#111820',
     secondary: '#4A5568',
-    disabled: '#94A3B8',
+    disabled: '#6B7280',
   },
   divider: 'rgba(17, 24, 32, 0.10)',
   prGold: {

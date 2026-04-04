@@ -39,9 +39,9 @@ from app.models.schemas import (
 
 # Banister impulse-response model (Banister 1991, Busso 2003)
 TAU_FITNESS = 42.0  # days
-TAU_FATIGUE = 7.0   # days
-K_FITNESS = 1.0     # fitness gain coefficient
-K_FATIGUE = 2.0     # fatigue gain coefficient (higher: fatigue responds more)
+TAU_FATIGUE = 7.0  # days
+K_FITNESS = 1.0  # fitness gain coefficient
+K_FATIGUE = 2.0  # fatigue gain coefficient (higher: fatigue responds more)
 
 
 def _preparedness_label(preparedness: float, fitness: float) -> str:

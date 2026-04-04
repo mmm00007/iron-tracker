@@ -137,8 +137,7 @@ async def compute_antagonist_balance(
 
     # Build a lookup: muscle_group_id -> weighted_volume
     volume_map: dict[str, float] = {
-        str(row["muscle_group_id"]): float(row["weighted_volume"])
-        for row in volume_rows
+        str(row["muscle_group_id"]): float(row["weighted_volume"]) for row in volume_rows
     }
 
     # 3. Match volumes to pairs and compute ratios
@@ -190,9 +189,7 @@ async def compute_antagonist_balance(
             )
         )
 
-    imbalanced = [
-        e for e in entries if e.status in ("moderate_imbalance", "significant_imbalance")
-    ]
+    imbalanced = [e for e in entries if e.status in ("moderate_imbalance", "significant_imbalance")]
     balanced = [e for e in entries if e.status == "balanced"]
 
     return AntagonistBalanceResponse(

@@ -67,8 +67,7 @@ async def compute_time_performance(
     async with db_pool.acquire() as conn:
         # 1. Resolve user timezone
         tz_row = await conn.fetchrow(
-            "SELECT COALESCE(timezone, 'UTC') AS timezone "
-            "FROM profiles WHERE id = $1",
+            "SELECT COALESCE(timezone, 'UTC') AS timezone FROM profiles WHERE id = $1",
             user_id,
         )
         user_tz = tz_row["timezone"] if tz_row else "UTC"
@@ -191,9 +190,7 @@ async def compute_time_performance(
     best_window_advantage_pct: float | None = None
 
     if qualifying_e1rms:
-        sorted_windows = sorted(
-            qualifying_e1rms.items(), key=lambda x: x[1], reverse=True
-        )
+        sorted_windows = sorted(qualifying_e1rms.items(), key=lambda x: x[1], reverse=True)
         best_window = sorted_windows[0][0]
         if len(sorted_windows) >= 2:
             second_best_e1rm = sorted_windows[1][1]

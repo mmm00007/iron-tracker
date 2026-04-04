@@ -62,6 +62,13 @@ class AnalysisRequest(BaseModel):
     def validate_iso_date(cls, v: str) -> str:
         if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", v):
             raise ValueError("Must be ISO date YYYY-MM-DD")
+        # Verify it's an actual calendar date (e.g., reject 2024-02-30)
+        from datetime import date as _date
+
+        try:
+            _date.fromisoformat(v)
+        except ValueError:
+            raise ValueError(f"Invalid calendar date: {v}")
         return v
 
 

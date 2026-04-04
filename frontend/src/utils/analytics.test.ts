@@ -58,9 +58,9 @@ describe('computeE1RM', () => {
     expect(computeE1RM(100, -1)).toBe(0);
   });
 
-  it('handles high rep counts', () => {
-    // 50 * (1 + 20/30) = 50 * 1.6667 = 83.33
-    expect(computeE1RM(50, 20)).toBeCloseTo(83.33, 1);
+  it('clamps reps to 12 for high rep counts', () => {
+    // Reps clamped to 12: 50 * (1 + 12/30) = 50 * 1.4 = 70.0
+    expect(computeE1RM(50, 20)).toBeCloseTo(70.0, 1);
   });
 });
 

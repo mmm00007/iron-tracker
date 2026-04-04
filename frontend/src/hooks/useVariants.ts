@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
 import type { EquipmentVariant, GymMachine } from '@/types/database';
 
 // Query key factories
@@ -14,9 +15,7 @@ export function useVariants(exerciseId: string) {
   return useQuery<EquipmentVariant[]>({
     queryKey: VARIANTS_KEY(exerciseId),
     queryFn: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = useAuthStore.getState().user;
 
       if (!user) return [];
 
@@ -43,9 +42,7 @@ export function useCreateVariant() {
     mutationFn: async (
       input: Omit<EquipmentVariant, 'id' | 'user_id' | 'created_at' | 'last_used_at'>
     ) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = useAuthStore.getState().user;
       if (!user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
@@ -105,9 +102,7 @@ export function useUpdateVariant() {
       exerciseId: string;
       updates: Partial<Omit<EquipmentVariant, 'id' | 'user_id' | 'created_at'>>;
     }) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = useAuthStore.getState().user;
       if (!user) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
@@ -152,9 +147,7 @@ export function useDeleteVariant() {
 
   return useMutation({
     mutationFn: async ({ id, exerciseId }: { id: string; exerciseId: string }) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = useAuthStore.getState().user;
       if (!user) throw new Error('Not authenticated');
 
       const { error } = await supabase.from('equipment_variants').delete().eq('id', id).eq('user_id', user.id);
@@ -197,9 +190,7 @@ export function useCloneGymMachine() {
       gymMachine: GymMachine;
       exerciseId: string;
     }) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = useAuthStore.getState().user;
       if (!user) throw new Error('Not authenticated');
 
       const newVariant = {
@@ -292,9 +283,7 @@ export function useManufacturers() {
   return useQuery<string[]>({
     queryKey: MANUFACTURERS_KEY(),
     queryFn: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = useAuthStore.getState().user;
 
       if (!user) return [];
 

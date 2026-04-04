@@ -39,6 +39,10 @@ function ConfettiParticle({ index }: { index: number }) {
             opacity: 0,
           },
         },
+        '@media (prefers-reduced-motion: reduce)': {
+          animation: 'none',
+          opacity: 0,
+        },
       }}
     />
   );
@@ -99,6 +103,10 @@ export function PRCelebration({ prResult, exerciseName, onDismiss }: PRCelebrati
         '@keyframes slideDown': {
           '0%': { transform: 'translateY(-100%)' },
           '100%': { transform: 'translateY(0)' },
+        },
+        '@media (prefers-reduced-motion: reduce)': {
+          animation: 'none',
+          transform: 'translateY(0)',
         },
       }}
     >
@@ -188,6 +196,10 @@ export function PRCelebration({ prResult, exerciseName, onDismiss }: PRCelebrati
             '@keyframes shrink': {
               '0%': { width: '100%' },
               '100%': { width: '0%' },
+            },
+            '@media (prefers-reduced-motion: reduce)': {
+              animation: 'none',
+              width: '100%',
             },
           },
         }}

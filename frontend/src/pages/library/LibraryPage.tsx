@@ -469,14 +469,18 @@ export function LibraryPage() {
     void toggleFavorite.mutateAsync({ exerciseId: exercise.id, isFavorite: favoriteIds.has(exercise.id) });
   };
 
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   const handleDelete = async (exercise: Exercise) => {
     if (!exercise.is_custom) return;
     try {
-      await supabase.from('exercises').delete().eq('id', exercise.id);
+      const { error } = await supabase.from('exercises').delete().eq('id', exercise.id);
+      if (error) throw error;
       void queryClient.invalidateQueries({ queryKey: ['exercises'] });
       setSelectedExercise(null);
-    } catch {
-      // silently fail
+      setDeleteError(null);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete exercise');
     }
   };
 
@@ -605,7 +609,14 @@ export function LibraryPage() {
         </List>
       )}
 
+      {deleteError && (
+        <Alert severity="error" sx={{ mx: 2, mb: 1 }} onClose={() => setDeleteError(null)}>
+          {deleteError}
+        </Alert>
+      )}
+
       <ExerciseFormDialog
+        key={editExercise?.id ?? 'new'}
         open={showForm}
         onClose={() => { setShowForm(false); setEditExercise(null); }}
         exercise={editExercise}

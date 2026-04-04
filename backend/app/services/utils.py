@@ -9,10 +9,15 @@ def epley(weight: float, reps: int) -> float:
     """Epley formula: weight x (1 + reps / 30). Returns estimated 1RM.
 
     For 1-rep sets, returns weight directly (that IS the 1RM).
+    Reps clamped to 12 — Epley degrades significantly above 12 reps
+    (Mayhew et al. 1995, error >10%).
     """
-    if reps <= 1 or weight <= 0:
+    if weight <= 0 or reps <= 0:
+        return 0.0
+    if reps == 1:
         return weight
-    return weight * (1 + reps / 30)
+    effective_reps = min(reps, 12)
+    return weight * (1 + effective_reps / 30)
 
 
 def linear_regression(
@@ -40,6 +45,38 @@ def linear_regression(
     slope = num / den
     intercept = y_mean - slope * x_mean
     return slope, intercept
+
+
+def theil_sen_slope(
+    xs: list[float],
+    ys: list[float],
+    min_points: int = 3,
+) -> float | None:
+    """Theil-Sen slope estimator — median of all pairwise slopes.
+
+    Resistant to up to ~29% outliers, unlike OLS which is distorted by a
+    single bad data point. Preferred for e1RM trend estimation where a
+    mislogged weight can flip the apparent trend direction.
+    """
+    n = len(xs)
+    if n < min_points:
+        return None
+
+    slopes: list[float] = []
+    for i in range(n):
+        for j in range(i + 1, n):
+            dx = xs[j] - xs[i]
+            if dx != 0:
+                slopes.append((ys[j] - ys[i]) / dx)
+
+    if not slopes:
+        return 0.0
+
+    slopes.sort()
+    mid = len(slopes) // 2
+    if len(slopes) % 2 == 0:
+        return (slopes[mid - 1] + slopes[mid]) / 2
+    return slopes[mid]
 
 
 def linear_regression_slope(

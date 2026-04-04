@@ -7,17 +7,17 @@ import { AuthGuard } from '@/pages/auth/AuthGuard';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { SignUpPage } from '@/pages/auth/SignUpPage';
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
-import { ProfilePage } from '@/pages/profile/ProfilePage';
 import { ExerciseListPage } from '@/pages/log/ExerciseListPage';
 import { SetLoggerPage } from '@/pages/log/SetLoggerPage';
 import { VariantManagerPageRoute } from '@/pages/log/VariantManagerPage';
-import { HistoryPage } from '@/pages/history/HistoryPage';
-import { SessionDetailPage } from '@/pages/history/SessionDetailPage';
-import { StatsPage } from '@/pages/stats/StatsPage';
-import { ExerciseStatsPage } from '@/pages/stats/ExerciseStatsPage';
 import { HomePage } from '@/pages/home/HomePage';
 
-// Lazy-loaded pages — infrequently visited, heavy, or behind specific user flows
+// Lazy-loaded pages — chart-heavy, infrequently visited, or behind specific user flows
+const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage').then(m => ({ default: m.ProfilePage })));
+const HistoryPage = lazy(() => import('@/pages/history/HistoryPage').then(m => ({ default: m.HistoryPage })));
+const SessionDetailPage = lazy(() => import('@/pages/history/SessionDetailPage').then(m => ({ default: m.SessionDetailPage })));
+const StatsPage = lazy(() => import('@/pages/stats/StatsPage').then(m => ({ default: m.StatsPage })));
+const ExerciseStatsPage = lazy(() => import('@/pages/stats/ExerciseStatsPage').then(m => ({ default: m.ExerciseStatsPage })));
 const MachineIdentifyPage = lazy(() => import('@/pages/log/MachineIdentifyPage').then(m => ({ default: m.MachineIdentifyPage })));
 const OnboardingPage = lazy(() => import('@/pages/onboarding/OnboardingPage').then(m => ({ default: m.OnboardingPage })));
 const PlansPage = lazy(() => import('@/pages/plans/PlansPage').then(m => ({ default: m.PlansPage })));
@@ -216,7 +216,9 @@ export const historyRoute = createRoute({
   path: '/history',
   component: () => (
     <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
-      <HistoryPage />
+      <Suspense fallback={<LazyFallback />}>
+        <HistoryPage />
+      </Suspense>
     </Sentry.ErrorBoundary>
   ),
 });
@@ -227,7 +229,9 @@ export const sessionDetailRoute = createRoute({
   path: '/history/$sessionId',
   component: () => (
     <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
-      <SessionDetailPage />
+      <Suspense fallback={<LazyFallback />}>
+        <SessionDetailPage />
+      </Suspense>
     </Sentry.ErrorBoundary>
   ),
 });
@@ -241,7 +245,9 @@ export const statsRoute = createRoute({
   }),
   component: () => (
     <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
-      <StatsPage />
+      <Suspense fallback={<LazyFallback />}>
+        <StatsPage />
+      </Suspense>
     </Sentry.ErrorBoundary>
   ),
 });
@@ -265,7 +271,9 @@ export const exerciseStatsRoute = createRoute({
   path: '/stats/$exerciseId',
   component: () => (
     <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
-      <ExerciseStatsPage />
+      <Suspense fallback={<LazyFallback />}>
+        <ExerciseStatsPage />
+      </Suspense>
     </Sentry.ErrorBoundary>
   ),
 });
@@ -315,7 +323,9 @@ export const profileRoute = createRoute({
   path: '/profile',
   component: () => (
     <Sentry.ErrorBoundary fallback={<PageErrorFallback />}>
-      <ProfilePage />
+      <Suspense fallback={<LazyFallback />}>
+        <ProfilePage />
+      </Suspense>
     </Sentry.ErrorBoundary>
   ),
 });

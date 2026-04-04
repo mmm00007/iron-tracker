@@ -113,7 +113,8 @@ async def compute_exercise_profile(
         has_injury = bool(row["injury_notes"])
         if has_injury:
             injury_count += 1
-        if has_form or row["preferred_grip"] or row["preferred_stance"] or row["preferred_rep_range"]:
+        has_prefs = row["preferred_grip"] or row["preferred_stance"] or row["preferred_rep_range"]
+        if has_form or has_prefs:
             notes_count += 1
 
         exercises.append(
@@ -131,9 +132,7 @@ async def compute_exercise_profile(
             )
         )
 
-    avg_completeness = round(
-        sum(e.completeness_pct for e in exercises) / len(exercises), 1
-    )
+    avg_completeness = round(sum(e.completeness_pct for e in exercises) / len(exercises), 1)
 
     return ExerciseProfileResponse(
         exercises=exercises,

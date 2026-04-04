@@ -27,7 +27,6 @@ from app.models.schemas import (
     EquipmentEfficiencyEntry,
     EquipmentEfficiencyResponse,
 )
-
 from app.services.utils import linear_regression_slope as _linear_regression
 
 _DISCLAIMER = (
@@ -116,9 +115,7 @@ async def compute_equipment_efficiency(
 
         # Sets in last 30 days: count dates within the window
         thirty_day_str = thirty_days_ago.strftime("%Y-%m-%d")
-        sets_30d = sum(
-            1 for d in sorted_dates if d >= thirty_day_str
-        )
+        sets_30d = sum(1 for d in sorted_dates if d >= thirty_day_str)
 
         # e1RM trend slope (requires >= 4 sessions)
         if sessions_used >= 4:
@@ -128,8 +125,7 @@ async def compute_equipment_efficiency(
             ys: list[float] = []
             for d in sorted_dates:
                 day_offset = (
-                    datetime.strptime(d, "%Y-%m-%d")
-                    - datetime.strptime(origin, "%Y-%m-%d")
+                    datetime.strptime(d, "%Y-%m-%d") - datetime.strptime(origin, "%Y-%m-%d")
                 ).days
                 xs.append(float(day_offset))
                 ys.append(daily_bests[d])

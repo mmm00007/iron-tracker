@@ -101,9 +101,7 @@ async def compute_tempo_analysis(
         sets_with_tempo.append((parsed, int(row["reps"])))
 
     tempo_count = len(sets_with_tempo)
-    tempo_coverage_pct = round(
-        (tempo_count / total_sets * 100) if total_sets > 0 else 0.0, 1
-    )
+    tempo_coverage_pct = round((tempo_count / total_sets * 100) if total_sets > 0 else 0.0, 1)
 
     # Cold start: not enough tempo data for meaningful analysis
     if tempo_count < _COLD_START_THRESHOLD:

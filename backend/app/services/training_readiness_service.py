@@ -15,6 +15,7 @@ Algorithm validated by data science expert.
 """
 
 import asyncio
+import math
 
 import asyncpg
 
@@ -42,9 +43,7 @@ DISCLAIMER = (
 _RECOMMENDATIONS = {
     "ready": "Good to train. Your recovery indicators look favorable.",
     "moderate": "Moderate readiness. Consider a standard session.",
-    "fatigued": (
-        "Elevated fatigue detected. Consider reducing intensity or volume today."
-    ),
+    "fatigued": ("Elevated fatigue detected. Consider reducing intensity or volume today."),
     "rest_recommended": (
         "Multiple fatigue indicators are elevated. A rest day or light active "
         "recovery session is suggested."
@@ -55,9 +54,7 @@ _RECOMMENDATIONS = {
 # ─── Lightweight DB helpers ─────────────────────────────────────────────────
 
 
-async def _fetch_latest_feedback(
-    user_id: str, db_pool: asyncpg.Pool
-) -> asyncpg.Record | None:
+async def _fetch_latest_feedback(user_id: str, db_pool: asyncpg.Pool) -> asyncpg.Record | None:
     """Return the most recent workout feedback row (sleep + stress)."""
     async with db_pool.acquire() as conn:
         return await conn.fetchrow(
@@ -108,9 +105,7 @@ def _sleep_score(feedback: asyncpg.Record | None) -> tuple[int | None, str]:
         else None
     )
     sleep_hours: float | None = (
-        float(feedback["sleep_hours"])
-        if feedback["sleep_hours"] is not None
-        else None
+        float(feedback["sleep_hours"]) if feedback["sleep_hours"] is not None else None
     )
 
     if sleep_quality is None:
@@ -157,7 +152,9 @@ def _acwr_score(acwr_value: float | None) -> tuple[int | None, str]:
         score = max(0, round(acwr_value / 0.8 * 100))
         detail = f"ACWR {acwr_value:.2f} — under-prepared, load is low."
     else:
-        score = max(0, round(100 - (acwr_value - 1.3) / 0.7 * 100))
+        # Exponential penalty above 1.3 — steeper than linear to properly
+        # reflect injury risk. At 1.5 (danger zone entry): ~37, at 2.0: ~3.
+        score = max(0, round(100 * math.exp(-5 * (acwr_value - 1.3))))
         detail = f"ACWR {acwr_value:.2f} — elevated spike risk."
 
     return score, detail
@@ -217,14 +214,12 @@ async def compute_training_readiness(
     and recent soreness.
     """
     # Parallel fetch of all data sources
-    recovery_result, acwr_result, ff_result, feedback, max_soreness = (
-        await asyncio.gather(
-            compute_recovery(user_id, db_pool),
-            compute_acwr(user_id, db_pool),
-            compute_fitness_fatigue(user_id, db_pool),
-            _fetch_latest_feedback(user_id, db_pool),
-            _fetch_max_soreness(user_id, db_pool),
-        )
+    recovery_result, acwr_result, ff_result, feedback, max_soreness = await asyncio.gather(
+        compute_recovery(user_id, db_pool),
+        compute_acwr(user_id, db_pool),
+        compute_fitness_fatigue(user_id, db_pool),
+        _fetch_latest_feedback(user_id, db_pool),
+        _fetch_max_soreness(user_id, db_pool),
     )
 
     # ── Normalise each dimension to 0-100 ──

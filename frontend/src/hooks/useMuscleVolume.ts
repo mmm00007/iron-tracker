@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
 
 export interface WeeklyMuscleVolume {
   week: string; // ISO week start date (YYYY-MM-DD)
@@ -32,9 +33,7 @@ export function useWeeklyMuscleVolume(period: string) {
   return useQuery<WeeklyMuscleVolume[]>({
     queryKey: ['analytics', 'muscle-volume', period],
     queryFn: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = useAuthStore.getState().user;
       if (!user) return [];
 
       const cutoff = getPeriodCutoff(period);

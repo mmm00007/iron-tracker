@@ -14,31 +14,31 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from app.models.schemas import InjuryEntry
 from app.services.body_measurements_service import (
     _linear_slope,
     _to_cm,
     compute_body_measurements,
 )
-from app.services.nutrition_performance_service import (
-    _spearman,
-    compute_nutrition_performance,
+from app.services.exercise_profile_service import (
+    compute_exercise_profile,
+)
+from app.services.injury_awareness_service import (
+    _detect_red_flags,
+    compute_injury_awareness,
 )
 from app.services.mesocycle_effectiveness_service import (
     _alignment_score,
     _e1rm_change_pct,
     compute_mesocycle_effectiveness,
 )
-from app.services.injury_awareness_service import (
-    _detect_red_flags,
-    compute_injury_awareness,
+from app.services.nutrition_performance_service import (
+    _spearman,
+    compute_nutrition_performance,
 )
 from app.services.substitution_patterns_service import (
     compute_substitution_patterns,
 )
-from app.services.exercise_profile_service import (
-    compute_exercise_profile,
-)
-from app.models.schemas import InjuryEntry
 from tests.conftest import FAKE_USER_ID
 
 # ── Fixtures ─────────────────────────────────────────────────────────────────

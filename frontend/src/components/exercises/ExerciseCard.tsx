@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import Card from '@mui/material/Card';
 import CardActionArea from '@mui/material/CardActionArea';
 import Box from '@mui/material/Box';
@@ -10,7 +11,7 @@ interface ExerciseCardProps {
   exercise: ExerciseWithLastSet;
 }
 
-export function ExerciseCard({ exercise }: ExerciseCardProps) {
+export const ExerciseCard = memo(function ExerciseCard({ exercise }: ExerciseCardProps) {
   const navigate = useNavigate();
 
   const handleClick = () => {
@@ -109,4 +110,4 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
       </CardActionArea>
     </Card>
   );
-}
+});

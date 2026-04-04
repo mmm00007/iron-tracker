@@ -186,8 +186,7 @@ async def compute_load_distribution(
         week_breakdown=week_entries,
         distribution_cv=overall_cv,
         distribution_label=(
-            _distribution_label(overall_cv) if overall_cv is not None
-            else "insufficient_data"
+            _distribution_label(overall_cv) if overall_cv is not None else "insufficient_data"
         ),
         flags=flags,
         busiest_day=busiest.day_name if busiest and busiest.avg_volume > 0 else None,

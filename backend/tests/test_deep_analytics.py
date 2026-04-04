@@ -10,10 +10,8 @@ Services tested:
   - Relative Strength (DOTS)
 """
 
-from datetime import UTC, date, datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock
-
-import pytest
+from datetime import UTC, date, datetime
+from unittest.mock import MagicMock
 
 from app.services.bilateral_asymmetry_service import (
     _classify_severity,
@@ -24,9 +22,13 @@ from app.services.body_composition_service import (
     _classify_ffmi,
     compute_body_composition,
 )
-from app.services.training_density_service import (
-    _linear_regression,
-    compute_training_density,
+from app.services.relative_strength_service import (
+    _dots_coefficient,
+    compute_relative_strength,
+)
+from app.services.rest_analysis_service import (
+    _classify_mechanic,
+    compute_rest_analysis,
 )
 from app.services.sleep_performance_service import (
     _confidence_tier,
@@ -38,13 +40,9 @@ from app.services.time_performance_service import (
     _get_window,
     compute_time_performance,
 )
-from app.services.rest_analysis_service import (
-    _classify_mechanic,
-    compute_rest_analysis,
-)
-from app.services.relative_strength_service import (
-    _dots_coefficient,
-    compute_relative_strength,
+from app.services.training_density_service import (
+    _linear_regression,
+    compute_training_density,
 )
 from tests.conftest import FAKE_USER_ID
 

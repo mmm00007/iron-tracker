@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { memo, useState, useCallback, useEffect, useRef } from 'react';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
@@ -33,7 +33,7 @@ const SET_TYPE_LABELS: Record<string, string> = {
 
 const UNDO_TIMEOUT_MS = 5000;
 
-export function SetRow({
+export const SetRow = memo(function SetRow({
   set,
   setNumber,
   onDelete,
@@ -46,7 +46,16 @@ export function SetRow({
   // --- Swipe-to-delete with undo ---
   const [pendingDelete, setPendingDelete] = useState(false);
   const [showUndo, setShowUndo] = useState(false);
-  const [undoTimer, setUndoTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear undo timer on unmount to prevent firing onDelete after navigation.
+  // Uses a ref (not state) so the cleanup always sees the current timer
+  // synchronously, even if unmount races with setUndoTimer.
+  useEffect(() => {
+    return () => {
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    };
+  }, []);
 
   const handleSwipeDelete = useCallback(() => {
     triggerHaptic();
@@ -57,16 +66,18 @@ export function SetRow({
       onDelete(set.id);
       setShowUndo(false);
       setPendingDelete(false);
+      undoTimerRef.current = null;
     }, UNDO_TIMEOUT_MS);
 
-    setUndoTimer(timer);
+    undoTimerRef.current = timer;
   }, [onDelete, set.id]);
 
   const handleUndo = useCallback(() => {
-    if (undoTimer) clearTimeout(undoTimer);
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    undoTimerRef.current = null;
     setPendingDelete(false);
     setShowUndo(false);
-  }, [undoTimer]);
+  }, []);
 
   const handleUndoClose = useCallback(() => {
     setShowUndo(false);
@@ -147,7 +158,7 @@ export function SetRow({
                 e.stopPropagation();
                 handleSave();
               }}
-              sx={{ color: 'success.main', minWidth: 32, minHeight: 32 }}
+              sx={{ color: 'success.main', minWidth: 44, minHeight: 44 }}
               aria-label="Save edit"
             >
               <CheckIcon fontSize="small" />
@@ -158,7 +169,7 @@ export function SetRow({
                 e.stopPropagation();
                 handleCancel();
               }}
-              sx={{ color: 'text.disabled', minWidth: 32, minHeight: 32 }}
+              sx={{ color: 'text.disabled', minWidth: 44, minHeight: 44 }}
               aria-label="Cancel edit"
             >
               <CloseIcon fontSize="small" />
@@ -323,4 +334,4 @@ export function SetRow({
       </Box>
     </>
   );
-}
+});

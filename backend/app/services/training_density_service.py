@@ -1,12 +1,11 @@
 """Training density and efficiency metrics: sets per hour, volume per minute, trend."""
 
 from datetime import UTC, datetime, timedelta
+from functools import partial
 
 import asyncpg
 
 from app.models.schemas import SessionDensityEntry, TrainingDensityResponse
-from functools import partial
-
 from app.services.utils import linear_regression
 
 _linear_regression = partial(linear_regression, min_points=3)
@@ -111,9 +110,7 @@ async def compute_training_density(
     # Sessions are ordered DESC from the query, so reverse for chronological.
     chronological_sph = list(reversed(sph_values))
     xs = list(range(len(chronological_sph)))
-    slope, _ = _linear_regression(
-        [float(x) for x in xs], chronological_sph
-    )
+    slope, _ = _linear_regression([float(x) for x in xs], chronological_sph)
 
     if slope is None:
         trend_direction = "stable"

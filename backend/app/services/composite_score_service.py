@@ -152,19 +152,28 @@ async def compute_composite_score(
             "SELECT current_body_weight_kg FROM profiles WHERE id = $1",
             user_id,
         )
-        bw_kg = float(bw_row["current_body_weight_kg"]) if bw_row and bw_row["current_body_weight_kg"] else None
+        bw_kg = (
+            float(bw_row["current_body_weight_kg"])
+            if bw_row and bw_row["current_body_weight_kg"]
+            else None
+        )
 
-        nutrition_row = await conn.fetchrow(
-            """
-            SELECT COUNT(*) FILTER (WHERE protein_g / NULLIF($3::numeric, 0) >= 1.6) AS adequate_days,
-                   COUNT(*) AS total_days
+        nutrition_row = (
+            await conn.fetchrow(
+                """
+            SELECT COUNT(*) FILTER (
+                WHERE protein_g / NULLIF($3::numeric, 0) >= 1.6
+            ) AS adequate_days, COUNT(*) AS total_days
             FROM nutrition_logs
             WHERE user_id = $1 AND logged_date >= $2
             """,
-            user_id,
-            since,
-            bw_kg,
-        ) if bw_kg else None
+                user_id,
+                since,
+                bw_kg,
+            )
+            if bw_kg
+            else None
+        )
 
         # 7. Training readiness: sleep quality from latest workout feedback
         readiness_row = await conn.fetchrow(
@@ -206,13 +215,15 @@ async def compute_composite_score(
     consistency_score = min(100, consistency_score)
 
     if len(training_days) >= 2:
-        dimensions.append(ScoreDimension(
-            name="consistency",
-            score=consistency_score,
-            label=_label(consistency_score),
-            weight=_WEIGHTS["consistency"],
-            detail=f"{days_per_week:.1f} training days/week",
-        ))
+        dimensions.append(
+            ScoreDimension(
+                name="consistency",
+                score=consistency_score,
+                label=_label(consistency_score),
+                weight=_WEIGHTS["consistency"],
+                detail=f"{days_per_week:.1f} training days/week",
+            )
+        )
 
     # ── Progressive Overload (0-100) ────────────────────────────────────
     if overload_rows:
@@ -235,13 +246,15 @@ async def compute_composite_score(
 
         if total > 0:
             overload_score = round(progressing / total * 100)
-            dimensions.append(ScoreDimension(
-                name="progressive_overload",
-                score=overload_score,
-                label=_label(overload_score),
-                weight=_WEIGHTS["progressive_overload"],
-                detail=f"{progressing}/{total} exercises progressing",
-            ))
+            dimensions.append(
+                ScoreDimension(
+                    name="progressive_overload",
+                    score=overload_score,
+                    label=_label(overload_score),
+                    weight=_WEIGHTS["progressive_overload"],
+                    detail=f"{progressing}/{total} exercises progressing",
+                )
+            )
 
     # ── Volume Adequacy (0-100) ─────────────────────────────────────────
     if muscle_rows:
@@ -251,43 +264,50 @@ async def compute_composite_score(
             factor = 1.0 if row["is_primary"] else 0.5
             muscle_sets[name] = muscle_sets.get(name, 0) + int(row["set_count"]) * factor
 
-        # Score: % of muscles hitting MEV (8+ sets/week)
+        # Score: % of muscles hitting their per-muscle MEV threshold
+        from app.services.volume_landmarks_service import VOLUME_LANDMARKS, DEFAULT_LANDMARKS
+
         weekly_sets = {m: s / weeks for m, s in muscle_sets.items()}
-        above_mev = sum(1 for s in weekly_sets.values() if s >= 8)
+        above_mev = sum(
+            1 for m, s in weekly_sets.items()
+            if s >= VOLUME_LANDMARKS.get(m, DEFAULT_LANDMARKS)["MEV"]
+        )
         volume_score = round(above_mev / max(len(weekly_sets), 1) * 100)
-        dimensions.append(ScoreDimension(
-            name="volume_adequacy",
-            score=volume_score,
-            label=_label(volume_score),
-            weight=_WEIGHTS["volume_adequacy"],
-            detail=f"{above_mev}/{len(weekly_sets)} muscles above MEV",
-        ))
+        dimensions.append(
+            ScoreDimension(
+                name="volume_adequacy",
+                score=volume_score,
+                label=_label(volume_score),
+                weight=_WEIGHTS["volume_adequacy"],
+                detail=f"{above_mev}/{len(weekly_sets)} muscles above MEV",
+            )
+        )
 
     # ── Recovery (0-100) ─────────────────────────────────────────────────
     if recovery_rows:
-        # Recovery windows per NSCA Essentials 4th ed., Ch. 5
-        recovery_hours = {
-            "Quadriceps": 72, "Hamstrings": 72, "Glutes": 72, "Lats": 72,
-            "Chest": 56, "Shoulders": 56, "Biceps": 48, "Triceps": 48,
-        }
+        # Use canonical recovery hours from recovery_service (lowercase keys matching DB)
+        from app.services.recovery_service import RECOVERY_HOURS
+
         adequate = 0
         total_muscles = 0
         for row in recovery_rows:
             name = row["muscle_group"]
             hours_since = (now - row["last_trained"]).total_seconds() / 3600
-            expected = recovery_hours.get(name, 56)
+            expected = RECOVERY_HOURS.get(name, 56)
             total_muscles += 1
             if hours_since >= expected * 0.7:  # 70% of expected = adequate
                 adequate += 1
 
         recovery_score = round(adequate / max(total_muscles, 1) * 100)
-        dimensions.append(ScoreDimension(
-            name="recovery",
-            score=recovery_score,
-            label=_label(recovery_score),
-            weight=_WEIGHTS["recovery"],
-            detail=f"{adequate}/{total_muscles} muscles adequately recovered",
-        ))
+        dimensions.append(
+            ScoreDimension(
+                name="recovery",
+                score=recovery_score,
+                label=_label(recovery_score),
+                weight=_WEIGHTS["recovery"],
+                detail=f"{adequate}/{total_muscles} muscles adequately recovered",
+            )
+        )
 
     # ── Balance (0-100) ──────────────────────────────────────────────────
     if muscle_rows and len(set(r["muscle_group"] for r in muscle_rows)) >= 3:
@@ -299,13 +319,15 @@ async def compute_composite_score(
             max_entropy = math.log(len(volumes))
             balance_ratio = entropy / max_entropy if max_entropy > 0 else 0
             balance_score = round(balance_ratio * 100)
-            dimensions.append(ScoreDimension(
-                name="balance",
-                score=balance_score,
-                label=_label(balance_score),
-                weight=_WEIGHTS["balance"],
-                detail=f"Balance index: {balance_ratio:.2f}",
-            ))
+            dimensions.append(
+                ScoreDimension(
+                    name="balance",
+                    score=balance_score,
+                    label=_label(balance_score),
+                    weight=_WEIGHTS["balance"],
+                    detail=f"Balance index: {balance_ratio:.2f}",
+                )
+            )
 
     # ── Session Quality (0-100) ──────────────────────────────────────────
     if quality_rows:
@@ -322,26 +344,30 @@ async def compute_composite_score(
             else:
                 quality_score = max(20, round(60 - abs(avg_rpe - 7.5) * 20))
 
-            dimensions.append(ScoreDimension(
-                name="session_quality",
-                score=quality_score,
-                label=_label(quality_score),
-                weight=_WEIGHTS["session_quality"],
-                detail=f"Avg working RPE: {avg_rpe:.1f}",
-            ))
+            dimensions.append(
+                ScoreDimension(
+                    name="session_quality",
+                    score=quality_score,
+                    label=_label(quality_score),
+                    weight=_WEIGHTS["session_quality"],
+                    detail=f"Avg working RPE: {avg_rpe:.1f}",
+                )
+            )
 
     # ── Nutrition Compliance (0-100) ───────────────────────────────────
     if nutrition_row and int(nutrition_row["total_days"]) >= 7:
         adequate = int(nutrition_row["adequate_days"])
         total = int(nutrition_row["total_days"])
         nutrition_score = round(adequate / total * 100)
-        dimensions.append(ScoreDimension(
-            name="nutrition_compliance",
-            score=nutrition_score,
-            label=_label(nutrition_score),
-            weight=_WEIGHTS["nutrition_compliance"],
-            detail=f"{adequate}/{total} days protein >= 1.6g/kg",
-        ))
+        dimensions.append(
+            ScoreDimension(
+                name="nutrition_compliance",
+                score=nutrition_score,
+                label=_label(nutrition_score),
+                weight=_WEIGHTS["nutrition_compliance"],
+                detail=f"{adequate}/{total} days protein >= 1.6g/kg",
+            )
+        )
 
     # ── Training Readiness (0-100) ─────────────────────────────────────
     if readiness_row and readiness_row["prior_sleep_quality"] is not None:
@@ -349,26 +375,35 @@ async def compute_composite_score(
         hours = float(readiness_row["sleep_hours"]) if readiness_row["sleep_hours"] else 0.0
         readiness_score = round((quality / 5 * 0.5 + min(hours, 9) / 9 * 0.5) * 100)
         readiness_score = min(100, max(0, readiness_score))
-        dimensions.append(ScoreDimension(
-            name="training_readiness",
-            score=readiness_score,
-            label=_label(readiness_score),
-            weight=_WEIGHTS["training_readiness"],
-            detail=f"Sleep: {hours:.1f}h, quality {quality:.0f}/5",
-        ))
+        dimensions.append(
+            ScoreDimension(
+                name="training_readiness",
+                score=readiness_score,
+                label=_label(readiness_score),
+                weight=_WEIGHTS["training_readiness"],
+                detail=f"Sleep: {hours:.1f}h, quality {quality:.0f}/5",
+            )
+        )
 
     # ── Plan Adherence (0-100) ─────────────────────────────────────────
-    if adherence_row and adherence_row["avg_adherence"] is not None and int(adherence_row["total_records"]) >= 5:
+    has_adherence = (
+        adherence_row
+        and adherence_row["avg_adherence"] is not None
+        and int(adherence_row["total_records"]) >= 5
+    )
+    if has_adherence:
         avg_adherence = float(adherence_row["avg_adherence"])
         adherence_score = round(avg_adherence * 100)
         adherence_score = min(100, max(0, adherence_score))
-        dimensions.append(ScoreDimension(
-            name="plan_adherence",
-            score=adherence_score,
-            label=_label(adherence_score),
-            weight=_WEIGHTS["plan_adherence"],
-            detail=f"Avg adherence: {avg_adherence:.0%}",
-        ))
+        dimensions.append(
+            ScoreDimension(
+                name="plan_adherence",
+                score=adherence_score,
+                label=_label(adherence_score),
+                weight=_WEIGHTS["plan_adherence"],
+                detail=f"Avg adherence: {avg_adherence:.0%}",
+            )
+        )
 
     # ── Compute Weighted Composite ──────────────────────────────────────
     if not dimensions:

@@ -129,7 +129,8 @@ export function suggestProgression(
 
   // ── Determine trend over last 2 sessions ─────────────────────────────────────
   const e1rmDelta = lastE1RM - prevE1RM;
-  const performanceDropping = e1rmDelta < 0 && Math.abs(e1rmDelta) > prevE1RM * 0.03;
+  // 5% threshold accounts for Epley formula measurement error (~5-10%)
+  const performanceDropping = e1rmDelta < 0 && Math.abs(e1rmDelta) > prevE1RM * 0.05;
 
   // Effective RPE for the last session (fall back to target if null)
   const effectiveLastRpe = lastRpe ?? targetRpe;

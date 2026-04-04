@@ -109,11 +109,7 @@ async def compute_consistency(
 
     for w in range(weeks):
         week_start = today - timedelta(days=today.weekday() + 7 * (weeks - 1 - w))
-        days_in_week = sum(
-            1
-            for d in range(7)
-            if (week_start + timedelta(days=d)) in training_days
-        )
+        days_in_week = sum(1 for d in range(7) if (week_start + timedelta(days=d)) in training_days)
         is_active = days_in_week >= _MIN_DAYS_PER_WEEK
         if is_active:
             active_weeks += 1
@@ -157,10 +153,7 @@ async def compute_consistency(
 
     # Training regularity (CV of inter-session gaps)
     sorted_days = sorted(training_days)
-    gaps = [
-        (sorted_days[i + 1] - sorted_days[i]).days
-        for i in range(len(sorted_days) - 1)
-    ]
+    gaps = [(sorted_days[i + 1] - sorted_days[i]).days for i in range(len(sorted_days) - 1)]
     regularity = _regularity_index([float(g) for g in gaps])
 
     total_days = len(training_days)

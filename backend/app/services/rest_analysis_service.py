@@ -190,9 +190,7 @@ async def compute_rest_analysis(
                     high,
                 )
                 entry.compliance_pct = (
-                    round(compliant / entry.set_count * 100, 1)
-                    if entry.set_count > 0
-                    else 0.0
+                    round(compliant / entry.set_count * 100, 1) if entry.set_count > 0 else 0.0
                 )
 
             # Short-rest compounds (< 60s)
@@ -232,16 +230,12 @@ async def compute_rest_analysis(
         sorted_medians = sorted(all_median_rests)
         mid = len(sorted_medians) // 2
         if len(sorted_medians) % 2 == 0 and len(sorted_medians) >= 2:
-            overall_median = round(
-                (sorted_medians[mid - 1] + sorted_medians[mid]) / 2, 1
-            )
+            overall_median = round((sorted_medians[mid - 1] + sorted_medians[mid]) / 2, 1)
         else:
             overall_median = round(sorted_medians[mid], 1)
 
     rest_coverage_pct = (
-        round(total_sets_with_rest / total_working_sets * 100, 1)
-        if total_working_sets > 0
-        else 0.0
+        round(total_sets_with_rest / total_working_sets * 100, 1) if total_working_sets > 0 else 0.0
     )
 
     # ── Flags ────────────────────────────────────────────────────────────
@@ -250,10 +244,7 @@ async def compute_rest_analysis(
     if compound_sets_total > 0 and compound_sets_short_rest > 0:
         pct = round(compound_sets_short_rest / compound_sets_total * 100, 1)
         if pct > 0:
-            flags.append(
-                f"Short rest on compounds: {pct}% of compound sets "
-                f"have rest < 60s"
-            )
+            flags.append(f"Short rest on compounds: {pct}% of compound sets have rest < 60s")
 
     # Count very-long-rest sets (> 300s excluded by the 600s ceiling,
     # but we flag sets between 300-600 as "very long").
@@ -273,14 +264,12 @@ async def compute_rest_analysis(
         )
     if very_long_count and very_long_count > 0:
         flags.append(
-            f"Very long rest: {very_long_count} sets had rest > 5 minutes "
-            f"(excluded from analysis)"
+            f"Very long rest: {very_long_count} sets had rest > 5 minutes (excluded from analysis)"
         )
 
     if compound_avg_rest is not None and compound_avg_rest < 60:
         flags.append(
-            "Consider longer rest periods between heavy compound sets "
-            "for safety and recovery"
+            "Consider longer rest periods between heavy compound sets for safety and recovery"
         )
 
     return RestAnalysisResponse(

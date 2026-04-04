@@ -117,6 +117,19 @@ export function RestTimerPill({
 
   return (
     <Box
+      role="timer"
+      tabIndex={0}
+      aria-label={
+        isComplete
+          ? 'Rest complete. Press Enter to dismiss.'
+          : `Rest timer: ${formatTime(remaining)} remaining. Press Enter to dismiss.`
+      }
+      onKeyDown={(e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleDismiss();
+        }
+      }}
       sx={{
         position: 'fixed',
         top: 64, // below app bar (56dp) + 8dp gap
@@ -135,9 +148,30 @@ export function RestTimerPill({
         boxShadow: `0 4px 16px ${barColor}30`,
         minWidth: 240,
         cursor: 'pointer',
+        '&:focus-visible': {
+          outline: '2px solid',
+          outlineColor: 'primary.main',
+          outlineOffset: 2,
+        },
       }}
       onClick={handleDismiss}
     >
+      {/* Visually hidden live region — announces only on completion */}
+      <Box
+        aria-live="assertive"
+        aria-atomic="true"
+        sx={{
+          position: 'absolute',
+          width: 1,
+          height: 1,
+          overflow: 'hidden',
+          clip: 'rect(0 0 0 0)',
+          clipPath: 'inset(50%)',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {isComplete ? 'Rest timer complete. Tap to dismiss.' : ''}
+      </Box>
       {/* -30s button */}
       {!isComplete && (
         <IconButton

@@ -13,17 +13,41 @@ Services tested:
 from datetime import UTC, date, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
-from app.services.plan_adherence_service import (
-    _classify_trend,
-    _linear_regression as pa_linear_regression,
-    compute_plan_adherence,
-)
+from app.models.schemas import ReadinessDimension
 from app.services.antagonist_balance_service import (
     _classify_pair,
     _recommendation_for_pair,
     compute_antagonist_balance,
+)
+from app.services.equipment_efficiency_service import (
+    _linear_regression as ee_linear_regression,
+)
+from app.services.equipment_efficiency_service import (
+    compute_equipment_efficiency,
+)
+from app.services.milestone_velocity_service import (
+    _compute_trend as milestone_compute_trend,
+)
+from app.services.milestone_velocity_service import (
+    compute_milestone_velocity,
+)
+from app.services.plan_adherence_service import (
+    _classify_trend,
+    compute_plan_adherence,
+)
+from app.services.plan_adherence_service import (
+    _linear_regression as pa_linear_regression,
+)
+from app.services.soreness_patterns_service import (
+    _compute_trend as soreness_compute_trend,
+)
+from app.services.soreness_patterns_service import (
+    _detect_red_flags,
+    _rank,
+    compute_soreness_patterns,
+)
+from app.services.soreness_patterns_service import (
+    _spearman as soreness_spearman,
 )
 from app.services.tempo_analysis_service import (
     _classify_tut,
@@ -31,31 +55,15 @@ from app.services.tempo_analysis_service import (
     _parse_tempo,
     compute_tempo_analysis,
 )
-from app.services.soreness_patterns_service import (
-    _compute_trend as soreness_compute_trend,
-    _detect_red_flags,
-    _rank,
-    _spearman as soreness_spearman,
-    compute_soreness_patterns,
-)
-from app.services.equipment_efficiency_service import (
-    _linear_regression as ee_linear_regression,
-    compute_equipment_efficiency,
-)
-from app.services.milestone_velocity_service import (
-    _compute_trend as milestone_compute_trend,
-    compute_milestone_velocity,
-)
 from app.services.training_readiness_service import (
     _acwr_score,
     _build_composite,
+    _preparedness_score,
     _readiness_label,
     _sleep_score,
     _soreness_score,
-    _preparedness_score,
     compute_training_readiness,
 )
-from app.models.schemas import ReadinessDimension
 from tests.conftest import FAKE_USER_ID
 
 # -- Fixtures -----------------------------------------------------------------
@@ -184,9 +192,7 @@ def test_recommendation_for_pair_balanced() -> None:
 
 
 def test_recommendation_for_pair_imbalance() -> None:
-    rec = _recommendation_for_pair(
-        "Chest : Lats", "Chest", "Lats", 200, 100, "moderate_imbalance"
-    )
+    rec = _recommendation_for_pair("Chest : Lats", "Chest", "Lats", 200, 100, "moderate_imbalance")
     assert "Lats" in rec
 
 
@@ -693,18 +699,22 @@ async def test_training_readiness_cold_start(mock_db_pool: MagicMock) -> None:
     mock_ff.preparedness_label = "insufficient_data"
     mock_ff.preparedness = 0.0
 
-    with patch(
-        "app.services.training_readiness_service.compute_recovery",
-        new_callable=AsyncMock,
-        return_value=mock_recovery,
-    ), patch(
-        "app.services.training_readiness_service.compute_acwr",
-        new_callable=AsyncMock,
-        return_value=mock_acwr,
-    ), patch(
-        "app.services.training_readiness_service.compute_fitness_fatigue",
-        new_callable=AsyncMock,
-        return_value=mock_ff,
+    with (
+        patch(
+            "app.services.training_readiness_service.compute_recovery",
+            new_callable=AsyncMock,
+            return_value=mock_recovery,
+        ),
+        patch(
+            "app.services.training_readiness_service.compute_acwr",
+            new_callable=AsyncMock,
+            return_value=mock_acwr,
+        ),
+        patch(
+            "app.services.training_readiness_service.compute_fitness_fatigue",
+            new_callable=AsyncMock,
+            return_value=mock_ff,
+        ),
     ):
         # feedback and max_soreness will be None from the mock DB
         mock_db_pool._conn.fetchrow.return_value = None

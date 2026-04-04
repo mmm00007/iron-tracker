@@ -7,14 +7,29 @@ import type { PersistedClient } from '@tanstack/react-query-persist-client';
  */
 export const indexedDBPersister = {
   persistClient: async (client: PersistedClient): Promise<void> => {
-    await set('iron-tracker-query-cache', client);
+    try {
+      await set('iron-tracker-query-cache', client);
+    } catch (err) {
+      // Safari quota exceeded or private browsing — degrade gracefully.
+      // Sentry captures console.warn via breadcrumbs.
+      console.warn('[iron-tracker] Failed to persist query cache to IndexedDB:', err);
+    }
   },
 
   restoreClient: async (): Promise<PersistedClient | undefined> => {
-    return await get<PersistedClient>('iron-tracker-query-cache');
+    try {
+      return await get<PersistedClient>('iron-tracker-query-cache');
+    } catch (err) {
+      console.warn('[iron-tracker] Failed to restore query cache from IndexedDB:', err);
+      return undefined;
+    }
   },
 
   removeClient: async (): Promise<void> => {
-    await del('iron-tracker-query-cache');
+    try {
+      await del('iron-tracker-query-cache');
+    } catch {
+      // Ignore — removal failure is non-critical
+    }
   },
 };

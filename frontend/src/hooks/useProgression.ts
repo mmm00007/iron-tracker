@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
 import type { WorkoutSet, Exercise } from '@/types/database';
 import { suggestProgression, type ProgressionSuggestion } from '@/utils/progressiveOverload';
 
@@ -51,9 +52,7 @@ export function useProgression(
   const result = useQuery<ProgressionSuggestion>({
     queryKey: ['progression', exerciseId, variantId ?? 'none'],
     queryFn: async (): Promise<ProgressionSuggestion> => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = useAuthStore.getState().user;
 
       if (!user) {
         return suggestProgression([], 7.5, '');
@@ -87,11 +86,12 @@ export function useProgression(
       const recentSets = allSets.filter((s) => sessionDates.has(s.logged_at.slice(0, 10)));
 
       // ── Fetch exercise category for increment logic ─────────────────────────
-      const { data: exerciseData } = await supabase
+      const { data: exerciseData, error: exErr } = await supabase
         .from('exercises')
         .select('category')
         .eq('id', exerciseId)
         .maybeSingle();
+      if (exErr) throw exErr;
 
       const category = (exerciseData as Pick<Exercise, 'category'> | null)?.category ?? '';
 

@@ -31,16 +31,29 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             min_size=2,
             max_size=20,
             ssl=ctx,
+            command_timeout=30,
+            max_inactive_connection_lifetime=300,
         )
         logger.info("Database pool initialized")
     except Exception as e:
         logger.error("Failed to initialize database pool: %s", e)
         app.state.db_pool = None
 
+    # Initialize AIService singleton for connection reuse across requests
+    from app.services.ai_service import AIService
+
+    app.state.ai_service = AIService(api_key=settings.ANTHROPIC_API_KEY)
+
     if not settings.CRON_SECRET:
         logger.warning(
             "CRON_SECRET is not set — the weekly trends cron endpoint will reject all requests. "
             "Set the CRON_SECRET environment variable to enable cron jobs."
+        )
+
+    if not settings.ANTHROPIC_API_KEY:
+        logger.warning(
+            "ANTHROPIC_API_KEY is not set — AI endpoints (machine identification, training analysis) "
+            "will fail at runtime. Set the ANTHROPIC_API_KEY environment variable to enable AI features."
         )
 
     yield
@@ -78,10 +91,16 @@ def create_app() -> FastAPI:
 
     @app.get("/health", response_model=HealthResponse, tags=["health"])
     async def health_check(request: Request) -> HealthResponse:
-        if getattr(request.app.state, "db_pool", None) is None:
-            from fastapi import HTTPException
+        from fastapi import HTTPException
 
+        db_pool = getattr(request.app.state, "db_pool", None)
+        if db_pool is None:
             raise HTTPException(status_code=503, detail="Database unavailable")
+        try:
+            async with db_pool.acquire() as conn:
+                await conn.fetchval("SELECT 1")
+        except Exception:
+            raise HTTPException(status_code=503, detail="Database unreachable")
         return HealthResponse(status="ok")
 
     @app.get("/api/rollout-flags", tags=["config"])

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
@@ -49,36 +50,41 @@ export function DataExport() {
   const user = useAuthStore((s) => s.user);
   const [format, setFormat] = useState<ExportFormat>('csv');
   const [exporting, setExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleExport = async () => {
     if (!user) return;
     setExporting(true);
+    setError(null);
 
     try {
       // Fetch all user sets
-      const { data: sets } = await supabase
+      const { data: sets, error: setsError } = await supabase
         .from('sets')
         .select('id, exercise_id, variant_id, weight, weight_unit, reps, rpe, set_type, notes, logged_at')
         .eq('user_id', user.id)
         .order('logged_at', { ascending: true });
+      if (setsError) throw setsError;
 
       // Fetch exercise names
       const exerciseIds = [...new Set((sets ?? []).map((s) => s.exercise_id))];
       let exerciseNames = new Map<string, string>();
       if (exerciseIds.length > 0) {
-        const { data: exercises } = await supabase
+        const { data: exercises, error: exError } = await supabase
           .from('exercises')
           .select('id, name')
           .in('id', exerciseIds);
+        if (exError) throw exError;
         exerciseNames = new Map((exercises ?? []).map((e) => [e.id, e.name]));
       }
 
       // Fetch PRs
-      const { data: prs } = await supabase
+      const { data: prs, error: prsError } = await supabase
         .from('personal_records')
         .select('id, exercise_id, record_type, rep_count, value, achieved_at')
         .eq('user_id', user.id)
         .order('achieved_at', { ascending: true });
+      if (prsError) throw prsError;
 
       // Enrich sets with exercise names
       const enrichedSets = (sets ?? []).map((s) => ({
@@ -110,6 +116,9 @@ export function DataExport() {
           'application/json'
         );
       }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Export failed. Please try again.';
+      setError(message);
     } finally {
       setExporting(false);
     }
@@ -139,6 +148,12 @@ export function DataExport() {
             variant={format === 'json' ? 'filled' : 'outlined'}
           />
         </Box>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 1.5 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
 
         <Button
           variant="outlined"

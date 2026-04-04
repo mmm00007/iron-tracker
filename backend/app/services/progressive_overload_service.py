@@ -9,13 +9,7 @@ from app.models.schemas import (
     ProgressiveOverloadResponse,
 )
 from app.services.utils import epley as _epley
-from app.services.utils import linear_regression as _shared_lr
-
-
-def _linear_regression(xs: list[float], ys: list[float]) -> tuple[float, float]:
-    """Wrapper preserving original non-None return contract (min_points=2)."""
-    slope, intercept = _shared_lr(xs, ys, min_points=2)
-    return slope or 0.0, intercept or (ys[0] if ys else 0.0)
+from app.services.utils import theil_sen_slope as _theil_sen
 
 
 def _detect_plateau(weekly_e1rms: list[float], threshold: float = 0.05) -> int:
@@ -55,7 +49,7 @@ async def compute_progressive_overload(
 
     For each exercise with sufficient data (≥3 sessions):
     - Computes overload rate via linear regression on best daily e1RM
-    - Detects plateaus (e1RM within 2% CV for 3+ weeks)
+    - Detects plateaus (e1RM within 5% CV for 4+ weeks)
     - Classifies as progressing / plateau / regressing
     """
     since = datetime.now(UTC) - timedelta(weeks=weeks)
@@ -107,7 +101,9 @@ async def compute_progressive_overload(
         xs = [(d - origin).days for d in sorted_days]
         ys = [day_best[d] for d in sorted_days]
 
-        slope, _ = _linear_regression([float(x) for x in xs], ys)
+        # Theil-Sen slope: resistant to outliers (a single mislogged weight
+        # won't flip the apparent trend). Falls back to 0 if insufficient data.
+        slope = _theil_sen([float(x) for x in xs], ys, min_points=3) or 0.0
         overload_rate = slope * 7  # kg per week
 
         # Weekly best for plateau detection
