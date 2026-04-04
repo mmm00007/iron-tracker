@@ -88,7 +88,9 @@ export function checkForPRs(
     // Windowed rep ranges — a set must fall within the bucket's range.
     // E.g., 5RM bucket only accepts 4-5 rep sets. Prevents 1RM from
     // dominating all buckets. Matches exercisePRs() in analytics.ts.
-    const [minReps, maxReps] = REP_WINDOWS[repCount];
+    const window = REP_WINDOWS[repCount];
+    if (!window) continue;
+    const [minReps, maxReps] = window;
     if (newSet.reps >= minReps && newSet.reps <= maxReps) {
       const prevRepMax = findExisting('rep_max', repCount);
       if (prevRepMax === null || newSet.weight > prevRepMax) {
