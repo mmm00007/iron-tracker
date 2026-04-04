@@ -52,6 +52,17 @@ cd backend && uv run ruff check .       # Lint
 cd backend && uv run ruff format .      # Format
 ```
 
+### Local Checks (mirrors CI)
+```bash
+./scripts/pre-commit-check.sh    # Fast: lint + format + typecheck (~15s)
+./scripts/pre-deploy-check.sh    # Full: audit + lint + typecheck + build + tests (~2-3 min)
+```
+
+The pre-commit check runs automatically on `git commit` via `core.hooksPath`. To set up on a fresh clone:
+```bash
+git config core.hooksPath scripts/git-hooks
+```
+
 > **Python environment**: Managed by [uv](https://docs.astral.sh/uv/). The venv lives at `backend/.venv`. Always use `uv run` or `uv sync` — never `pip install` directly.
 
 ### Code Analysis Tools

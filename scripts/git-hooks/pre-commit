@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Git pre-commit hook — delegates to scripts/pre-commit-check.sh
+# Setup: git config core.hooksPath scripts/git-hooks
+exec "$(dirname "$0")/../pre-commit-check.sh"
