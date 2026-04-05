@@ -300,12 +300,12 @@ async def test_exercise_variety_empty(mock_db_pool: MagicMock) -> None:
 
 async def test_exercise_variety_balanced_program(mock_db_pool: MagicMock) -> None:
     mock_db_pool._conn.fetch.return_value = [
-        {"exercise_name": "Bench Press", "set_count": 12, "sessions": 3},
-        {"exercise_name": "Barbell Row", "set_count": 12, "sessions": 3},
-        {"exercise_name": "Overhead Press", "set_count": 9, "sessions": 3},
-        {"exercise_name": "Pull Up", "set_count": 12, "sessions": 3},
-        {"exercise_name": "Squat", "set_count": 15, "sessions": 3},
-        {"exercise_name": "Romanian Deadlift", "set_count": 12, "sessions": 3},
+        {"exercise_name": "Bench Press", "db_movement_pattern": "horizontal_push", "set_count": 12, "sessions": 3},
+        {"exercise_name": "Barbell Row", "db_movement_pattern": "horizontal_pull", "set_count": 12, "sessions": 3},
+        {"exercise_name": "Overhead Press", "db_movement_pattern": "vertical_push", "set_count": 9, "sessions": 3},
+        {"exercise_name": "Pull Up", "db_movement_pattern": "vertical_pull", "set_count": 12, "sessions": 3},
+        {"exercise_name": "Squat", "db_movement_pattern": "squat", "set_count": 15, "sessions": 3},
+        {"exercise_name": "Romanian Deadlift", "db_movement_pattern": "hip_hinge", "set_count": 12, "sessions": 3},
     ]
 
     result = await compute_exercise_variety(FAKE_USER_ID, mock_db_pool)
@@ -319,8 +319,8 @@ async def test_exercise_variety_balanced_program(mock_db_pool: MagicMock) -> Non
 async def test_exercise_variety_narrow_program(mock_db_pool: MagicMock) -> None:
     """Only bench press and curls = very narrow."""
     mock_db_pool._conn.fetch.return_value = [
-        {"exercise_name": "Bench Press", "set_count": 30, "sessions": 5},
-        {"exercise_name": "Barbell Curl", "set_count": 5, "sessions": 2},
+        {"exercise_name": "Bench Press", "db_movement_pattern": "horizontal_push", "set_count": 30, "sessions": 5},
+        {"exercise_name": "Barbell Curl", "db_movement_pattern": "isolation", "set_count": 5, "sessions": 2},
     ]
 
     result = await compute_exercise_variety(FAKE_USER_ID, mock_db_pool)
