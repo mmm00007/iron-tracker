@@ -4,7 +4,7 @@
 // the runtime cache fills as the app loads.
 
 // Bump this on each deploy
-const VERSION = 'v2026-03-24';
+const VERSION = 'v2026-04-05';
 const CACHE_NAME = 'iron-tracker-' + VERSION;
 
 // App shell — minimal set to bootstrap the SPA offline
@@ -35,6 +35,13 @@ self.addEventListener('fetch', (event) => {
 
   // Only handle GET requests — POST/PUT/DELETE go straight to the network
   if (request.method !== 'GET') return;
+
+  // Skip cross-origin requests entirely. The browser's own caching handles
+  // <img src>, <link rel=stylesheet>, and fonts via img-src/style-src/font-src
+  // CSP directives. If we call fetch() here for a cross-origin URL, we're
+  // subject to connect-src instead, which correctly blocks raw.githubusercontent.com
+  // and fonts.googleapis.com (not in our connect-src allowlist).
+  if (new URL(request.url).origin !== self.location.origin) return;
 
   // SPA navigation — always serve the cached app shell (index.html).
   // Client-side routes like /log/uuid don't exist on the server; the SPA
